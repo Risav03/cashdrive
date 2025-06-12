@@ -14,13 +14,13 @@ export const FileItem = ({ item, onItemClick }: FileItemProps) => {
   return (
     <div
       onClick={() => onItemClick(item)}
-      className="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer"
+      className="flex flex-row items-center justify-center p-4 cursor-pointer h-full"
     >
-      <span className="text-2xl mr-3">{icon}</span>
-      <div>
-        <div className="font-medium">{item.name}</div>
+      <span className="text-4xl">{icon}</span>
+      <div className="text-center w-full">
+        <div className="font-medium text-gray-900 truncate">{item.name}</div>
         {item.type === 'file' && item.mime && (
-          <div className="text-sm text-gray-500">{item.mime}</div>
+          <div className="text-sm text-gray-600 truncate">{item.mime}</div>
         )}
       </div>
     </div>

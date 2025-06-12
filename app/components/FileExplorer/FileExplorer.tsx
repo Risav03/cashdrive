@@ -2,99 +2,140 @@
 
 import { useState, useEffect } from 'react';
 import { Item, BreadcrumbItem, UploadOptions, CreateFolderOptions } from '@/app/lib/types';
-import { getItemsByParentId, getBreadcrumbPath, uploadItem, createFolder, getItemById } from '@/app/lib/fileExplorer';
+import { getItemsByParentId, getBreadcrumbPath, uploadItem, createFolder, getUserRootFolder, getItemById } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { FileItem } from './FileItem';
 import { UploadModal } from './UploadModal';
 import { CreateFolderModal } from './CreateFolderModal';
+import { useApp } from '@/app/context/AppContext';
 
 export const FileExplorer = () => {
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const { user, isLoadingUser } = useApp();
+  const [currentFolder, setCurrentFolder] = useState<Item | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [folderName, setFolderName] = useState('');
 
-  const loadItems = async (folderId: string | null) => {
+  // Load root folder and its items when user is available
+  useEffect(() => {
+    async function loadRootFolder() {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const root = await getUserRootFolder();
+        setCurrentFolder(root);
+        const rootItems = await getItemsByParentId(root._id);
+        console.log('Root items:', rootItems);
+        setItems(rootItems);
+        setBreadcrumbs([]);
+      } catch (error) {
+        console.error('Failed to load root folder:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadRootFolder();
+  }, [user]);
+
+  const loadFolderContents = async () => {
+    if (!currentFolder || !user) return;
+    
     setIsLoading(true);
     try {
-      const newItems = await getItemsByParentId(folderId);
+      const newItems = await getItemsByParentId(currentFolder._id);
       setItems(newItems);
-      
-      if (folderId) {
-        const path = await getBreadcrumbPath(folderId);
-        setBreadcrumbs(path.filter(item => item.id !== 'root1'));
-      } else {
-        setBreadcrumbs([]);
-      }
+      const path = await getBreadcrumbPath(currentFolder._id);
+      setBreadcrumbs(path);
+    } catch (error) {
+      console.error('Failed to load folder contents:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Update the useEffect to use the moved function
   useEffect(() => {
-    loadItems(currentFolderId);
-  }, [currentFolderId]);
+    if (currentFolder) {
+      loadFolderContents();
+    }
+  }, [currentFolder, user]);
+
+  // Show loading state while user is being fetched
+  if (isLoadingUser) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show message if no user is found
+  if (!user) {
+    return <div>Please log in to view your files.</div>;
+  }
 
   const handleItemClick = (item: Item) => {
     if (item.type === 'folder') {
-      setCurrentFolderId(item.id);
+      setCurrentFolder(item);
     } else {
-      // Handle file click - could open preview, download, etc.
       console.log('File clicked:', item);
     }
   };
 
-  const handleNavigate = (folderId: string) => {
-    setCurrentFolderId(folderId);
+  const handleNavigate = async (folderId: string) => {
+    const targetFolder = breadcrumbs.find(item => item.id === folderId);
+    if (targetFolder) {
+      const folder = await getItemById(targetFolder.id);
+      setCurrentFolder(folder);
+    }
   };
 
   const handleUpload = async (options: UploadOptions) => {
     try {
       await uploadItem(options);
-      await loadItems(currentFolderId);
+      await loadFolderContents();
     } catch (error) {
       console.error('Upload failed:', error);
-      // Handle error (show notification, etc.)
     }
   };
 
   const handleBack = async () => {
-    if (currentFolderId) {
-      // Find the current folder to get its parent
-      const currentFolder = await getItemById(currentFolderId);
-      if (currentFolder?.parentId === 'root1') {
-        // If parent is root, go to root view (null)
-        setCurrentFolderId(null);
-      } else if (currentFolder?.parentId) {
-        // Otherwise go to the parent folder
-        setCurrentFolderId(currentFolder.parentId);
+    if (currentFolder && breadcrumbs.length > 0) {
+      const parentBreadcrumb = breadcrumbs[breadcrumbs.length - 2];
+      
+      if (!parentBreadcrumb) {
+        const root = await getUserRootFolder();
+        setCurrentFolder(root);
+      } else {
+        const parentFolder = await getItemById(parentBreadcrumb.id);
+        setCurrentFolder(parentFolder);
       }
     }
   };
 
   const handleCreateFolder = async (options: CreateFolderOptions) => {
     try {
-      // If we're at root (currentFolderId is null), use 'root1' as parentId
-      const parentId = currentFolderId || 'root1';
+      const parentId = currentFolder?._id || user.rootStorageId;
       
       await createFolder({
         ...options,
-        parentId // Override the parentId to ensure it's created in current folder
+        parentId
       });
       
-      await loadItems(currentFolderId); // This will refresh the current view
+      await loadFolderContents();
     } catch (error) {
       console.error('Failed to create folder:', error);
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 text-slate-800">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-black">File Explorer</h1>
+        <h1 className="text-2xl font-bold">File Explorer</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setIsCreateFolderModalOpen(true)}
@@ -111,17 +152,16 @@ export const FileExplorer = () => {
         </div>
       </div>
 
-      {/* Navigation area with back button and breadcrumbs */}
-      <div className="flex items-center gap-4 mb-4 text-black">
-        {currentFolderId && (
+      <div className="flex items-center gap-4 mb-4">
+        {currentFolder?._id && (
           <button
             onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
             title="Go back"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
-              className="h-6 w-6" 
+              className="h-6 w-6 text-gray-600" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
@@ -141,25 +181,18 @@ export const FileExplorer = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64 text-black">
+        <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 text-black">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
-            <div key={item.id} className="flex flex-row items-center p-4 rounded-lg bg-black/10 hover:bg-black/20 transition-colors cursor-pointer" onClick={() => handleItemClick(item)}>
-              <div className="w-16 h-16 mb-2 flex items-center justify-center">
-                {item.type === 'folder' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-center truncate w-full">{item.name}</span>
+            <div key={item._id} className="bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors shadow-sm">
+              <FileItem
+                key={item._id}
+                item={item}
+                onItemClick={handleItemClick}
+              />
             </div>
           ))}
         </div>
@@ -167,20 +200,17 @@ export const FileExplorer = () => {
 
       <CreateFolderModal
         isOpen={isCreateFolderModalOpen}
-        onClose={() => {
-          setIsCreateFolderModalOpen(false);
-          setFolderName('');
-        }}
+        onClose={() => setIsCreateFolderModalOpen(false)}
         onCreateFolder={handleCreateFolder}
-        parentId={currentFolderId || 'root1'}
+        parentId={currentFolder?._id || user.rootStorageId}
       />
 
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
-        parentId={currentFolderId || 'root1'}
+        parentId={currentFolder?._id || user.rootStorageId}
       />
     </div>
-  );
+  )
 }; 

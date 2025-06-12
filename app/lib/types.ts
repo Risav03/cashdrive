@@ -1,7 +1,7 @@
 export type ItemType = 'file' | 'folder';
 
 export interface Item {
-  id: string;
+  _id: string;
   name: string;
   type: ItemType;
   mime?: string;
@@ -12,7 +12,7 @@ export interface Item {
 }
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   wallet: string;
   email: string;
@@ -22,6 +22,7 @@ export interface User {
 export interface BreadcrumbItem {
   id: string;
   name: string;
+  type: ItemType;
 }
 
 export interface UploadOptions {

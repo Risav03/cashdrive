@@ -1,14 +1,16 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Session } from 'next-auth';
+import { User } from '../lib/types';
+import { getCurrentUser } from '../lib/frontend/userFunctions';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface AppContextType {
-  // Auth state
-  session: Session | null;
-  setSession: (session: Session | null) => void;
+  user: User | null;
+  isLoadingUser: boolean;
+  refreshUser: () => Promise<void>;
   
   // Theme state
   isDarkMode: boolean;
@@ -27,14 +29,10 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Auth state
-  const [session, setSession] = useState<Session | null>(null);
-  
-  // Theme state
+  // All useState hooks first
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
-  
-  // Notification state
   const [notification, setNotification] = useState<{
     message: string;
     type: NotificationType;
@@ -44,6 +42,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     type: 'info',
     show: false,
   });
+
+  // All functions next
+  const refreshUser = async () => {
+    if (isLoadingUser) return; // Prevent multiple simultaneous calls
+    
+    setIsLoadingUser(true);
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      setUser(null);
+      showNotification('Failed to fetch user data', 'error');
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
+
+  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
   const showNotification = (message: string, type: NotificationType) => {
     setNotification({ message, type, show: true });
@@ -57,16 +74,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotification(prev => ({ ...prev, show: false }));
   };
 
+  // useEffect hooks last
+  useEffect(() => {
+    refreshUser();
+  }, []); // Empty dependency array since refreshUser handles its own loading state
+
   const value = {
-    // Auth
-    session,
-    setSession,
-    
-    // Theme
+    user,
+    isLoadingUser,
+    refreshUser,
     isDarkMode,
     toggleDarkMode,
-    
-    // Notifications
     notification,
     showNotification,
     hideNotification,

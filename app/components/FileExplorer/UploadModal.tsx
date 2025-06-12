@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UploadOptions } from '@/app/lib/types';
 
 interface UploadModalProps {
@@ -15,6 +15,16 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
+
+  // Reset form when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadType('file');
+      setFile(null);
+      setUrl('');
+      setName('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -32,6 +42,12 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
     };
 
     await onUpload(options);
+    
+    // Reset form state after successful upload
+    setUploadType('file');
+    setFile(null);
+    setUrl('');
+    setName('');
     onClose();
   };
 

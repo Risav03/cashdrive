@@ -10,7 +10,7 @@ interface BreadcrumbNavProps {
 
 export const BreadcrumbNav = ({ items, onNavigate }: BreadcrumbNavProps) => {
   return (
-    <nav className="flex items-center space-x-2 p-4 bg-gray-100 rounded-lg">
+    <nav className="flex items-center space-x-2 py-2 px-3 bg-gray-100 rounded-lg">
       {items.map((item, index) => (
         <div key={item.id} className="flex items-center">
           {index > 0 && <span className="mx-2 text-gray-500">/</span>}
@@ -18,7 +18,7 @@ export const BreadcrumbNav = ({ items, onNavigate }: BreadcrumbNavProps) => {
             onClick={() => onNavigate(item.id)}
             className="text-blue-600 hover:text-blue-800 hover:underline"
           >
-            {item.name}
+            {index === 0 ? 'My Drive' : item.name}
           </button>
         </div>
       ))}

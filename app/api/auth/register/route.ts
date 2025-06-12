@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
+import { Item } from '@/app/models/Item';
 
 export async function POST(req: Request) {
   try {
@@ -24,11 +25,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create new user
+    // Create root folder for the user
+    const rootFolder = await Item.create({
+      name: email,
+      type: 'folder',
+      parentId: null,
+    });
+
+    // Create new user with root folder reference
     const user = await User.create({
       name,
       email,
       password,
+      rootFolder: rootFolder._id
     });
 
     return NextResponse.json(
@@ -38,6 +47,7 @@ export async function POST(req: Request) {
           id: user._id,
           name: user.name,
           email: user.email,
+          rootFolder: rootFolder._id
         }
       },
       { status: 201 }

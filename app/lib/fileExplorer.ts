@@ -16,7 +16,7 @@ export const getItemsByParentId = async (parentId: string | null): Promise<Item[
 
 export const getItemById = async (id: string): Promise<Item | null> => {
   await new Promise(resolve => setTimeout(resolve, 100));
-  return mockItems.find(item => item.id === id) || null;
+  return mockItems.find(item => item._id === id) || null;
 };
 
 export const getBreadcrumbPath = async (folderId: string): Promise<BreadcrumbItem[]> => {
@@ -27,7 +27,7 @@ export const getBreadcrumbPath = async (folderId: string): Promise<BreadcrumbIte
     const item = await getItemById(currentId);
     if (!item) break;
     
-    path.unshift({ id: item.id, name: item.name });
+    path.unshift({ id: item._id, name: item.name, type: item.type });
     currentId = item.parentId;
   }
 
@@ -40,7 +40,7 @@ export const uploadItem = async (options: UploadOptions): Promise<Item> => {
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const newItem: Item = {
-    id: `new-${Date.now()}`,
+    _id: `new-${Date.now()}`,
     name: options.name,
     type: 'file',
     mime: options.type === 'file' ? options.file?.type : undefined,
@@ -60,7 +60,7 @@ export const createFolder = async (options: CreateFolderOptions): Promise<Item> 
   await new Promise(resolve => setTimeout(resolve, 500));
 
   const newFolder: Item = {
-    id: `folder-${Date.now()}`,
+    _id: `folder-${Date.now()}`,
     name: options.name,
     type: 'folder',
     parentId: options.parentId,
@@ -92,5 +92,5 @@ export const getFileIcon = (mime?: string): string => {
   if (mime.includes('word')) return '📝';
   if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
   
-  return '��';
+  return '📄';
 }; 
