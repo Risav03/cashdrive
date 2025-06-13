@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
 import { Item } from '@/app/models/Item';
+
+import { CdpClient } from "@coinbase/cdp-sdk";
+import dotenv from "dotenv";
+
 import { revalidatePath } from 'next/cache';
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +32,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    dotenv.config();
+
+    const cdp = new CdpClient();
+    const account = await cdp.evm.createAccount();
+
     // Create root folder for the user
     const rootFolder = await Item.create({
       name: email,
@@ -39,17 +49,19 @@ export async function POST(req: NextRequest) {
       name,
       email,
       password,
-      rootFolder: rootFolder._id
+      rootFolder: rootFolder._id,
+      wallet: account.address
     });
 
     return NextResponse.json(
-      { 
+      {
         message: 'User created successfully',
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
-          rootFolder: rootFolder._id
+          rootFolder: rootFolder._id,
+          wallet: user.wallet
         }
       },
       { status: 201 }
