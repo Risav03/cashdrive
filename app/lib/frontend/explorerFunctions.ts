@@ -112,3 +112,24 @@ export async function createFolder(options: CreateFolderOptions): Promise<Item> 
     throw new Error(error.message || 'Failed to create folder');
   }
 }
+
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+export const getFileIcon = (mime?: string): string => {
+  if (!mime) return '📁';
+  
+  if (mime.startsWith('image/')) return '🖼️';
+  if (mime.startsWith('video/')) return '🎥';
+  if (mime.startsWith('audio/')) return '🎵';
+  if (mime.includes('pdf')) return '📄';
+  if (mime.includes('word')) return '📝';
+  if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
+  
+  return '📄';
+}; 

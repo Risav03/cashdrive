@@ -1,18 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import { Item } from '@/app/models/Item';
 import { getUserRootFolder } from '@/app/lib/backend/helperFunctions/getUserRootFolder';
 
 // Get item by ID
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+  request: NextRequest,
+){
   try {
+    
+    const id = request.nextUrl.pathname.split("/")[3]
+
     await getUserRootFolder(); // Just to verify authentication
     await connectDB();
     
-    const item = await Item.findById(params.id);
+    const item = await Item.findById(id);
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }

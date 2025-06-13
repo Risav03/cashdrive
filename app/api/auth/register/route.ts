@@ -1,12 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
 import { Item } from '@/app/models/Item';
+
 import { CdpClient } from "@coinbase/cdp-sdk";
 import dotenv from "dotenv";
 
-export async function POST(req: Request) {
+import { revalidatePath } from 'next/cache';
+
+
+export async function POST(req: NextRequest) {
   try {
+    revalidatePath("/", "layout");
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../api/auth/[...nextauth]/route';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
+import { authOptions } from '@/app/lib/backend/authConfig';
 
 export async function GET() {
   try {
