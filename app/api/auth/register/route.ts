@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
 
     const cdp = new CdpClient();
     const account = await cdp.evm.createAccount();
-    console.log(`Created EVM account: ${account.address} ${account}`);
 
     // Create root folder for the user
     const rootFolder = await Item.create({
@@ -51,6 +50,7 @@ export async function POST(req: NextRequest) {
       email,
       password,
       rootFolder: rootFolder._id,
+      wallet: account.address
     });
 
     return NextResponse.json(
@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
           id: user._id,
           name: user.name,
           email: user.email,
-          rootFolder: rootFolder._id
+          rootFolder: rootFolder._id,
+          wallet: user.wallet
         }
       },
       { status: 201 }
