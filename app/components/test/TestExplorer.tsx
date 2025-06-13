@@ -1,14 +1,13 @@
 "use client";
 import { useState } from 'react';
 import {
-  getUserRootFolder,
-  getItemsByParentId,
-  getItemById,
+  createFolder,
   getBreadcrumbPath,
-  uploadItem,
-  createFolder
+  getItem,
+  getItemsByParentId,
+  getUserRootFolder,
+  uploadItem
 } from '../../lib/frontend/explorerFunctions';
-import { Item, BreadcrumbItem } from '../../lib/types';
 
 export default function TestExplorer() {
   const [result, setResult] = useState<any>(null);
@@ -31,6 +30,7 @@ export default function TestExplorer() {
     url: 'https://example.com/file.txt'
   };
 
+
   const handleTest = async (fn: () => Promise<any>, label: string, req?: any) => {
     setLoading(label);
     setResult({ request: req || null, response: null });
@@ -50,7 +50,7 @@ export default function TestExplorer() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button onClick={() => handleTest(getUserRootFolder, 'getUserRootFolder')}>Test getUserRootFolder</button>
         <button onClick={() => handleTest(() => getItemsByParentId(dummyFolderId), 'getItemsByParentId', { parentId: dummyFolderId })}>Test getItemsByParentId</button>
-        <button onClick={() => handleTest(() => getItemById(dummyItemId), 'getItemById', { id: dummyItemId })}>Test getItemById</button>
+        <button onClick={() => handleTest(() => getItem(dummyItemId), 'getItem', { id: dummyItemId })}>Test getItem</button>
         <button onClick={() => handleTest(() => getBreadcrumbPath(dummyFolderId), 'getBreadcrumbPath', { folderId: dummyFolderId })}>Test getBreadcrumbPath</button>
         <button onClick={() => handleTest(() => uploadItem(dummyUploadFile), 'uploadItem (file)', dummyUploadFile)}>Test uploadItem (file)</button>
         <button onClick={() => handleTest(() => uploadItem(dummyUploadUrl), 'uploadItem (url)', dummyUploadUrl)}>Test uploadItem (url)</button>

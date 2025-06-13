@@ -36,4 +36,14 @@ export interface UploadOptions {
 export interface CreateFolderOptions {
   name: string;
   parentId: string | null;
+}
+
+export interface UpdateItemOptions {
+  name?: string;
+  parentId?: string;
+}
+
+export interface DeleteResult {
+  message: string;
+  deletedCount: number;
 } 

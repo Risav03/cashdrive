@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { Item, BreadcrumbItem, UploadOptions, CreateFolderOptions, User } from '../types';
+import { BreadcrumbItem, CreateFolderOptions, DeleteResult, Item, UpdateItemOptions, UploadOptions } from '../types';
 
-// Fetches the user's root folder item from the backend.  
 export async function getUserRootFolder(): Promise<Item> {
   try {
     const response = await axios.get('/api/items');
@@ -40,10 +39,9 @@ export async function getItemsByParentId(parentId: string | null): Promise<Item[
   }
 }
 
-// Fetches item by its ID.
-export async function getItemById(id: string): Promise<Item | null> {
+export async function getItem(itemId: string): Promise<Item> {
   try {
-    const response = await axios.get(`/api/items/${encodeURIComponent(id)}`);
+    const response = await axios.get(`/api/items/${itemId}`);
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
@@ -52,11 +50,10 @@ export async function getItemById(id: string): Promise<Item | null> {
     if (error.response && error.response.status === 404) {
       throw new Error('Item not found');
     }
-    throw new Error(error.message || 'Failed to fetch item');
+    throw new Error(error.message || 'Failed to get item');
   }
 }
 
-// Fetches breadcrumb path from root to the given folder ID.
 export async function getBreadcrumbPath(folderId: string): Promise<BreadcrumbItem[]> {
   try {
     const response = await axios.get(`/api/items/path?itemId=${encodeURIComponent(folderId)}`);
@@ -73,22 +70,21 @@ export async function getBreadcrumbPath(folderId: string): Promise<BreadcrumbIte
   }
 }
 
-// Uploads a file or URL to the backend and returns the created Item.
 export async function uploadItem(options: UploadOptions): Promise<Item> {
   try {
     const formData = new FormData();
     formData.append('name', options.name);
     formData.append('parentId', options.parentId);
+    
     if (options.type === 'file' && options.file) {
       formData.append('file', options.file);
     } else if (options.type === 'url' && options.url) {
-      formData.append('file', new Blob([], { type: 'text/plain' })); // Placeholder empty file
       formData.append('url', options.url);
     } else {
-      throw new Error('Invalid upload options');
+      throw new Error('Invalid upload options: must provide either file or URL');
     }
 
-    const response = await axios.post('/api/items/upload', formData, {
+    const response = await axios.post('/api/items', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -100,10 +96,15 @@ export async function uploadItem(options: UploadOptions): Promise<Item> {
   }
 }
 
-// Creates a new folder on the backend and returns the created Item.
 export async function createFolder(options: CreateFolderOptions): Promise<Item> {
   try {
-    const response = await axios.post('/api/items', { name: options.name, parentId: options.parentId, type: 'folder' });
+    const response = await axios.post('/api/items', {
+      name: options.name,
+      parentId: options.parentId,
+      type: 'folder'
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+    });
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
@@ -132,4 +133,63 @@ export const getFileIcon = (mime?: string): string => {
   if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
   
   return '📄';
-}; 
+};
+
+export async function updateItem(itemId: string, updates: UpdateItemOptions): Promise<Item> {
+  try {
+    const item = await getItem(itemId);
+    
+    let response;
+    
+    if (item.type === 'file') {
+      const formData = new FormData();
+      if (updates.name) {
+        formData.append('name', updates.name);
+      }
+      if (updates.parentId !== undefined) {
+        formData.append('parentId', updates.parentId || '');
+      }
+      
+      response = await axios.put(`/api/items/${itemId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } else {
+      response = await axios.put(`/api/items/${itemId}`, updates, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      throw new Error('Unauthorized');
+    }
+    if (error.response && error.response.status === 404) {
+      throw new Error('Item not found');
+    }
+    throw new Error(error.message || 'Failed to update item');
+  }
+}
+
+export async function renameItem(itemId: string, newName: string): Promise<Item> {
+  return updateItem(itemId, { name: newName });
+}
+
+export async function moveItem(itemId: string, newParentId: string | null): Promise<Item> {
+  return updateItem(itemId, { parentId: newParentId || undefined });
+}
+
+export async function deleteItem(itemId: string): Promise<DeleteResult> {
+  try {
+    const response = await axios.delete(`/api/items/${itemId}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      throw new Error('Unauthorized');
+    }
+    if (error.response && error.response.status === 404) {
+      throw new Error('Item not found');
+    }
+    throw new Error(error.message || 'Failed to delete item');
+  }
+} 

@@ -1,9 +1,9 @@
-import NextAuth, { DefaultSession, User as NextAuthUser } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { JWT } from 'next-auth/jwt';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
-import { AuthOptions } from 'next-auth';
+import { AuthOptions, DefaultSession, User as NextAuthUser } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { secrets } from '../config';
 
 // Define custom user type
 interface CustomUser extends NextAuthUser {
@@ -57,7 +57,7 @@ export const authOptions: AuthOptions = {
       }
     })
   ],
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: secrets.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days

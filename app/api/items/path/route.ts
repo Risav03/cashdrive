@@ -3,7 +3,6 @@ import connectDB from '@/app/lib/mongodb';
 import { Item } from '@/app/models/Item';
 import { getUserRootFolder } from '@/app/lib/backend/helperFunctions/getUserRootFolder';
 
-// Get path from root to item
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

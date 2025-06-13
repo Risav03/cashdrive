@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
+import { secrets, validateMongoConfig } from './config';
 
-// Add this type declaration at the top of the file
 declare global {
   var mongoose: {
     conn: typeof mongoose | null;
@@ -8,9 +8,7 @@ declare global {
   } | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
+if (!validateMongoConfig()) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env');
 }
 
@@ -33,7 +31,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(secrets.MONGODB_URI, opts).then((mongoose) => {
       return mongoose;
     });
   }

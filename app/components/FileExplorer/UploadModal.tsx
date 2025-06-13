@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { UploadOptions } from '@/app/lib/types';
+import { useEffect, useState } from 'react';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -112,7 +112,8 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              disabled={uploadType === 'file' ? !file : !url}
             >
               Upload
             </button>

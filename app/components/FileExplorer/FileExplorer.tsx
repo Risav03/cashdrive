@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Item, BreadcrumbItem, UploadOptions, CreateFolderOptions } from '@/app/lib/types';
-import { getItemsByParentId, getBreadcrumbPath, uploadItem, createFolder, getUserRootFolder, getItemById } from '@/app/lib/frontend/explorerFunctions';
+import { useApp } from '@/app/context/AppContext';
+import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, getUserRootFolder, uploadItem } from '@/app/lib/frontend/explorerFunctions';
+import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
+import { useEffect, useState } from 'react';
 import { BreadcrumbNav } from './BreadcrumbNav';
+import { CreateFolderModal } from './CreateFolderModal';
 import { FileItem } from './FileItem';
 import { UploadModal } from './UploadModal';
-import { CreateFolderModal } from './CreateFolderModal';
-import { useApp } from '@/app/context/AppContext';
 
 export const FileExplorer = () => {
   const { user, isLoadingUser } = useApp();
@@ -18,7 +18,6 @@ export const FileExplorer = () => {
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load root folder and its items when user is available
   useEffect(() => {
     async function loadRootFolder() {
       if (!user) return;
@@ -57,14 +56,12 @@ export const FileExplorer = () => {
     }
   };
 
-  // Update the useEffect to use the moved function
   useEffect(() => {
     if (currentFolder) {
       loadFolderContents();
     }
   }, [currentFolder, user]);
 
-  // Show loading state while user is being fetched
   if (isLoadingUser) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -90,7 +87,7 @@ export const FileExplorer = () => {
   const handleNavigate = async (folderId: string) => {
     const targetFolder = breadcrumbs.find(item => item.id === folderId);
     if (targetFolder) {
-      const folder = await getItemById(targetFolder.id);
+      const folder = await getItem(targetFolder.id);
       setCurrentFolder(folder);
     }
   };
@@ -112,7 +109,7 @@ export const FileExplorer = () => {
         const root = await getUserRootFolder();
         setCurrentFolder(root);
       } else {
-        const parentFolder = await getItemById(parentBreadcrumb.id);
+        const parentFolder = await getItem(parentBreadcrumb.id);
         setCurrentFolder(parentFolder);
       }
     }
