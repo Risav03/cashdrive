@@ -74,6 +74,7 @@ export const FileExplorer = () => {
   }
 
   // Show message if no user is found
+
   if (!user) {
     return <div>Please log in to view your files.</div>;
   }

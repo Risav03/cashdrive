@@ -2,8 +2,9 @@
 
 import SignInForm from '@/app/components/auth/SignInForm';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const registered = searchParams.get('registered');
 
@@ -17,4 +18,12 @@ export default function SignIn() {
       <SignInForm />
     </div>
   );
-} 
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
+  );
+}

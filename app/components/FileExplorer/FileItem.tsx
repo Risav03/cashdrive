@@ -1,7 +1,7 @@
 'use client';
 
 import { Item } from '@/app/lib/types';
-import { getFileIcon } from '@/app/lib/fileExplorer';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
 
 interface FileItemProps {
   item: Item;
