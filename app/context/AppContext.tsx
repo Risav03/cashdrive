@@ -4,6 +4,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { Session } from 'next-auth';
 import { User } from '../lib/types';
 import { getCurrentUser } from '../lib/frontend/userFunctions';
+import { useSession } from 'next-auth/react';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -74,10 +75,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotification(prev => ({ ...prev, show: false }));
   };
 
+  const {data:session} = useSession()
+
   // useEffect hooks last
   useEffect(() => {
+    if(session)
     refreshUser();
-  }, []); // Empty dependency array since refreshUser handles its own loading state
+  }, [session]); // Empty dependency array since refreshUser handles its own loading state
 
   const value = {
     user,
