@@ -5,7 +5,7 @@ import { Listing } from '@/app/models/Listing';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     await connectDB();
     
