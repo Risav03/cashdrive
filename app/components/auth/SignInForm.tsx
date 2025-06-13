@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Background } from '../ui/Background';
+import { Input } from '../ui/Input';
 
 export default function SignInForm() {
   const router = useRouter();
@@ -44,15 +46,16 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Background/>
+      <div className="max-w-md bg-purple-900/10 w-full space-y-8 glass rounded-2xl px-6 py-12">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className=" text-center text-3xl font-extrabold text-white">
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="/auth/signup" className="font-medium text-purple-600 hover:text-purple-500">
               create a new account
             </Link>
           </p>
@@ -70,36 +73,33 @@ export default function SignInForm() {
               )}
             </div>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
+          <div className="space-y-4">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              label='Email address'
+              required
+              className="glass bg-purple-600/10 "
+              placeholder="Email address"
+            />
+            
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              label='Password'
+              required
+              className="glass bg-purple-600/10 "
+              placeholder="Password"
+            />
           </div>
 
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
