@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
   },
+  wallet: {
+    type: String,
+    required: [true, 'Wallet is required'],
+    unique: true,
+  },
   name: {
     type: String,
     required: [true, 'Name is required'],
@@ -22,6 +27,7 @@ const userSchema = new mongoose.Schema({
     ref: 'Item',
     required: true,
   },
+
   createdAt: {
     type: Date,
     default: Date.now,
