@@ -110,7 +110,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    if (listing.seller.toString() !== session.user.id) {
+    if (listing.seller._id.toString() !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
