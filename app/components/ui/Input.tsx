@@ -14,8 +14,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full flex-col flex gap-2">
         <input
           className={cn(
-            "p-2 placeholder:text-gray-300/40 bg-gray-300/20 w-full",
-            "peer focus:outline-none focus:border-black",
+            "p-2 placeholder:text-white/40 w-full",
+            "peer focus:outline-none border-none focus:border-white",
             "focus:border-2 rounded-lg text-white border-[1px] duration-200",
             error && "border-red-500",
             className
@@ -24,7 +24,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {label && (
-          <h2 className={cn("text-xs peer-focus:opacity-100 opacity-75 order-first duration-200 text-purple-500 font-bold ", labelClassName)}>
+          <h2 className={cn("text-xs peer-focus:opacity-100 opacity-75 order-first duration-200 text-white font-bold ", labelClassName)}>
             {label}
           </h2>
         )}

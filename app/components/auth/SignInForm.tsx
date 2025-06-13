@@ -48,15 +48,15 @@ export default function SignInForm() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Background/>
-      <div className="max-w-md bg-purple-900/10 w-full space-y-8 glass rounded-2xl px-6 py-12">
+      <div className="max-w-md bg-white/5 w-full space-y-8 glass shadow-2xl shadow-black/50 rounded-2xl px-6 py-12">
         <div>
-          <h2 className=" text-center text-3xl font-extrabold text-white">
+          <h2 className=" text-center text-3xl font-extrabold text-white/80">
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            or{' '}
             <Link href="/auth/signup" className="font-medium text-purple-600 hover:text-purple-500">
-              create a new account
+              Create a new Account
             </Link>
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function SignInForm() {
               type="email"
               label='Email address'
               required
-              className="glass bg-purple-600/10 "
+              className=" glass "
               placeholder="Email address"
             />
             
@@ -90,7 +90,8 @@ export default function SignInForm() {
               type="password"
               label='Password'
               required
-              className="glass bg-purple-600/10 "
+  
+              className=" glass "
               placeholder="Password"
             />
           </div>
@@ -99,7 +100,7 @@ export default function SignInForm() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className=" group glass relative w-full flex justify-center py-2 px-4 text-md font-bold rounded-full cursor-pointer text-white bg-black/40 hover:bg-black/30 hover:shadow-lg shadow-black/20 hover:translate-y-[-2px] duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
