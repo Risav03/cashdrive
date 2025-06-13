@@ -78,6 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
+    console.log("session", session);
     if(session && !user)
     refreshUser();
   }, [session]);

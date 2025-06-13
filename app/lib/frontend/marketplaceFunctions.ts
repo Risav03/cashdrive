@@ -6,6 +6,7 @@ import {
     ListingsResponse,
     UpdateListingOptions
 } from '../types';
+import { useSession } from 'next-auth/react';
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {

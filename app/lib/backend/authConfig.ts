@@ -72,7 +72,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }: { token: JWT, user?: CustomUser }) {
       if (user) {
         token.id = user.id;
-        token.wallet = user.wallet || "";
+        token.wallet = user.wallet;
       }
       return token;
     },

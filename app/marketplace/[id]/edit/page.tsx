@@ -73,7 +73,7 @@ export default function EditListingPage() {
         status: formData.status,
         tags: tags.length > 0 ? tags : []
       };
-
+      console.log(session);
       await updateListing(listingId, updateData);
       router.push(`/marketplace/${listingId}`);
     } catch (err: any) {
@@ -161,7 +161,7 @@ export default function EditListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ">
       <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Navigation */}
         <nav className="mb-8">
@@ -188,7 +188,7 @@ export default function EditListingPage() {
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-6 text-black">
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
@@ -219,7 +219,7 @@ export default function EditListingPage() {
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-black mt-1">
                   {formData.description.length}/1000 characters
                 </p>
               </div>
@@ -230,7 +230,7 @@ export default function EditListingPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
+                    <span className="text-black sm:text-sm">$</span>
                   </div>
                   <input
                     type="number"
@@ -265,7 +265,7 @@ export default function EditListingPage() {
 
               <div>
                 <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags <span className="text-gray-500">(optional)</span>
+                  Tags <span className="text-black">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -276,7 +276,7 @@ export default function EditListingPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., design, template, pdf (comma-separated)"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-black mt-1">
                   Separate multiple tags with commas
                 </p>
               </div>
