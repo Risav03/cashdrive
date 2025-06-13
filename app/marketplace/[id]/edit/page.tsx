@@ -73,7 +73,6 @@ export default function EditListingPage() {
         status: formData.status,
         tags: tags.length > 0 ? tags : []
       };
-      console.log(session);
       await updateListing(listingId, updateData);
       router.push(`/marketplace/${listingId}`);
     } catch (err: any) {

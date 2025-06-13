@@ -38,7 +38,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Session:', session);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -51,7 +51,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
     
-    console.log(listing.seller._id.toString(), session.user.id)
     if (listing.seller._id.toString() !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
