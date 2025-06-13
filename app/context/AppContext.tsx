@@ -77,9 +77,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const {data:session} = useSession()
 
+  console.log("SESS", session);
   // useEffect hooks last
   useEffect(() => {
-    if(session)
+    if(session && !user)
     refreshUser();
   }, [session]); // Empty dependency array since refreshUser handles its own loading state
 

@@ -10,6 +10,7 @@ interface CustomUser extends NextAuthUser {
   id: string;
   name?: string | null;
   email?: string | null;
+  wallet?: string | null;
 }
 
 // Extend next-auth types
@@ -53,6 +54,7 @@ export const authOptions: AuthOptions = {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
+          wallet: user.wallet,
         };
       }
     })
@@ -70,12 +72,14 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }: { token: JWT, user?: CustomUser }) {
       if (user) {
         token.id = user.id;
+        token.wallet = user.wallet || "";
       }
       return token;
     },
     async session({ session, token }: { session: any, token: JWT }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.wallet = token.wallet as string | null;
       }
       return session;
     },
