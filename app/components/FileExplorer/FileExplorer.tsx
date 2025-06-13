@@ -4,18 +4,21 @@ import { useApp } from '@/app/context/AppContext';
 import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, getUserRootFolder, uploadItem } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
 import { useEffect, useState } from 'react';
+import CreateListingModal from '../CreateListingModal';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { CreateFolderModal } from './CreateFolderModal';
 import { FileItem } from './FileItem';
 import { UploadModal } from './UploadModal';
 
 export const FileExplorer = () => {
-  const { user, isLoadingUser } = useApp();
+  const { user, isLoadingUser, showNotification } = useApp();
   const [currentFolder, setCurrentFolder] = useState<Item | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
+  const [selectedItemForListing, setSelectedItemForListing] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -71,7 +74,6 @@ export const FileExplorer = () => {
   }
 
   // Show message if no user is found
-
   if (!user) {
     return <div>Please log in to view your files.</div>;
   }
@@ -82,6 +84,16 @@ export const FileExplorer = () => {
     } else {
       console.log('File clicked:', item);
     }
+  };
+
+  const handleListToMarketplace = (item: Item) => {
+    setSelectedItemForListing(item);
+    setIsListingModalOpen(true);
+  };
+
+  const handleListingCreated = () => {
+    showNotification('Item listed to marketplace successfully!', 'success');
+    setSelectedItemForListing(null);
   };
 
   const handleNavigate = async (folderId: string) => {
@@ -185,13 +197,12 @@ export const FileExplorer = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
-            <div key={item._id} className="bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors shadow-sm">
-              <FileItem
-                key={item._id}
-                item={item}
-                onItemClick={handleItemClick}
-              />
-            </div>
+            <FileItem
+              key={item._id}
+              item={item}
+              onItemClick={handleItemClick}
+              onListToMarketplace={handleListToMarketplace}
+            />
           ))}
         </div>
       )}
@@ -207,8 +218,15 @@ export const FileExplorer = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
-        parentId={currentFolder?._id || user.rootStorageId}
+        parentId={currentFolder?._id || ''}
+      />
+
+      <CreateListingModal
+        isOpen={isListingModalOpen}
+        onClose={() => setIsListingModalOpen(false)}
+        selectedItem={selectedItemForListing}
+        onListingCreated={handleListingCreated}
       />
     </div>
-  )
+  );
 }; 

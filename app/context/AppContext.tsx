@@ -1,10 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Session } from 'next-auth';
-import { User } from '../lib/types';
-import { getCurrentUser } from '../lib/frontend/userFunctions';
 import { useSession } from 'next-auth/react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { getCurrentUser } from '../lib/frontend/userFunctions';
+import { User } from '../lib/types';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -75,14 +74,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotification(prev => ({ ...prev, show: false }));
   };
 
-  const {data:session} = useSession()
+  const {data:session, status} = useSession()
 
-  console.log("SESS", session);
-  // useEffect hooks last
+
   useEffect(() => {
     if(session && !user)
     refreshUser();
-  }, [session]); // Empty dependency array since refreshUser handles its own loading state
+  }, [session]);
 
   const value = {
     user,
