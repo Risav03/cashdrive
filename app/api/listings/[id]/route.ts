@@ -6,11 +6,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     
+    const params = await context.params;
     const { searchParams } = new URL(request.url);
     const incrementView = searchParams.get('incrementView') === 'true';
     
@@ -33,7 +34,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -43,6 +44,7 @@ export async function PUT(
     
     await connectDB();
     
+    const params = await context.params;
     const listing = await Listing.findById(params.id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
@@ -91,7 +93,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -101,6 +103,7 @@ export async function DELETE(
     
     await connectDB();
     
+    const params = await context.params;
     const listing = await Listing.findById(params.id);
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
