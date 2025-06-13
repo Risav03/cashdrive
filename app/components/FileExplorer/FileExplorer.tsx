@@ -67,16 +67,15 @@ export const FileExplorer = () => {
   // Show loading state while user is being fetched
   if (isLoadingUser) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center min-h-[80vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   // Show message if no user is found
-
   if (!user) {
-    return <div>Please log in to view your files.</div>;
+    return <div className="text-white/80">Please log in to view your files.</div>;
   }
 
   const handleItemClick = (item: Item) => {
@@ -134,19 +133,19 @@ export const FileExplorer = () => {
   };
 
   return (
-    <div className="p-6 text-slate-800">
+    <div className=" text-white/80 glass p-5 rounded-lg h-full flex-1 flex-col">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">File Explorer</h1>
+        <h1 className="text-2xl font-bold text-white/90">Your Files</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setIsCreateFolderModalOpen(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-6 py-2 text-sm font-bold rounded-full cursor-pointer text-white bg-black/40 hover:bg-black/30 hover:shadow-lg shadow-black/20 hover:translate-y-[-2px] duration-200 glass"
           >
             New Folder
           </button>
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-6 py-2 text-sm font-bold rounded-full cursor-pointer text-white bg-black/40 hover:bg-black/30 hover:shadow-lg shadow-black/20 hover:translate-y-[-2px] duration-200 glass"
           >
             Upload
           </button>
@@ -157,12 +156,12 @@ export const FileExplorer = () => {
         {currentFolder?._id && (
           <button
             onClick={handleBack}
-            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+            className="p-2 bg-black/20 hover:bg-black/30 rounded-full transition-colors glass"
             title="Go back"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
-              className="h-6 w-6 text-gray-600" 
+              className="h-6 w-6 text-white/80" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
@@ -182,13 +181,13 @@ export const FileExplorer = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className=" grid grid-cols-1 bg-white/5 p-5 rounded-lg sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
-            <div key={item._id} className="bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors shadow-sm">
+            <div key={item._id} className=" bg-white/5 rounded-lg hover:bg-white/10 transition-colors glass">
               <FileItem
                 key={item._id}
                 item={item}
@@ -213,5 +212,5 @@ export const FileExplorer = () => {
         parentId={currentFolder?._id || user.rootStorageId}
       />
     </div>
-  )
+  );
 }; 

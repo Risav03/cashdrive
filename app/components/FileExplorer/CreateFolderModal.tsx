@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CreateFolderOptions } from '@/app/lib/types';
+import { Input } from '../ui/Input';
 
 interface CreateFolderModalProps {
   isOpen: boolean;
@@ -40,35 +41,33 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, parentId }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Create New Folder</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white/10 glass shadow-2xl shadow-black/20 p-6 rounded-2xl w-96 text-white/80">
+        <h2 className="text-2xl font-bold mb-6 text-white/90">Create New Folder</h2>
         
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-2">Folder Name</label>
-            <input
-              type="text"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              className="w-full p-2 border rounded"
-              placeholder="Enter folder name"
-              autoFocus
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Input
+            type="text"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            className="glass"
+            placeholder="Enter folder name"
+            label="Folder Name"
+            autoFocus
+          />
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-6 py-2 text-sm font-bold rounded-full cursor-pointer text-white/70 bg-black/20 hover:bg-black/30 hover:shadow-lg shadow-black/20 hover:translate-y-[-2px] duration-200 glass disabled:opacity-50"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2 text-sm font-bold rounded-full cursor-pointer text-white bg-black/40 hover:bg-black/30 hover:shadow-lg shadow-black/20 hover:translate-y-[-2px] duration-200 glass disabled:opacity-50"
               disabled={isSubmitting || !folderName.trim()}
             >
               {isSubmitting ? 'Creating...' : 'Create Folder'}

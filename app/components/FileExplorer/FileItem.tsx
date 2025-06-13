@@ -17,10 +17,10 @@ export const FileItem = ({ item, onItemClick }: FileItemProps) => {
       className="flex flex-row items-center justify-center p-4 cursor-pointer h-full"
     >
       <span className="text-4xl">{icon}</span>
-      <div className="text-center w-full">
-        <div className="font-medium text-gray-900 truncate">{item.name}</div>
+      <div className=" text-center w-full flex flex-col items-start justify-center">
+        <div className="font-medium text-white/80 ml-5 truncate w-fit">{item.name}</div>
         {item.type === 'file' && item.mime && (
-          <div className="text-sm text-gray-600 truncate">{item.mime}</div>
+          <div className="text-sm w-fit text-white/80 truncate">{item.mime}</div>
         )}
       </div>
     </div>
