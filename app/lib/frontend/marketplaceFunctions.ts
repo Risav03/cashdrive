@@ -4,9 +4,12 @@ import {
     Listing,
     ListingFilters,
     ListingsResponse,
+    PurchaseResponse,
+    Transaction,
+    TransactionFilters,
+    TransactionsResponse,
     UpdateListingOptions
 } from '../types';
-import { useSession } from 'next-auth/react';
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {
@@ -136,10 +139,6 @@ export async function getMyListings(
 }
 
 
-export async function markListingAsSold(listingId: string): Promise<Listing> {
-  return updateListing(listingId, { status: 'sold' });
-}
-
 export async function markListingAsInactive(listingId: string): Promise<Listing> {
   return updateListing(listingId, { status: 'inactive' });
 }
@@ -160,8 +159,6 @@ export function getStatusColor(status: string): string {
   switch (status) {
     case 'active':
       return 'bg-green-100 text-green-800';
-    case 'sold':
-      return 'bg-gray-100 text-gray-800';
     case 'inactive':
       return 'bg-yellow-100 text-yellow-800';
     default:
@@ -181,4 +178,110 @@ export function getFileIcon(mimeType?: string): string {
   if (mimeType.includes('zip') || mimeType.includes('archive')) return '📦';
   
   return '📄';
+}
+
+export async function purchaseListing(listingId: string): Promise<PurchaseResponse> {
+  try {
+    const response = await axios.post(`/api/listings/${listingId}/purchase`, {}, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      throw new Error('Unauthorized - Please log in');
+    }
+    if (error.response && error.response.status === 400) {
+      throw new Error(error.response.data.error || 'Cannot complete purchase');
+    }
+    if (error.response && error.response.status === 404) {
+      throw new Error('Listing not found');
+    }
+    throw new Error(error.message || 'Failed to complete purchase');
+  }
+}
+
+export async function getTransactions(filters: TransactionFilters = {}): Promise<TransactionsResponse> {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filters.type) params.append('type', filters.type);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.page) params.append('page', filters.page.toString());
+
+    const response = await axios.get(`/api/transactions?${params.toString()}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      throw new Error('Unauthorized');
+    }
+    throw new Error(error.message || 'Failed to fetch transactions');
+  }
+}
+
+export async function getTransaction(transactionId: string): Promise<Transaction> {
+  try {
+    const response = await axios.get(`/api/transactions/${transactionId}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.status === 401) {
+      throw new Error('Unauthorized');
+    }
+    if (error.response && error.response.status === 403) {
+      throw new Error('Forbidden - You can only view your own transactions');
+    }
+    if (error.response && error.response.status === 404) {
+      throw new Error('Transaction not found');
+    }
+    throw new Error(error.message || 'Failed to fetch transaction');
+  }
+}
+
+export function formatTransactionDate(date: Date | string): string {
+  const transactionDate = new Date(date);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(transactionDate);
+}
+
+export function getTransactionStatusColor(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-800';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'failed':
+      return 'bg-red-100 text-red-800';
+    case 'refunded':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
+export function getTransactionTypeColor(type: string): string {
+  switch (type) {
+    case 'purchase':
+      return 'bg-blue-100 text-blue-800';
+    case 'sale':
+      return 'bg-green-100 text-green-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
+export async function hasUserPurchased(listingId: string): Promise<boolean> {
+  try {
+    const response = await getTransactions({ type: 'purchases', limit: 100 });
+    return response.transactions.some(transaction => 
+      transaction.listing?._id === listingId && transaction.status === 'completed'
+    );
+  } catch (error: any) {
+    console.error('Error checking purchase status:', error);
+    return false;
+  }
 } 

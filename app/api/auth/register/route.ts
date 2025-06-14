@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/app/lib/mongodb';
-import User from '@/app/models/User';
 import { Item } from '@/app/models/Item';
+import User from '@/app/models/User';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { CdpClient } from "@coinbase/cdp-sdk";
 import dotenv from "dotenv";
@@ -34,24 +34,32 @@ export async function POST(req: NextRequest) {
 
     dotenv.config();
 
+    console.log("Creating account");
     const cdp = new CdpClient();
+
     const account = await cdp.evm.createAccount();
 
-    // Create root folder for the user
-    const rootFolder = await Item.create({
-      name: email,
-      type: 'folder',
-      parentId: null,
-    });
+    console.log("Account created");
 
-    // Create new user with root folder reference
+    // Create new user first
     const user = await User.create({
       name,
       email,
       password,
-      rootFolder: rootFolder._id,
       wallet: account.address
     });
+
+    // Create root folder for the user with ownership
+    const rootFolder = await Item.create({
+      name: email,
+      type: 'folder',
+      parentId: null,
+      owner: user._id
+    });
+
+    // Update user with root folder reference
+    user.rootFolder = rootFolder._id;
+    await user.save();
 
     return NextResponse.json(
       {

@@ -19,7 +19,7 @@ export default function EditListingPage() {
     title: '',
     description: '',
     price: '',
-    status: 'active' as 'active' | 'sold' | 'inactive',
+    status: 'active' as 'active' | 'inactive',
     tags: ''
   });
 
@@ -258,7 +258,6 @@ export default function EditListingPage() {
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                  <option value="sold">Sold</option>
                 </select>
               </div>
 

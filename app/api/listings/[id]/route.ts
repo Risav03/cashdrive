@@ -1,6 +1,6 @@
 import { authOptions } from '@/app/lib/backend/authConfig';
+import { Listing } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
-import { Listing } from '@/app/models/Listing';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,7 +15,9 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const incrementView = searchParams.get('incrementView') === 'true';
     
-    const listing = await Listing.findById(params.id);
+    const listing = await Listing.findById(params.id)
+      .populate('item', 'name type size mimeType url')
+      .populate('seller', 'name wallet');
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -46,7 +48,9 @@ export async function PUT(
     await connectDB();
     
     const params = await context.params;
-    const listing = await Listing.findById(params.id);
+    const listing = await Listing.findById(params.id)
+      .populate('item', 'name type size mimeType url')
+      .populate('seller', 'name wallet');
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -65,9 +69,9 @@ export async function PUT(
       );
     }
     
-    if (status !== undefined && !['active', 'sold', 'inactive'].includes(status)) {
+    if (status !== undefined && !['active', 'inactive'].includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Must be active, sold, or inactive' },
+        { error: 'Invalid status. Must be active or inactive' },
         { status: 400 }
       );
     }
@@ -82,8 +86,10 @@ export async function PUT(
     const updatedListing = await Listing.findByIdAndUpdate(
       params.id,
       updateData,
-      { new: true, runValidators: true }
-    );
+      { new: true }
+    )
+      .populate('item', 'name type size mimeType url')
+      .populate('seller', 'name wallet');
     
     return NextResponse.json(updatedListing);
   } catch (error: any) {
@@ -105,7 +111,9 @@ export async function DELETE(
     await connectDB();
     
     const params = await context.params;
-    const listing = await Listing.findById(params.id);
+    const listing = await Listing.findById(params.id)
+      .populate('item', 'name type size mimeType url')
+      .populate('seller', 'name wallet');
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }

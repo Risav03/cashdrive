@@ -31,7 +31,7 @@ const listingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'sold', 'inactive'],
+    enum: ['active', 'inactive'],
     default: 'active'
   },
   tags: {
@@ -44,15 +44,13 @@ const listingSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
-  collection: 'listing' // Force mongoose to use 'listing' collection name
 });
 
 listingSchema.index({ status: 1, createdAt: -1 });
 listingSchema.index({ seller: 1, status: 1 });
 listingSchema.index({ price: 1 });
 
-listingSchema.pre(['find', 'findOne'], function() {
-  this.populate('item', 'name type size mimeType url').populate('seller', 'name wallet');
-});
+// Removed pre-populate to avoid schema registration issues
+// Population will be handled explicitly in API routes when needed
 
 export const Listing = mongoose.models.Listing || mongoose.model('Listing', listingSchema); 

@@ -16,6 +16,12 @@ const itemSchema = new mongoose.Schema({
     default: null,
     index: true
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   size: {
     type: Number,
     default: 0
@@ -32,6 +38,6 @@ const itemSchema = new mongoose.Schema({
   timestamps: true
 });
 
-itemSchema.index({ parentId: 1, name: 1 }, { unique: true });
+itemSchema.index({ parentId: 1, name: 1, owner: 1 }, { unique: true });
 
 export const Item = mongoose.models.Item || mongoose.model('Item', itemSchema);
