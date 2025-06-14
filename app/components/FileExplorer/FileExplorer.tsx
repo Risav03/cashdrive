@@ -5,6 +5,7 @@ import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, getUserRo
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
 import { useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
+import CreateSharedLinkModal from '../SharedLinks/CreateSharedLinkModal';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { CreateFolderModal } from './CreateFolderModal';
 import { FileItem } from './FileItem';
@@ -19,6 +20,8 @@ export const FileExplorer = () => {
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [isListingModalOpen, setIsListingModalOpen] = useState(false);
   const [selectedItemForListing, setSelectedItemForListing] = useState<Item | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedItemForSharing, setSelectedItemForSharing] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -94,6 +97,17 @@ export const FileExplorer = () => {
   const handleListingCreated = () => {
     showNotification('Item listed to marketplace successfully!', 'success');
     setSelectedItemForListing(null);
+  };
+
+  const handleShareItem = (item: Item) => {
+    setSelectedItemForSharing(item);
+    setIsShareModalOpen(true);
+  };
+
+  const handleSharedLinkCreated = () => {
+    showNotification('Shared link created successfully!', 'success');
+    setIsShareModalOpen(false);
+    setSelectedItemForSharing(null);
   };
 
   const handleNavigate = async (folderId: string) => {
@@ -202,6 +216,7 @@ export const FileExplorer = () => {
               item={item}
               onItemClick={handleItemClick}
               onListToMarketplace={handleListToMarketplace}
+              onShareItem={handleShareItem}
             />
           ))}
         </div>
@@ -227,6 +242,18 @@ export const FileExplorer = () => {
         selectedItem={selectedItemForListing}
         onListingCreated={handleListingCreated}
       />
+
+      {selectedItemForSharing && (
+        <CreateSharedLinkModal
+          isOpen={isShareModalOpen}
+          onClose={() => {
+            setIsShareModalOpen(false);
+            setSelectedItemForSharing(null);
+          }}
+          item={selectedItemForSharing}
+          onSuccess={handleSharedLinkCreated}
+        />
+      )}
     </div>
   );
 }; 

@@ -9,6 +9,7 @@ export interface Item {
   size?: number;
   url?: string;
   parentId: string | null;
+  owner: string;
   content?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -59,7 +60,7 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  status: 'active' | 'sold' | 'inactive';
+  status: 'active' | 'inactive';
   tags: string[];
   views: number;
   createdAt: Date;
@@ -78,7 +79,7 @@ export interface UpdateListingOptions {
   title?: string;
   description?: string;
   price?: number;
-  status?: 'active' | 'sold' | 'inactive';
+  status?: 'active' | 'inactive';
   tags?: string[];
 }
 
@@ -90,6 +91,68 @@ export interface ListingsResponse {
     count: number;
     totalItems: number;
   };
+}
+
+export interface Transaction {
+  _id: string;
+  listing?: Listing; // Optional for shared link transactions
+  buyer: User;
+  seller: User;
+  item: Item;
+  amount: number;
+  status: 'completed' | 'pending' | 'failed' | 'refunded';
+  transactionId: string;
+  receiptNumber: string;
+  purchaseDate: Date;
+  metadata?: any; // Additional data for different transaction types
+  createdAt: Date;
+  updatedAt: Date;
+  transactionType?: 'purchase' | 'sale';
+}
+
+// Shared Link types
+export interface SharedLink {
+  _id: string;
+  item: Item;
+  owner: User;
+  linkId: string;
+  type: 'public' | 'monetized';
+  price?: number;
+  title: string;
+  description?: string;
+  isActive: boolean;
+  expiresAt?: Date;
+  accessCount: number;
+  paidUsers: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+  pagination: {
+    current: number;
+    total: number;
+    count: number;
+    totalItems: number;
+  };
+}
+
+export interface PurchaseResponse {
+  transaction: Transaction;
+  copiedItem: {
+    _id: string;
+    name: string;
+    path: string;
+  };
+  message: string;
+}
+
+export interface TransactionFilters {
+  type?: 'purchases' | 'sales' | 'all';
+  status?: 'completed' | 'pending' | 'failed' | 'refunded';
+  limit?: number;
+  page?: number;
 }
 
 export interface ListingFilters {

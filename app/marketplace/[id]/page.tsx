@@ -1,7 +1,7 @@
 'use client';
 
 import { formatFileSize } from '@/app/lib/frontend/explorerFunctions';
-import { deleteListing, formatPrice, getFileIcon, getListing, getStatusColor } from '@/app/lib/frontend/marketplaceFunctions';
+import { deleteListing, formatPrice, getFileIcon, getListing, getStatusColor, hasUserPurchased, purchaseListing } from '@/app/lib/frontend/marketplaceFunctions';
 import { Listing } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -16,6 +16,10 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [alreadyPurchased, setAlreadyPurchased] = useState(false);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
 
   const listingId = params.id as string;
 
@@ -29,6 +33,20 @@ export default function ListingDetailPage() {
       setError(err.message || 'Failed to fetch listing');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPurchaseStatus = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      setCheckingPurchase(true);
+      const purchased = await hasUserPurchased(listingId);
+      setAlreadyPurchased(purchased);
+    } catch (err: any) {
+      console.error('Error checking purchase status:', err);
+    } finally {
+      setCheckingPurchase(false);
     }
   };
 
@@ -48,11 +66,40 @@ export default function ListingDetailPage() {
     }
   };
 
+  const handlePurchase = async () => {
+    if (!session) {
+      alert('Please log in to purchase items');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to purchase "${listing?.title}" for ${formatPrice(listing?.price || 0)}?`)) {
+      return;
+    }
+
+    try {
+      setPurchaseLoading(true);
+      const result = await purchaseListing(listingId);
+      setPurchaseSuccess(true);
+      
+      alert(`Purchase successful! ${result.message}\nFile copied to: ${result.copiedItem.path}\nReceipt: ${result.transaction.receiptNumber}`);
+    } catch (err: any) {
+      alert('Purchase failed: ' + err.message);
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (listingId) {
       fetchListing();
     }
   }, [listingId]);
+
+  useEffect(() => {
+    if (session && listingId) {
+      checkPurchaseStatus();
+    }
+  }, [session, listingId]);
 
   if (loading) {
     return (
@@ -237,15 +284,37 @@ export default function ListingDetailPage() {
 
                 {/* Actions */}
                 <div className="space-y-3">
-                  {!isOwner && listing.status === 'active' && (
+                  {!isOwner && listing.status === 'active' && !purchaseSuccess && !alreadyPurchased && !checkingPurchase && (
                     <>
-                      <button className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium">
-                        Purchase File
+                      <button 
+                        onClick={handlePurchase}
+                        disabled={purchaseLoading}
+                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {purchaseLoading ? 'Processing Purchase...' : `Purchase for ${formatPrice(listing.price)}`}
                       </button>
                       <button className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-50 transition-colors duration-200">
                         Contact Seller
                       </button>
                     </>
+                  )}
+
+                  {purchaseSuccess && (
+                    <div className="bg-green-100 text-green-800 py-3 px-4 rounded-md text-center">
+                      ✅ Purchase completed! File added to your marketplace folder.
+                    </div>
+                  )}
+                  
+                  {alreadyPurchased && (
+                    <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
+                      You have already purchased this item.
+                    </div>
+                  )}
+                  
+                  {checkingPurchase && (
+                    <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
+                      Checking purchase status...
+                    </div>
                   )}
                   
                   {isOwner && (
@@ -268,9 +337,9 @@ export default function ListingDetailPage() {
                     </div>
                   )}
                   
-                  {listing.status === 'sold' && (
+                  {listing.status === 'inactive' && (
                     <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
-                      This item has been sold
+                      This listing is currently inactive
                     </div>
                   )}
                 </div>

@@ -1,7 +1,6 @@
 import { authOptions } from '@/app/lib/backend/authConfig';
+import { Item, Listing } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
-import { Item } from '@/app/models/Item';
-import { Listing } from '@/app/models/Listing';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -28,6 +27,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
     const [listings, total] = await Promise.all([
       Listing.find(query)
+        .populate('item', 'name type size mimeType url')
+        .populate('seller', 'name wallet')
         .sort(sort)
         .skip(skip)
         .limit(limit),
@@ -75,14 +76,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const item = await Item.findById(itemId);
+    const item = await Item.findOne({ _id: itemId, owner: session.user.id });
     if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'Item not found or you do not have permission to list it' 
+      }, { status: 404 });
     }
     
     const existingListing = await Listing.findOne({ 
       item: itemId, 
-      status: { $in: ['active', 'sold'] } 
+      status: 'active'
     });
     if (existingListing) {
       return NextResponse.json(

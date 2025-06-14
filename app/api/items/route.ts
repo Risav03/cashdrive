@@ -15,7 +15,15 @@ export async function GET(request: Request) {
 
     await connectDB();
 
-    const query = parentId ? { parentId } : { _id: rootFolder };
+    // Get current user session for ownership filtering
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const query = parentId 
+      ? { parentId, owner: session.user.id } 
+      : { _id: rootFolder };
     
     const items = await Item.find(query);
     return NextResponse.json(items);
@@ -108,6 +116,7 @@ export async function POST(request: NextRequest) {
         name,
         type: 'file',
         parentId: parentId || rootFolder,
+        owner: session.user.id,
         size: fileSize,
         mimeType: mimeType,
         url: fileUrl,
@@ -148,6 +157,7 @@ export async function POST(request: NextRequest) {
           name,
           type: 'folder',
           parentId: parentId || rootFolder,
+          owner: session.user.id,
         });
         return NextResponse.json(item, { status: 201 });
       }

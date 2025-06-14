@@ -20,13 +20,17 @@ export async function GET(
   request: NextRequest,
 ){
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const id = request.nextUrl.pathname.split("/")[3]
 
     await getUserRootFolder();
     await connectDB();
     
-    const item = await Item.findById(id);
+    const item = await Item.findOne({ _id: id, owner: session.user.id });
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
@@ -69,14 +73,14 @@ export async function PUT(request: NextRequest) {
 
     await connectDB();
 
-    const item = await Item.findById(id);
+    const item = await Item.findOne({ _id: id, owner: session.user.id });
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
     if (parentId !== undefined && parentId !== item.parentId) {
       if (parentId) {
-        const parentFolder = await Item.findById(parentId);
+        const parentFolder = await Item.findOne({ _id: parentId, owner: session.user.id });
         if (!parentFolder || parentFolder.type !== 'folder') {
           return NextResponse.json(
             { error: 'Invalid parent folder' },
@@ -120,12 +124,12 @@ export async function DELETE(request: NextRequest) {
     const id = request.nextUrl.pathname.split("/")[3];
     await connectDB();
 
-    const item = await Item.findById(id);
+    const item = await Item.findOne({ _id: id, owner: session.user.id });
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    const itemsToDelete = await collectItemsToDelete(id);
+    const itemsToDelete = await collectItemsToDelete(id, session.user.id);
     
     if (validateS3Config()) {
       for (const itemToDelete of itemsToDelete) {
@@ -161,16 +165,16 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-async function collectItemsToDelete(itemId: string): Promise<any[]> {
+async function collectItemsToDelete(itemId: string, ownerId: string): Promise<any[]> {
   const item = await Item.findById(itemId);
-  if (!item) return [];
+  if (!item || item.owner !== ownerId) return [];
 
   const itemsToDelete = [item];
 
   if (item.type === 'folder') {
     const children = await Item.find({ parentId: itemId });
     for (const child of children) {
-      const childItems = await collectItemsToDelete(child._id);
+      const childItems = await collectItemsToDelete(child._id, ownerId);
       itemsToDelete.push(...childItems);
     }
   }
