@@ -34,18 +34,11 @@ export default async function middleware(request: NextRequestWithAuth) {
       return await paymentMiddleware(
         "0x705b8f77d90Ebab24C1934B49724686b8ee27f5F",
         {
-          '/api/protected/': {
+          '/api/protected/*/testRoute': {
             price: '$0.01',
             network: "base-sepolia" as Network,
             config: {
               description: 'Access to protected content'
-            }
-          },
-          '/api/(protected)': {
-            price: '$0.01',
-            network: "base-sepolia" as Network,
-            config: {
-              description: 'API access'
             }
           }
         },
