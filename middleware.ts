@@ -1,12 +1,11 @@
-import { withAuth } from "next-auth/middleware";
-import { paymentMiddleware, Network } from 'x402-next';
+import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { NextRequestWithAuth } from "next-auth/middleware";
+import { Network, paymentMiddleware } from 'x402-next';
 
 export default async function middleware(request: NextRequestWithAuth) {
   // Check if the route requires payment
-  const isProtectedPaymentRoute = request.nextUrl.pathname.startsWith('/protected') ||
-    request.nextUrl.pathname.startsWith('/api/protected');
+  console.log("request.nextUrl.pathname", request.nextUrl.pathname);
+  const isProtectedPaymentRoute = request.nextUrl.pathname.startsWith('/api/listings');
 
   // Check if the route requires authentication
   const isAuthRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
@@ -34,7 +33,7 @@ export default async function middleware(request: NextRequestWithAuth) {
       return await paymentMiddleware(
         "0x705b8f77d90Ebab24C1934B49724686b8ee27f5F",
         {
-          '/api/protected/*/testRoute': {
+          '/api/listings/*/purchase': {
             price: '$0.01',
             network: "base-sepolia" as Network,
             config: {
@@ -67,7 +66,7 @@ export const config = {
      */
     '/dashboard/:path*',
     '/profile/:path*',
-    '/api/(protected)/:path*',
+    '/api/listings/:path*',
     '/protected/:path*'
   ]
 };
