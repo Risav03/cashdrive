@@ -78,7 +78,7 @@ export default function ListingDetailPage() {
 
     try {
       setPurchaseLoading(true);
-      const result = await purchaseListing(listingId);
+      const result = await purchaseListing(listingId, session.user.wallet as `0x${string}`);
       setPurchaseSuccess(true);
       
       alert(`Purchase successful! ${result.message}\nFile copied to: ${result.copiedItem.path}\nReceipt: ${result.transaction.receiptNumber}`);
