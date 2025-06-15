@@ -79,7 +79,7 @@ export default function SignInForm() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-3 py-2 bg-amber-50 border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
                 placeholder="Enter your email"
               />
             </div>
@@ -90,7 +90,7 @@ export default function SignInForm() {
                 name="password"
                 type="password"
                 required
-                className="w-full px-3 py-2 bg-amber-50 border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
                 placeholder="Enter your password"
               />
             </div>

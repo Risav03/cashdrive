@@ -12,6 +12,9 @@ import {
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Loader from '@/app/components/global/Loader';
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Link from 'next/link';
 
 export default function SharedLinkPage() {
   const params = useParams();
@@ -106,41 +109,65 @@ export default function SharedLinkPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading shared content...</p>
-        </div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              LOADING SHARED CONTENT
+            </h2>
+            <div className='flex justify-center items-center mt-10'><Loader /></div>
+          </div>
+        </main>
+        <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">
-            Unable to Access Content
-          </h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Go Home
-          </button>
-        </div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              ACCESS ERROR
+            </h2>
+            <div className="bg-white border-2 border-black brutal-shadow-left p-8">
+              <h3 className="text-2xl font-anton mb-4">Unable to Access Content</h3>
+              <p className="font-freeman mb-6">{error}</p>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+              >
+                Go Home
+              </button>
+            </div>
+          </div>
+        </main>
+        <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
       </div>
     );
   }
 
   if (!linkData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">No content found</p>
-        </div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              NO CONTENT FOUND
+            </h2>
+            <Link
+              href="/"
+              className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
+            >
+              Return Home
+            </Link>
+          </div>
+        </main>
+        <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
       </div>
     );
   }
@@ -148,18 +175,18 @@ export default function SharedLinkPage() {
   const { link, canAccess, requiresPayment, requiresAuth, alreadyPaid } = linkData;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="min-h-screen bg-white relative">
+      <main className="max-w-3xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="bg-amber-100 border-2 border-black brutal-shadow-left">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-            <div className="flex items-center space-x-3">
-              <span className="text-3xl">
+          <div className="bg-[#FFD000] border-b-2 border-black p-6">
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">
                 {link.item?.type === 'folder' ? '📁' : '📄'}
               </span>
               <div>
-                <h1 className="text-2xl font-bold">{link.title}</h1>
-                <p className="text-blue-100">
+                <h1 className="text-2xl font-anton mb-1">{link.title}</h1>
+                <p className="font-freeman">
                   {link.item?.name} • {link.item?.type}
                   {link.item?.size && ` • ${formatFileSize(link.item.size)}`}
                 </p>
@@ -172,18 +199,14 @@ export default function SharedLinkPage() {
             {/* Description */}
             {link.description && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-                <p className="text-gray-600">{link.description}</p>
+                <h3 className="text-lg font-anton mb-2">Description</h3>
+                <p className="font-freeman">{link.description}</p>
               </div>
             )}
 
             {/* Link Type Badge */}
             <div className="mb-6">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                link.type === 'public' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
+              <span className="px-3 py-1 bg-[#FFD000] border-2 border-black brutal-shadow-center font-freeman inline-block">
                 {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
                 {link.type === 'monetized' && link.price && ` - ${formatPrice(link.price)}`}
               </span>
@@ -191,20 +214,15 @@ export default function SharedLinkPage() {
 
             {/* Success Message */}
             {success && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-800 font-medium">{success}</p>
-                {success.includes('added to your drive') && (
-                  <p className="text-green-600 text-sm mt-1">
-                    Redirecting to dashboard...
-                  </p>
-                )}
+              <div className="mb-6 p-4 bg-white border-2 border-black brutal-shadow-left">
+                <pre className="font-freeman whitespace-pre-wrap">{success}</pre>
               </div>
             )}
 
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 font-medium">{error}</p>
+              <div className="mb-6 p-4 bg-white border-2 border-black brutal-shadow-left">
+                <p className="font-freeman text-red-600">{error}</p>
               </div>
             )}
 
@@ -212,20 +230,20 @@ export default function SharedLinkPage() {
             <div className="space-y-4">
               {/* Public Link - Can Access */}
               {canAccess && link.type === 'public' && (
-                <div>
-                  <p className="text-gray-600 mb-4">
+                <div className="bg-white border-2 border-black brutal-shadow-left p-6">
+                  <p className="font-freeman mb-4">
                     This content is freely available. Click below to add it to your drive.
                   </p>
                   {status === 'loading' ? (
                     <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      <div className='flex justify-center items-center mt-10'><Loader /></div>
                     </div>
                   ) : !session ? (
                     <div className="text-center">
-                      <p className="text-gray-600 mb-4">Please sign in to add this content to your drive.</p>
+                      <p className="font-freeman mb-4">Please sign in to add this content to your drive.</p>
                       <button
                         onClick={handleLogin}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                        className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                       >
                         Sign In
                       </button>
@@ -234,7 +252,7 @@ export default function SharedLinkPage() {
                     <button
                       onClick={handleAddToDrive}
                       disabled={isProcessing}
-                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
                     </button>
@@ -244,16 +262,14 @@ export default function SharedLinkPage() {
 
               {/* Monetized Link - Already Paid */}
               {canAccess && link.type === 'monetized' && alreadyPaid && (
-                <div>
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                    <p className="text-blue-800 font-medium">
-                      ✅ You have already purchased this content
-                    </p>
+                <div className="bg-white border-2 border-black brutal-shadow-left p-6">
+                  <div className="font-freeman mb-4">
+                    ✅ You have already purchased this content
                   </div>
                   <button
                     onClick={handleAddToDrive}
                     disabled={isProcessing}
-                    className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
                   </button>
@@ -262,19 +278,16 @@ export default function SharedLinkPage() {
 
               {/* Monetized Link - Requires Auth */}
               {requiresPayment && requiresAuth && (
-                <div className="text-center">
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-                    <p className="text-yellow-800 font-medium">
-                      🔒 This content requires payment to access
-                    </p>
-                    <p className="text-yellow-700 text-sm mt-1">
-                      Price: {formatPrice(link.price)}
-                    </p>
-                  </div>
-                  <p className="text-gray-600 mb-4">Please sign in to purchase this content.</p>
+                <div className="bg-white border-2 border-black brutal-shadow-left p-6 text-center">
+                  <p className="font-freeman mb-4">
+                    🔒 This content requires payment to access
+                  </p>
+                  <p className="font-freeman mb-6">
+                    Price: {formatPrice(link.price)}
+                  </p>
                   <button
                     onClick={handleLogin}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                   >
                     Sign In to Purchase
                   </button>
@@ -283,26 +296,24 @@ export default function SharedLinkPage() {
 
               {/* Monetized Link - Can Pay */}
               {requiresPayment && !requiresAuth && session && (
-                <div>
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-                    <p className="text-yellow-800 font-medium">
-                      💳 Payment Required
-                    </p>
-                    <p className="text-yellow-700 text-sm mt-1">
-                      Price: {formatPrice(link.price)}
-                    </p>
-                  </div>
-                  <p className="text-gray-600 mb-4">
+                <div className="bg-white border-2 border-black brutal-shadow-left p-6">
+                  <p className="font-freeman mb-2">
+                    💳 Payment Required
+                  </p>
+                  <p className="font-freeman mb-4">
+                    Price: {formatPrice(link.price)}
+                  </p>
+                  <p className="font-freeman mb-4">
                     Purchase this content to add it to your drive and access it anytime.
                   </p>
                   <button
                     onClick={handlePayment}
                     disabled={isProcessing}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Processing Payment...' : `Pay ${formatPrice(link.price)}`}
                   </button>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
+                  <p className="text-sm font-freeman mt-2 text-center">
                     Secure payment powered by x402 protocol
                   </p>
                 </div>
@@ -310,29 +321,29 @@ export default function SharedLinkPage() {
             </div>
 
             {/* Link Info */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+            <div className="mt-8 pt-6 border-t-2 border-black">
+              <div className="grid grid-cols-2 gap-4 font-freeman">
                 {link.owner && (
                   <div>
-                    <span className="font-medium">Shared by:</span>
+                    <span className="font-anton">Shared by:</span>
                     <p>{link.owner.name}</p>
                   </div>
                 )}
                 {link.createdAt && (
                   <div>
-                    <span className="font-medium">Created:</span>
+                    <span className="font-anton">Created:</span>
                     <p>{formatDate(link.createdAt)}</p>
                   </div>
                 )}
                 {link.accessCount !== undefined && (
                   <div>
-                    <span className="font-medium">Views:</span>
+                    <span className="font-anton">Views:</span>
                     <p>{link.accessCount}</p>
                   </div>
                 )}
                 {link.expiresAt && (
                   <div>
-                    <span className="font-medium">Expires:</span>
+                    <span className="font-anton">Expires:</span>
                     <p>{formatDate(link.expiresAt)}</p>
                   </div>
                 )}
@@ -340,7 +351,9 @@ export default function SharedLinkPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
+      <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
     </div>
   );
 } 

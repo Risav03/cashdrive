@@ -7,6 +7,8 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Loader from '@/app/components/global/Loader';
 
 export default function ListingDetailPage() {
   const params = useParams();
@@ -120,65 +122,77 @@ export default function ListingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              LOADING
+            </h2>
+            <div className="mt-12 flex justify-center">
+              <Loader />
+            </div>
           </div>
         </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Error loading listing
-                </h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-                <div className="mt-4 flex space-x-4">
-                  <button
-                    onClick={fetchListing}
-                    className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
-                  >
-                    Try again
-                  </button>
-                  <Link
-                    href="/marketplace"
-                    className="bg-gray-100 px-3 py-2 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-200"
-                  >
-                    Back to Marketplace
-                  </Link>
-                </div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              ERROR
+            </h2>
+            <div className="bg-red-100 border-2 border-black p-8 brutal-shadow-left">
+              <h3 className="text-xl font-freeman mb-4">
+                Error loading listing
+              </h3>
+              <p className="font-freeman mb-6">{error}</p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={fetchListing}
+                  className="button-primary bg-[#FFD000] px-8 py-2"
+                >
+                  Try again
+                </button>
+                <Link
+                  href="/marketplace"
+                  className="button-primary bg-white px-8 py-2"
+                >
+                  Back to Marketplace
+                </Link>
               </div>
             </div>
           </div>
         </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
       </div>
     );
   }
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Listing not found</h1>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              NOT FOUND
+            </h2>
             <Link
               href="/marketplace"
-              className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="button-primary bg-[#FFD000] px-8 py-2"
             >
               Back to Marketplace
             </Link>
           </div>
         </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
       </div>
     );
   }
@@ -186,64 +200,68 @@ export default function ListingDetailPage() {
   const isOwner = session?.user?.id === listing.seller._id;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white relative">
+      <main className="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Navigation */}
-        <nav className="mb-8">
+        <nav className="mb-6">
           <Link
             href="/marketplace"
-            className="text-blue-600 hover:text-blue-800 flex items-center"
+            className="button-primary bg-white px-4 py-1.5 inline-flex items-center font-freeman text-sm"
           >
             ← Back to Marketplace
           </Link>
         </nav>
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-4xl">{getFileIcon(listing.item.mimeType)}</span>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>by {listing.seller.name}</span>
-                    <span>•</span>
+        <div className="bg-amber-100 border-2 border-black brutal-shadow-left">
+          {/* Header - Made more compact */}
+          <div className="p-3 border-b-2 border-black">
+            {/* Made the layout stack on mobile */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Left side content */}
+              <div className="flex items-start gap-3">
+                <span className="text-4xl shrink-0">{getFileIcon(listing.item.mimeType)}</span>
+                <div className="min-w-0"> {/* Prevent text overflow */}
+                  <h1 className="text-xl font-freeman mb-1 break-words">{listing.title}</h1>
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-freeman text-gray-700">
+                    <span className="break-words">by {listing.seller.name}</span>
+                    <span className="hidden sm:inline">•</span>
                     <span>{listing.views} {listing.views === 1 ? 'view' : 'views'}</span>
-                    <span>•</span>
-                    <span>Listed {new Date(listing.createdAt).toLocaleDateString()}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span>{new Date(listing.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(listing.status)}`}>
+
+              {/* Right side content */}
+              <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
+                <span className="px-2 py-0.5 bg-[#FFD000] border-2 border-black font-freeman text-sm brutal-shadow-center whitespace-nowrap">
                   {listing.status}
                 </span>
-                <span className="text-3xl font-bold text-gray-900 mt-2">
+                <span className="text-xl font-freeman">
                   {formatPrice(listing.price)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="px-6 py-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Content - Adjusted grid and spacing */}
+          <div className="p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Main Content */}
-              <div className="md:col-span-2">
-                <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
-                  <p className="text-gray-700 whitespace-pre-wrap">{listing.description}</p>
+              <div className="lg:col-span-2 space-y-4">
+                <div>
+                  <h2 className="text-lg font-freeman mb-2">Description</h2>
+                  <p className="font-freeman text-sm whitespace-pre-wrap">{listing.description}</p>
                 </div>
 
                 {listing.tags && listing.tags.length > 0 && (
-                  <div className="mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-3">Tags</h2>
+                  <div>
+                    <h2 className="text-lg font-freeman mb-2">Tags</h2>
                     <div className="flex flex-wrap gap-2">
                       {listing.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                          className="px-2 py-0.5 bg-[#FFD000] border-2 border-black font-freeman text-sm brutal-shadow-center"
                         >
                           {tag}
                         </span>
@@ -253,92 +271,92 @@ export default function ListingDetailPage() {
                 )}
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-6">
+              {/* Sidebar - Made more compact */}
+              <div className="space-y-4">
                 {/* File Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">File Details</h3>
-                  <div className="space-y-2 text-sm">
+                <div className="bg-white border-2 border-black p-3 brutal-shadow-left">
+                  <h3 className="text-lg font-freeman mb-2">File Details</h3>
+                  <div className="space-y-1.5 font-freeman text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Name:</span>
-                      <span className="text-gray-900 font-medium">{listing.item.name}</span>
+                      <span>Name:</span>
+                      <span className="font-medium">{listing.item.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Type:</span>
-                      <span className="text-gray-900">{listing.item.type}</span>
+                      <span>Type:</span>
+                      <span>{listing.item.type}</span>
                     </div>
                     {listing.item.size && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Size:</span>
-                        <span className="text-gray-900">{formatFileSize(listing.item.size)}</span>
+                        <span>Size:</span>
+                        <span>{formatFileSize(listing.item.size)}</span>
                       </div>
                     )}
                     {listing.item.mimeType && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Format:</span>
-                        <span className="text-gray-900">{listing.item.mimeType}</span>
+                        <span>Format:</span>
+                        <span>{listing.item.mimeType}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Seller Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Seller</h3>
-                  <div className="space-y-2 text-sm">
+                <div className="bg-white border-2 border-black p-3 brutal-shadow-left">
+                  <h3 className="text-lg font-freeman mb-2">Seller</h3>
+                  <div className="space-y-1.5 font-freeman text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Name:</span>
-                      <span className="text-gray-900 font-medium">{listing.seller.name}</span>
+                      <span>Name:</span>
+                      <span className="font-medium">{listing.seller.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Wallet:</span>
-                      <span className="text-gray-900 font-mono text-xs">
-                        {listing.seller.wallet.slice(0, 8)}...{listing.seller.wallet.slice(-8)}
+                      <span>Wallet:</span>
+                      <span className="font-mono text-xs">
+                        {listing.seller.wallet.slice(0, 6)}...{listing.seller.wallet.slice(-6)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="space-y-3">
+                {/* Actions - Adjusted spacing */}
+                <div className="space-y-2">
                   {!isOwner && listing.status === 'active' && !purchaseSuccess && !alreadyPurchased && !checkingPurchase && (
                     <>
                       <button 
                         onClick={handlePurchase}
                         disabled={purchaseLoading}
-                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="button-primary bg-[#FFD000] w-full py-2 px-4 text-sm"
                       >
                         {purchaseLoading ? 'Processing Purchase...' : `Purchase for ${formatPrice(listing.price)}`}
                       </button>
-                      <button className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                      {/* <button className="button-primary bg-white w-full py-2 px-4 text-sm">
                         Contact Seller
-                      </button>
+                      </button> */}
                     </>
                   )}
 
                   {purchaseSuccess && (
-                    <div className="bg-green-100 text-green-800 py-3 px-4 rounded-md text-center">
+                    <div className="bg-green-100 border-2 border-black p-3 font-freeman text-sm brutal-shadow-left">
                       ✅ Purchase completed! File added to your marketplace folder.
                     </div>
                   )}
                   
                   {alreadyPurchased && (
-                    <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
+                    <div className="bg-white border-2 border-black p-3 font-freeman text-sm brutal-shadow-left">
                       You have already purchased this item.
                     </div>
                   )}
                   
                   {checkingPurchase && (
-                    <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
+                    <div className="bg-white border-2 border-black p-3 font-freeman text-sm brutal-shadow-left">
                       Checking purchase status...
                     </div>
                   )}
                   
                   {isOwner && (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <Link
                         href={`/marketplace/${listing._id}/edit`}
-                        className="w-full block text-center bg-yellow-600 text-white py-3 px-4 rounded-md hover:bg-yellow-700 transition-colors duration-200"
+                        className="button-primary bg-[#FFD000] w-full py-2 px-4 text-sm text-center"
                       >
                         Edit Listing
                       </Link>
@@ -346,7 +364,7 @@ export default function ListingDetailPage() {
                         <button 
                           onClick={handleRemoveListing}
                           disabled={deleteLoading}
-                          className="w-full border border-red-300 text-red-700 py-3 px-4 rounded-md hover:bg-red-50 transition-colors duration-200 disabled:opacity-50"
+                          className="button-primary bg-red-100 w-full py-2 px-4 text-sm"
                         >
                           {deleteLoading ? 'Removing...' : 'Remove Listing'}
                         </button>
@@ -355,7 +373,7 @@ export default function ListingDetailPage() {
                   )}
                   
                   {listing.status === 'inactive' && (
-                    <div className="bg-gray-100 text-gray-600 py-3 px-4 rounded-md text-center">
+                    <div className="bg-white border-2 border-black p-3 font-freeman text-sm brutal-shadow-left text-center">
                       This listing is currently inactive
                     </div>
                   )}
@@ -365,6 +383,8 @@ export default function ListingDetailPage() {
           </div>
         </div>
       </main>
+      <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+      <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
     </div>
   );
 } 

@@ -90,129 +90,105 @@ export default function CreateListingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-amber-100 border-2 border-black brutal-shadow-left w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b-2 border-black">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Create Listing</h2>
+            <h2 className="font-anton text-3xl">Create Listing</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-2xl hover:text-[#FFD000]"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              ×
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {selectedItem && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600">Listing file:</p>
-              <p className="font-medium text-gray-900">{selectedItem.name}</p>
-              <p className="text-xs text-gray-500">Type: {selectedItem.type}</p>
+            <div className="bg-white border-2 border-black p-4 brutal-shadow-center">
+              <p className="font-freeman">Selected file:</p>
+              <p className="font-freeman text-lg">{selectedItem.name}</p>
+              <p className="font-freeman text-sm">Type: {selectedItem.type}</p>
             </div>
           )}
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="bg-red-100 border-2 border-black p-4 brutal-shadow-left">
+              <p className="font-freeman text-red-900">{error}</p>
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title *
-              </label>
+              <label className="font-freeman block mb-2">Title *</label>
               <input
                 type="text"
-                id="title"
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                placeholder="Enter listing title"
                 required
-                maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter a catchy title for your listing"
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
-              </label>
+              <label className="font-freeman block mb-2">Description *</label>
               <textarea
-                id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                required
-                maxLength={1000}
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                placeholder="Describe what buyers will get, how it can be used, etc."
+                placeholder="Describe your listing"
+                required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.description.length}/1000 characters
-              </p>
             </div>
 
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                Price (USD) *
-              </label>
+              <label className="font-freeman block mb-2">Price (USD) *</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
-                </div>
                 <input
                   type="number"
-                  id="price"
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
-                  required
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                  placeholder="0.00"
                   min="0.01"
                   step="0.01"
-                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.00"
+                  required
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-                Tags <span className="text-gray-500">(optional)</span>
-              </label>
+              <label className="font-freeman block mb-2">Tags (optional)</label>
               <input
                 type="text"
-                id="tags"
                 name="tags"
                 value={formData.tags}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., design, template, pdf (comma-separated)"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                placeholder="design, template, pdf"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Separate multiple tags with commas
-              </p>
+              <p className="font-freeman text-sm mt-1">Separate tags with commas</p>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end space-x-3">
+          <div className="flex justify-end gap-2 pt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="button-primary bg-white px-4 py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.title.trim() || !formData.description.trim() || !formData.price.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+              className="button-primary bg-[#FFD000] px-4 py-2"
             >
               {loading ? 'Creating...' : 'Create Listing'}
             </button>
