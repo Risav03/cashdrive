@@ -18,7 +18,7 @@ export async function getWallet(wallet:`0x${string}`, id:string){
           const account = await cdp.evm.getAccount({address: wallet});
         //   const account2 = await cdp.evm.createAccount();
       
-        //   console.log(account);
+          console.log(account, process.env.NEXT_PUBLIC_HOST_NAME);
 
 
         const api = withPaymentInterceptor(
@@ -29,7 +29,7 @@ export async function getWallet(wallet:`0x${string}`, id:string){
           );
           
           api
-            .get(`/api/listings/${id}/purchase`) // e.g. /paid-endpoint
+            .post(`/api/listings/${id}/purchase`) // e.g. /paid-endpoint
             .then((response:any) => {
               console.log(response.data);
           
