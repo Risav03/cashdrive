@@ -25,7 +25,7 @@ export default function CreateSharedLinkModal({
     expiresAt: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [createdLinkId, setCreatedLinkId] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export default function CreateSharedLinkModal({
         itemId: item._id,
         type: formData.type,
         title: formData.title,
-        description: formData.description || undefined
+        description: formData.description
       };
 
       if (formData.type === 'monetized') {
@@ -49,8 +49,7 @@ export default function CreateSharedLinkModal({
       }
 
       const sharedLink = await createSharedLink(linkData);
-      const shareableUrl = generateShareableUrl(sharedLink.linkId);
-      setCreatedLink(shareableUrl);
+      setCreatedLinkId(sharedLink.linkId);
       
       if (onSuccess) {
         onSuccess();
@@ -63,11 +62,10 @@ export default function CreateSharedLinkModal({
   };
 
   const handleCopyLink = async () => {
-    if (!createdLink) return;
+    if (!createdLinkId) return;
     
     try {
-      const linkId = createdLink.split('/').pop()!;
-      await copyLinkToClipboard(linkId);
+      await copyLinkToClipboard(createdLinkId);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
@@ -83,19 +81,22 @@ export default function CreateSharedLinkModal({
       price: 0,
       expiresAt: ''
     });
-    setCreatedLink(null);
+    setCreatedLinkId(null);
     setCopySuccess(false);
     onClose();
   };
 
   if (!isOpen || !item) return null;
 
+  // Generate the display URL only when needed
+  const displayUrl = createdLinkId ? generateShareableUrl(createdLinkId) : null;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
-            {createdLink ? 'Link Created!' : 'Create Shared Link'}
+            {displayUrl ? 'Link Created!' : 'Create Shared Link'}
           </h2>
           <button
             onClick={handleClose}
@@ -105,19 +106,19 @@ export default function CreateSharedLinkModal({
           </button>
         </div>
 
-        {createdLink ? (
+        {displayUrl ? (
           <div className="space-y-4">
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-800 font-medium mb-2">
                 Your shared link has been created successfully!
               </p>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={createdLink}
-                  readOnly
-                  className="flex-1 p-2 border border-gray-300 rounded text-sm"
-                />
+                              <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={displayUrl}
+                    readOnly
+                    className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                  />
                 <button
                   onClick={handleCopyLink}
                   className={`px-3 py-2 rounded text-sm font-medium ${

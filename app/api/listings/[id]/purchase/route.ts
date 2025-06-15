@@ -1,29 +1,34 @@
-import { Item } from '@/app/lib/models';
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/backend/authConfig';
-import { Listing, Transaction } from '@/app/lib/models';
-import { v4 as uuidv4 } from 'uuid';
+import { Item, Listing, Transaction, User } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 
-// Generate unique receipt number
 function generateReceiptNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `RCP-${timestamp}-${random}`;
 }
 
-// Copy item to buyer's marketplace folder
+function parsePaymentResponse(paymentResponseHeader: string | null) {
+  if (!paymentResponseHeader) {
+    return null;
+  }
+  
+  try {
+    return JSON.parse(paymentResponseHeader);
+  } catch (error) {
+    console.error('Error parsing x-payment-response:', error);
+    return null;
+  }
+}
+
 async function copyItemToMarketplaceFolder(buyerId: string, item: any): Promise<any> {
   try {
-    // Get buyer's root folder
-    const User = (await import('@/app/models/User')).default;
     const buyer = await User.findById(buyerId);
     if (!buyer) {
       throw new Error('Buyer not found');
     }
 
-    // Find or create marketplace folder in buyer's root folder
     let marketplaceFolder = await Item.findOne({
       name: 'marketplace',
       type: 'folder',
@@ -39,7 +44,6 @@ async function copyItemToMarketplaceFolder(buyerId: string, item: any): Promise<
       });
     }
 
-    // Recursively copy the item and all its contents
     const copiedItem = await copyItemRecursively(item, marketplaceFolder._id.toString(), buyerId);
     return copiedItem;
   } catch (error) {
@@ -48,9 +52,7 @@ async function copyItemToMarketplaceFolder(buyerId: string, item: any): Promise<
   }
 }
 
-// Recursive function to copy an item and all its children
 async function copyItemRecursively(originalItem: any, newParentId: string, buyerId: string): Promise<any> {
-  // Create a copy of the current item
   const copiedItem = await Item.create({
     name: `${originalItem.name} (Purchased)`,
     type: originalItem.type,
@@ -61,7 +63,6 @@ async function copyItemRecursively(originalItem: any, newParentId: string, buyer
     owner: buyerId
   });
 
-  // If it's a folder, recursively copy all its children
   if (originalItem.type === 'folder') {
     const children = await Item.find({ parentId: originalItem._id.toString() });
     
@@ -78,14 +79,34 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    console.log("______--------______");
-    console.log("______--------______");
-    console.log("______--------______");
-    console.log("______--------______");
+    const userIdFromHeader = request.headers.get('x-user-id');
+    const userEmailFromHeader = request.headers.get('x-user-email');
+    
+    let userId: string | undefined;
+    let userEmail: string | undefined;
 
-    console.log('Session:', session);
-    if (!session?.user?.id) {
+    if (userIdFromHeader && userEmailFromHeader) {
+      userId = userIdFromHeader;
+      userEmail = userEmailFromHeader;
+      console.log('Using session from headers:', { userId, userEmail });
+    } 
+    // else {
+    //   // Fallback to getServerSession (for direct API calls)
+    //   const session = await getServerSession(authOptions);
+    //   console.log("______--------______");
+    //   console.log("______--------______");
+    //   console.log("______--------______");
+    //   console.log("______--------______");
+
+    //   console.log('Session:', session);
+    //   if (!session?.user?.id) {
+    //     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    //   }
+    //   userId = session.user.id;
+    //   userEmail = session.user.email || undefined;
+    // }
+
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -106,16 +127,15 @@ export async function POST(
       }, { status: 400 });
     }
 
-    if (listing.seller._id.toString() === session.user.id) {
+    if (listing.seller._id.toString() === userId) {
       return NextResponse.json({ 
         error: 'You cannot purchase your own listing' 
       }, { status: 400 });
     }
 
-    // Check if user already purchased this item
     const existingTransaction = await Transaction.findOne({
       listing: params.id,
-      buyer: session.user.id,
+      buyer: userId,
       status: 'completed'
     });
 
@@ -125,14 +145,17 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Generate transaction details
+    const paymentResponseHeader = request.headers.get('x-payment-response');
+    const paymentResponse = parsePaymentResponse(paymentResponseHeader);
+    
+    console.log("Payment response from header:", paymentResponse);
+    
     const transactionId = uuidv4();
     const receiptNumber = generateReceiptNumber();
 
-    // Create transaction record
-    const transaction = await Transaction.create({
+    const transactionData: any = {
       listing: listing._id,
-      buyer: session.user.id,
+      buyer: userId,
       seller: listing.seller._id,
       item: listing.item._id,
       amount: listing.price,
@@ -140,12 +163,22 @@ export async function POST(
       transactionId,
       receiptNumber,
       purchaseDate: new Date()
-    });
+    };
 
-    // Copy item to buyer's marketplace folder
-    const copiedItem = await copyItemToMarketplaceFolder(session.user.id, listing.item);
+    if (paymentResponse) {
+      transactionData.metadata = {
+        blockchainTransaction: paymentResponse.transaction,
+        network: paymentResponse.network,
+        payer: paymentResponse.payer,
+        success: paymentResponse.success,
+        paymentResponseRaw: paymentResponseHeader
+      };
+    }
 
-    // Populate transaction for response
+    const transaction = await Transaction.create(transactionData);
+      
+    const copiedItem = await copyItemToMarketplaceFolder(userId, listing.item);
+
     await transaction.populate('listing', 'title price');
     await transaction.populate('buyer', 'name email');
     await transaction.populate('seller', 'name email');
@@ -158,6 +191,7 @@ export async function POST(
         name: copiedItem.name,
         path: `/marketplace/${copiedItem.name}`
       },
+      paymentDetails: paymentResponse,
       message: 'Purchase completed successfully'
     }, { status: 201 });
 

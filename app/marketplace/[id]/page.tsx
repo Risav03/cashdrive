@@ -79,9 +79,25 @@ export default function ListingDetailPage() {
     try {
       setPurchaseLoading(true);
       const result = await purchaseListing(listingId, session.user.wallet as `0x${string}`);
+      console.log("Purchase result:", result);
       setPurchaseSuccess(true);
+
+      // Create detailed success message with blockchain info
+      let successMessage = `🎉 Purchase Successful!\n\n`;
+      successMessage += `📄 Item: ${result.transactionData.transaction.item.name}\n`;
+      successMessage += `💰 Amount: ${formatPrice(result.transactionData.transaction.amount)}\n`;
+      successMessage += `📋 Receipt: ${result.transactionData.transaction.receiptNumber}\n`;
+      successMessage += `📁 File Location: ${result.transactionData.copiedItem.path}\n\n`;
       
-      alert(`Purchase successful! ${result.message}\nFile copied to: ${result.copiedItem.path}\nReceipt: ${result.transaction.receiptNumber}`);
+      if (result.transactionData.paymentDetails) {
+        successMessage += `🔗 Blockchain Details:\n`;
+        successMessage += `• Network: ${result.transactionData.paymentDetails.network}\n`;
+        successMessage += `• Transaction: ${result.transactionData.paymentDetails.transaction.slice(0, 20)}...\n`;
+        successMessage += `• Status: ${result.transactionData.paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
+        successMessage += `View full details in your transaction history.`;
+      }
+
+      alert(successMessage);
     } catch (err: any) {
       console.log('Purchase error:', err);
       alert('Purchase failed: ' + err);
@@ -100,7 +116,7 @@ export default function ListingDetailPage() {
     if (session && listingId) {
       checkPurchaseStatus();
     }
-  }, [session, listingId]);
+  }, [purchaseSuccess, listingId, session]);
 
   if (loading) {
     return (

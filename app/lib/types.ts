@@ -104,7 +104,15 @@ export interface Transaction {
   transactionId: string;
   receiptNumber: string;
   purchaseDate: Date;
-  metadata?: any; // Additional data for different transaction types
+  metadata?: {
+    blockchainTransaction?: string;
+    network?: string;
+    payer?: string;
+    success?: boolean;
+    paymentResponseRaw?: string;
+    sharedLinkTitle?: string; // For shared link transactions
+    [key: string]: any; // Allow additional metadata
+  };
   createdAt: Date;
   updatedAt: Date;
   transactionType?: 'purchase' | 'sale';
@@ -138,21 +146,29 @@ export interface TransactionsResponse {
   };
 }
 
-export interface PurchaseResponse {
-  transaction: Transaction;
-  copiedItem: {
-    _id: string;
-    name: string;
-    path: string;
-  };
-  message: string;
-}
-
 export interface TransactionFilters {
   type?: 'purchases' | 'sales' | 'all';
   status?: 'completed' | 'pending' | 'failed' | 'refunded';
   limit?: number;
   page?: number;
+}
+
+export interface PurchaseResponse {
+  transactionData: {
+    transaction: Transaction;
+    copiedItem: {
+      _id: string;
+      name: string;
+      path: string;
+    };
+    paymentDetails?: {
+      transaction: string;
+      network: string;
+      payer: string;
+      success: boolean;
+    };
+    message: string;
+  };
 }
 
 export interface ListingFilters {
@@ -162,4 +178,6 @@ export interface ListingFilters {
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   page?: number;
+  search?: string;
+  tags?: string[];
 } 

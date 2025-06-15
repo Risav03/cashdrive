@@ -1,6 +1,6 @@
 'use client';
 
-import { formatPrice, formatTransactionDate, getFileIcon, getTransactionStatusColor, getTransactionTypeColor, getTransactions } from '@/app/lib/frontend/marketplaceFunctions';
+import { formatPrice, formatTransactionDate, getFileIcon, getNetworkDisplayName, getTransactionStatusColor, getTransactionTypeColor, getTransactions } from '@/app/lib/frontend/marketplaceFunctions';
 import { Transaction, TransactionsResponse } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -223,6 +223,14 @@ export default function TransactionsPage() {
                               }`}>
                                 {transaction.listing ? 'Marketplace' : 'Shared Link'}
                               </span>
+                              {transaction.metadata?.blockchainTransaction && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  Blockchain Verified
+                                </span>
+                              )}
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionStatusColor(transaction.status)}`}>
                                 {transaction.status}
                               </span>
@@ -236,6 +244,12 @@ export default function TransactionsPage() {
                               </p>
                               <span className="mx-2">•</span>
                               <p>{formatTransactionDate(transaction.purchaseDate)}</p>
+                              {transaction.metadata?.network && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <p className="capitalize">{getNetworkDisplayName(transaction.metadata.network)}</p>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>

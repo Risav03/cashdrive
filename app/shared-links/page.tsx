@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  copyLinkToClipboard,
-  formatDate,
-  formatFileSize,
-  formatPrice,
-  generateShareableUrl,
-  getLinkTypeColor,
-  getSharedLinks,
-  SharedLink,
-  SharedLinkResponse
+    copyLinkToClipboard,
+    formatDate,
+    formatFileSize,
+    formatPrice,
+    generateShareableUrl,
+    getLinkTypeColor,
+    getSharedLinks,
+    SharedLink,
+    SharedLinkResponse
 } from '@/app/lib/frontend/sharedLinkFunctions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';

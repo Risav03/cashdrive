@@ -1,13 +1,13 @@
 'use client';
 
 import {
-    accessSharedLink,
-    addSharedItemToDrive,
-    formatDate,
-    formatFileSize,
-    formatPrice,
-    payForSharedLink,
-    SharedLinkAccessResponse
+  accessSharedLink,
+  addSharedItemToDrive,
+  formatDate,
+  formatFileSize,
+  formatPrice,
+  payForSharedLink,
+  SharedLinkAccessResponse
 } from '@/app/lib/frontend/sharedLinkFunctions';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
@@ -66,14 +66,30 @@ export default function SharedLinkPage() {
   };
 
   const handlePayment = async () => {
-    if (!linkData) return;
+    if (!linkData || !session) return;
 
     try {
       setIsProcessing(true);
       setError(null);
       
-      const result = await payForSharedLink(linkId);
-      setSuccess(result.message);
+      const result = await payForSharedLink(linkId, session.user.wallet as `0x${string}`);
+      console.log("Shared link payment result:", result);
+      
+      // Create detailed success message with blockchain info
+      let successMessage = `🎉 Payment Successful!\n\n`;
+      successMessage += `📄 Content: ${result.sharedLink.title}\n`;
+      successMessage += `💰 Amount: ${formatPrice(result.transaction.amount)}\n`;
+      successMessage += `📋 Receipt: ${result.transaction.receiptNumber}\n\n`;
+      
+      if (result.paymentDetails) {
+        successMessage += `🔗 Blockchain Details:\n`;
+        successMessage += `• Network: ${result.paymentDetails.network}\n`;
+        successMessage += `• Transaction: ${result.paymentDetails.transaction.slice(0, 20)}...\n`;
+        successMessage += `• Status: ${result.paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
+        successMessage += `View full details in your transaction history.`;
+      }
+      
+      setSuccess(successMessage);
       
       // Reload link data to update access status
       await loadLinkData();

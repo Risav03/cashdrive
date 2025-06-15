@@ -1,9 +1,12 @@
 'use client';
 
-import { formatPrice, getFileIcon, getListings, getStatusColor } from '@/app/lib/frontend/marketplaceFunctions';
+import MarketplaceSearch from '@/app/components/MarketplaceSearch';
+import { formatPrice, getAvailableTags, getFileIcon, getListings, getStatusColor } from '@/app/lib/frontend/marketplaceFunctions';
+import { createHighlightedElement } from '@/app/lib/frontend/searchUtils';
 import { Listing, ListingsResponse } from '@/app/lib/types';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+
+import { useCallback, useEffect, useState } from 'react';
 import FooterPattern from '../components/global/FooterPattern';
 import Loader from '../components/global/Loader';
 
@@ -12,6 +15,7 @@ export default function MarketplacePage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
     total: 1,
@@ -22,7 +26,9 @@ export default function MarketplacePage() {
     sortBy: 'createdAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     page: 1,
-    limit: 12
+    limit: 12,
+    search: '',
+    tags: [] as string[]
   });
 
   useEffect(() => {
@@ -46,11 +52,33 @@ export default function MarketplacePage() {
     }
   };
 
+  const fetchAvailableTags = async () => {
+    try {
+      const tags = await getAvailableTags();
+      setAvailableTags(tags);
+    } catch (err: any) {
+      console.error('Failed to fetch available tags:', err);
+    }
+  };
+
+  const handleSearch = useCallback((searchTerm: string, tags: string[]) => {
+    setFilters(prev => ({
+      ...prev,
+      search: searchTerm,
+      tags,
+      page: 1 // Reset to first page when searching
+    }));
+  }, []);
+
   useEffect(() => {
     if (isClient) {
       fetchListings();
     }
   }, [filters, isClient]);
+
+  useEffect(() => {
+    fetchAvailableTags();
+  }, []);
 
   const handleSortChange = (sortBy: string) => {
     setFilters(prev => ({
@@ -146,6 +174,15 @@ export default function MarketplacePage() {
           </p>
         </div>
 
+        {/* Search Component */}
+        <MarketplaceSearch
+          onSearch={handleSearch}
+          initialSearch={filters.search}
+          initialTags={filters.tags}
+          availableTags={availableTags}
+          isLoading={loading}
+        />
+
         {/* Sort and Filter Controls */}
         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center bg-primary p-6 border-2 border-black brutal-shadow-left">
           <div className="flex items-center space-x-4">
@@ -168,16 +205,36 @@ export default function MarketplacePage() {
           
           <div className="mt-4 sm:mt-0 text-lg font-freeman">
             {pagination.totalItems} {pagination.totalItems === 1 ? 'listing' : 'listings'} found
+            {(filters.search || filters.tags.length > 0) && (
+              <span className="ml-2 text-blue-600">
+                (filtered)
+              </span>
+            )}
           </div>
         </div>
 
         {listings.length === 0 ? (
           <div className="mt-12 text-center bg-amber-100 p-8 border-2 border-black brutal-shadow-left">
-            <div className="text-6xl mb-4">🛍️</div>
-            <h3 className="text-2xl font-freeman mb-3">No listings found</h3>
-            <p className="font-freeman">
-              Be the first to list an item in the marketplace!
+            <div className="text-6xl mb-4">
+              {(filters.search || filters.tags.length > 0) ? '🔍' : '🛍️'}
+            </div>
+            <h3 className="text-2xl font-freeman mb-3">
+              {(filters.search || filters.tags.length > 0) ? 'No matching listings found' : 'No listings found'}
+            </h3>
+            <p className="mt-2 text-gray-500 font-freeman">
+              {(filters.search || filters.tags.length > 0) 
+                ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
+                : 'Be the first to list an item in the marketplace!'
+              }
             </p>
+            {(filters.search || filters.tags.length > 0) && (
+              <button
+                onClick={() => setFilters(prev => ({ ...prev, search: '', tags: [], page: 1 }))}
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -205,14 +262,17 @@ export default function MarketplacePage() {
                         {listing.views} {listing.views === 1 ? 'view' : 'views'}
                       </span>
                     </div>
-                    <h3 className="text-xl font-freeman mb-2 line-clamp-2">
-                      {listing.title}
-                    </h3>
-                    <p className="font-freeman text-sm mb-4 line-clamp-2">
-                      {listing.description}
-                    </p>
+                    <h3 
+                      className="text-xl font-freeman mb-2 line-clamp-2"
+                      dangerouslySetInnerHTML={createHighlightedElement(listing.title, filters.search)}
+                    />
+                    <p 
+                      className="font-freeman text-sm mb-4 line-clamp-2"
+                      dangerouslySetInnerHTML={createHighlightedElement(listing.description, filters.search)}
+                    />
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-freeman">
+
                         {formatPrice(listing.price)}
                       </span>
                       <span className="font-freeman text-sm">

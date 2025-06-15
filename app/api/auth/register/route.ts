@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 
     console.log("Account created");
 
-    // Create new user first
-    const user = await User.create({
+    // Create new user instance (but don't save yet)
+    const user = new User({
       name,
       email,
       password,
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       owner: user._id
     });
 
-    // Update user with root folder reference
+    // Set root folder reference and save user
     user.rootFolder = rootFolder._id;
     await user.save();
 

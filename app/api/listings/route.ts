@@ -15,10 +15,37 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
+    const search = searchParams.get('search');
+    const tagsParam = searchParams.get('tags');
+    const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()) : [];
     
     const query: any = { status };
     if (sellerId) {
       query.seller = sellerId;
+    }
+    
+    // Add search functionality
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i'); // Case-insensitive search
+      query.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { tags: { $in: [searchRegex] } }
+      ];
+    }
+    
+    // Add tag filtering
+    if (tags.length > 0) {
+      // If both search and tag filters are present, combine them with AND logic
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { tags: { $in: tags } }
+        ];
+        delete query.$or;
+      } else {
+        query.tags = { $in: tags };
+      }
     }
     
     const sort: any = {};
