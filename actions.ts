@@ -1,7 +1,8 @@
 'use server'
 
 import { CdpClient } from "@coinbase/cdp-sdk";
-import { wrapFetchWithPayment, decodeXPaymentResponse } from "x402-fetch";
+import axios from "axios";
+import { withPaymentInterceptor, decodeXPaymentResponse } from "x402-axios";
 import type { Wallet } from "x402/types";
 
 export async function getWallet(wallet:`0x${string}`, id:string){
@@ -14,31 +15,30 @@ export async function getWallet(wallet:`0x${string}`, id:string){
       
           console.log(cdp)
       
-        //   const account = await cdp.evm.getAccount({address: wallet});
-          const account2 = await cdp.evm.createAccount();
+          const account = await cdp.evm.getAccount({address: wallet});
+        //   const account2 = await cdp.evm.createAccount();
       
         //   console.log(account);
 
 
-          const fetchWithPayment = wrapFetchWithPayment(fetch, account2 as any);
-
-          console.log(fetchWithPayment)
-
-fetchWithPayment(`${process.env.NEXT_PUBLIC_HOST_NAME as string}/api/listings/${id}/purchase`, { //url should be something like https://api.example.com/paid-endpoint
-  method: "POST",
-
-})
-  .then(async response => {
-    const body = await response.json();
-    console.log("body",body);
-
-    const paymentResponse = decodeXPaymentResponse(response.headers.get("x-payment-response")!);
-    console.log(paymentResponse);
-  })
-  .catch(error => {
-    console.error(error.response?.data?.error);
-  });
-    }
+        const api = withPaymentInterceptor(
+            axios.create({
+              baseURL: process.env.NEXT_PUBLIC_HOST_NAME, // e.g. https://api.example.com
+            }),
+            account as any as Wallet, // Ensure the account is compatible with the Wallet type
+          );
+          
+          api
+            .get(`/api/listings/${id}/purchase`) // e.g. /paid-endpoint
+            .then((response:any) => {
+              console.log(response.data);
+          
+              const paymentResponse = decodeXPaymentResponse(response.headers["x-payment-response"]);
+              console.log(paymentResponse);
+            })
+            .catch((error:any) => {
+              console.error(error.response?.data?.error);
+            });   }
     catch(err){
         console.log("Error fetching wallet:", err);
         throw new Error("Failed to fetch wallet");
