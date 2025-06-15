@@ -4,8 +4,11 @@ import { formatPrice, getFileIcon, getListings, getStatusColor } from '@/app/lib
 import { Listing, ListingsResponse } from '@/app/lib/types';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import FooterPattern from '../components/global/FooterPattern';
+import Loader from '../components/global/Loader';
 
 export default function MarketplacePage() {
+  const [isClient, setIsClient] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +24,10 @@ export default function MarketplacePage() {
     page: 1,
     limit: 12
   });
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchListings = async () => {
     try {
@@ -40,8 +47,10 @@ export default function MarketplacePage() {
   };
 
   useEffect(() => {
-    fetchListings();
-  }, [filters]);
+    if (isClient) {
+      fetchListings();
+    }
+  }, [filters, isClient]);
 
   const handleSortChange = (sortBy: string) => {
     setFilters(prev => ({
@@ -56,83 +65,98 @@ export default function MarketplacePage() {
     setFilters(prev => ({ ...prev, page }));
   };
 
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              MARKETPLACE
+            </h2>
+            <p className="mt-3 max-w-md mx-auto text-xl font-freeman">
+              Browse and discover amazing digital products from creators around the world
+            </p>
+          </div>
+        </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
+      </div>
+    );
+  }
+
   if (loading && listings.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
-              Marketplace
-            </h1>
-            <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">
+              MARKETPLACE
+            </h2>
+            <p className="mt-3 max-w-md mx-auto text-xl font-freeman">
               Browse and discover amazing digital products from creators around the world
             </p>
           </div>
           <div className="mt-12 flex justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+            <Loader />
           </div>
         </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
-              Marketplace
-            </h1>
-            <div className="mt-12 bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Error loading listings
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{error}</p>
-                  </div>
-                  <div className="mt-4">
-                    <button
-                      onClick={fetchListings}
-                      className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                </div>
-              </div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center p-8 rounded-lg">
+            <h2 className="heading-text-2 text-6xl font-anton mb-3">
+              MARKETPLACE
+            </h2>
+            <div className="mt-12 bg-red-100 border-2 border-black p-8 brutal-shadow-left">
+              <h3 className="text-xl font-freeman mb-4">
+                Error loading listings
+              </h3>
+              <p className="font-freeman mb-6">{error}</p>
+              <button
+                onClick={fetchListings}
+                className="button-primary bg-[#FFD000] px-8 py-2"
+              >
+                Try again
+              </button>
             </div>
           </div>
         </main>
+        <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+        <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
-            Marketplace
-          </h1>
-          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+    <div className="min-h-screen bg-white relative">
+      <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center p-8 rounded-lg">
+          <h2 className="heading-text-2 text-6xl font-anton mb-8">
+            MARKETPLACE
+          </h2>
+          <p className="mt-3 max-w-md mx-auto text-2xl font-freeman">
             Browse and discover amazing digital products from creators around the world
           </p>
         </div>
 
         {/* Sort and Filter Controls */}
-        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center">
+        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center bg-primary p-6 border-2 border-black brutal-shadow-left">
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-900">Sort by:</span>
+            <span className="text-lg font-freeman">Sort by:</span>
             <select
               value={`${filters.sortBy}-${filters.sortOrder}`}
               onChange={(e) => {
                 const [sortBy, sortOrder] = e.target.value.split('-');
                 setFilters(prev => ({ ...prev, sortBy, sortOrder: sortOrder as 'asc' | 'desc', page: 1 }));
               }}
-              className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="px-4 py-2 bg-amber-50 border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
             >
               <option value="createdAt-desc">Newest first</option>
               <option value="createdAt-asc">Oldest first</option>
@@ -142,58 +166,60 @@ export default function MarketplacePage() {
             </select>
           </div>
           
-          <div className="mt-4 sm:mt-0 text-sm text-gray-600">
+          <div className="mt-4 sm:mt-0 text-lg font-freeman">
             {pagination.totalItems} {pagination.totalItems === 1 ? 'listing' : 'listings'} found
           </div>
         </div>
 
         {listings.length === 0 ? (
-          <div className="mt-12 text-center">
+          <div className="mt-12 text-center bg-amber-100 p-8 border-2 border-black brutal-shadow-left">
             <div className="text-6xl mb-4">🛍️</div>
-            <h3 className="text-lg font-medium text-gray-900">No listings found</h3>
-            <p className="mt-2 text-gray-500">
+            <h3 className="text-2xl font-freeman mb-3">No listings found</h3>
+            <p className="font-freeman">
               Be the first to list an item in the marketplace!
             </p>
           </div>
         ) : (
           <>
             {/* Listings Grid */}
-            <div className="mt-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mt-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
                 <Link
                   key={listing._id}
                   href={`/marketplace/${listing._id}`}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 group"
+                  className="bg-amber-100 border-2 border-black brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all duration-300 flex flex-col"
                 >
-                  <div className="aspect-w-16 aspect-h-12 bg-gray-200 flex items-center justify-center">
-                    <span className="text-4xl">
-                      {getFileIcon(listing.item.mimeType)}
-                    </span>
+                  <div className="h-48 bg-amber-50 border-b-2 border-black flex items-center justify-center p-6">
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-7xl">
+                        {getFileIcon(listing.item.mimeType)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(listing.status)}`}>
+                  <div className="p-6 flex-1">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="px-4 py-1 bg-[#FFD000] border-2 border-black font-freeman text-sm">
                         {listing.status}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="font-freeman text-sm">
                         {listing.views} {listing.views === 1 ? 'view' : 'views'}
                       </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
+                    <h3 className="text-xl font-freeman mb-2 line-clamp-2">
                       {listing.title}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                    <p className="font-freeman text-sm mb-4 line-clamp-2">
                       {listing.description}
                     </p>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-lg font-bold text-gray-900">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl font-freeman">
                         {formatPrice(listing.price)}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="font-freeman text-sm">
                         by {listing.seller.name}
                       </span>
                     </div>
-                    <div className="mt-2 text-xs text-gray-400">
+                    <div className="mt-2 font-freeman text-sm">
                       File: {listing.item.name}
                     </div>
                   </div>
@@ -203,43 +229,43 @@ export default function MarketplacePage() {
 
             {/* Pagination */}
             {pagination.total > 1 && (
-              <div className="mt-8 flex items-center justify-center">
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <div className="mt-8 flex items-center justify-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(pagination.current - 1)}
+                  disabled={pagination.current === 1}
+                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                
+                {Array.from({ length: pagination.total }, (_, i) => i + 1).map((page) => (
                   <button
-                    onClick={() => handlePageChange(pagination.current - 1)}
-                    disabled={pagination.current === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`button-primary px-4 py-2 ${
+                      page === pagination.current
+                        ? 'bg-[#FFD000]'
+                        : 'bg-amber-50'
+                    }`}
                   >
-                    Previous
+                    {page}
                   </button>
-                  
-                  {Array.from({ length: pagination.total }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === pagination.current
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  
-                  <button
-                    onClick={() => handlePageChange(pagination.current + 1)}
-                    disabled={pagination.current === pagination.total}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </nav>
+                ))}
+                
+                <button
+                  onClick={() => handlePageChange(pagination.current + 1)}
+                  disabled={pagination.current === pagination.total}
+                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
               </div>
             )}
           </>
         )}
       </main>
+      <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+      <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
     </div>
   );
 } 
