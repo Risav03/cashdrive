@@ -1,0 +1,11 @@
+{
+    "builds": [
+      {
+        "src": "next.config.ts",
+        "use": "@vercel/next"
+      }
+    ],
+    "env": {
+      "NEXT_PUBLIC_HOST_NAME": "@next_public_host_name"
+    }
+  }
