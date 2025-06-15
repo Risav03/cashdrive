@@ -2,6 +2,7 @@
 
 import { CdpClient } from "@coinbase/cdp-sdk";
 import { wrapFetchWithPayment, decodeXPaymentResponse } from "x402-fetch";
+import type { Wallet } from "x402/types";
 
 export async function getWallet(wallet:`0x${string}`, id:string){
     try{
@@ -13,16 +14,19 @@ export async function getWallet(wallet:`0x${string}`, id:string){
       
           console.log(cdp)
       
-          const account = await cdp.evm.getAccount({address: wallet});
+        //   const account = await cdp.evm.getAccount({address: wallet});
+          const account2 = await cdp.evm.createAccount();
       
-          console.log(account);
+        //   console.log(account);
 
 
-          const fetchWithPayment = wrapFetchWithPayment(fetch, account as any);
+          const fetchWithPayment = wrapFetchWithPayment(fetch, account2 as any);
+
+          console.log(fetchWithPayment)
 
 fetchWithPayment(`${process.env.NEXT_PUBLIC_HOST_NAME as string}/api/listings/${id}/purchase`, { //url should be something like https://api.example.com/paid-endpoint
   method: "POST",
-  
+
 })
   .then(async response => {
     const body = await response.json();
