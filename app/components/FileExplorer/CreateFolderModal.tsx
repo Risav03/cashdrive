@@ -40,38 +40,38 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, parentId }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Create New Folder</h2>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-amber-100 border-2 border-black brutal-shadow-left p-6 w-96">
+        <h2 className="font-anton text-3xl mb-6">Create Folder</h2>
         
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-2">Folder Name</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="font-freeman block mb-2">Folder Name</label>
             <input
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
               placeholder="Enter folder name"
               autoFocus
             />
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="button-primary bg-white px-4 py-2"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="button-primary bg-[#FFD000] px-4 py-2"
               disabled={isSubmitting || !folderName.trim()}
             >
-              {isSubmitting ? 'Creating...' : 'Create Folder'}
+              {isSubmitting ? 'Creating...' : 'Create'}
             </button>
           </div>
         </form>

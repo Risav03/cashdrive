@@ -1,5 +1,19 @@
 import axios from 'axios';
 import { BreadcrumbItem, CreateFolderOptions, DeleteResult, Item, UpdateItemOptions, UploadOptions } from '../types';
+import { IconType } from 'react-icons';
+import { 
+  FaFolder, 
+  FaImage, 
+  FaVideo, 
+  FaMusic, 
+  FaFilePdf, 
+  FaFileWord, 
+  FaFileExcel, 
+  FaFile,
+  FaFileCode,
+  FaFileArchive,
+  FaFileCsv
+} from 'react-icons/fa';
 
 export async function getUserRootFolder(): Promise<Item> {
   try {
@@ -122,17 +136,38 @@ export const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const getFileIcon = (mime?: string): string => {
-  if (!mime) return '📁';
+export const getFileIcon = (mime?: string): IconType => {
+  if (!mime) return FaFile;
   
-  if (mime.startsWith('image/')) return '🖼️';
-  if (mime.startsWith('video/')) return '🎥';
-  if (mime.startsWith('audio/')) return '🎵';
-  if (mime.includes('pdf')) return '📄';
-  if (mime.includes('word')) return '📝';
-  if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
+  if (mime.startsWith('image/')) return FaImage;
+  if (mime.startsWith('video/')) return FaVideo;
+  if (mime.startsWith('audio/')) return FaMusic;
+  if (mime.includes('pdf')) return FaFilePdf;
+  if (mime.includes('word') || mime.includes('document')) return FaFileWord;
+  if (mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('sheet')) return FaFileExcel;
+  if (mime.includes('csv')) return FaFileCsv;
   
-  return '📄';
+  if (
+    mime.includes('javascript') || 
+    mime.includes('typescript') ||
+    mime.includes('python') ||
+    mime.includes('java') ||
+    mime.includes('html') ||
+    mime.includes('css') ||
+    mime.includes('json') ||
+    mime.includes('xml') ||
+    mime.includes('text/plain')
+  ) return FaFileCode;
+  
+  if (
+    mime.includes('zip') ||
+    mime.includes('rar') ||
+    mime.includes('tar') ||
+    mime.includes('7z') ||
+    mime.includes('gzip')
+  ) return FaFileArchive;
+  
+  return FaFile;
 };
 
 export async function updateItem(itemId: string, updates: UpdateItemOptions): Promise<Item> {

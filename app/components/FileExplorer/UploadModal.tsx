@@ -15,14 +15,15 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when modal is closed
   useEffect(() => {
     if (!isOpen) {
       setUploadType('file');
       setFile(null);
       setUrl('');
       setName('');
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
@@ -34,88 +35,119 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
     if (uploadType === 'file' && !file) return;
     if (uploadType === 'url' && !url) return;
     
-    const options: UploadOptions = {
-      type: uploadType,
-      name: name || (file ? file.name : url),
-      parentId,
-      ...(uploadType === 'file' ? { file: file || undefined } : { url })
-    };
+    setIsSubmitting(true);
+    try {
+      const options: UploadOptions = {
+        type: uploadType,
+        name: name || (file ? file.name : url),
+        parentId,
+        ...(uploadType === 'file' ? { file: file || undefined } : { url })
+      };
 
-    await onUpload(options);
-    
-    // Reset form state after successful upload
-    setUploadType('file');
-    setFile(null);
-    setUrl('');
-    setName('');
-    onClose();
+      await onUpload(options);
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Upload</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-2">Upload Type</label>
-            <select
-              value={uploadType}
-              onChange={(e) => setUploadType(e.target.value as 'file' | 'url')}
-              className="w-full p-2 border rounded"
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-5 ">
+      <div className="bg-amber-100 border-2 border-black brutal-shadow-left w-96 max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b-2 border-black">
+          <div className="flex items-center justify-between">
+            <h2 className="font-anton text-3xl">UPLOAD</h2>
+            <button
+              onClick={onClose}
+              className="text-2xl hover:text-[#FFD000]"
             >
-              <option value="file">File</option>
-              <option value="url">URL</option>
-            </select>
+              ×
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <label className="font-freeman block mb-2">Upload Type</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setUploadType('file')}
+                className={`flex-1 button-primary ${
+                  uploadType === 'file' ? 'bg-[#FFD000]' : 'bg-white'
+                } py-2`}
+              >
+                File
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadType('url')}
+                className={`flex-1 button-primary ${
+                  uploadType === 'url' ? 'bg-[#FFD000]' : 'bg-white'
+                } py-2`}
+              >
+                URL
+              </button>
+            </div>
           </div>
 
           {uploadType === 'file' ? (
-            <div className="mb-4">
-              <label className="block mb-2">File</label>
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full p-2 border rounded"
-              />
+            <div>
+              <label className="font-freeman block mb-2">Choose File</label>
+              <div className="relative">
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center file:mr-4 file:py-2 file:px-4 file:border-2 file:border-black file:brutal-shadow-center file:bg-[#FFD000] file:font-freeman file:text-sm hover:file:brutal-shadow-left file:transition-all"
+                />
+              </div>
+              {file && (
+                <p className="mt-2 font-freeman text-sm">
+                  Selected: {file.name}
+                </p>
+              )}
             </div>
           ) : (
-            <div className="mb-4">
-              <label className="block mb-2">URL</label>
+            <div>
+              <label className="font-freeman block mb-2">URL</label>
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
                 placeholder="https://example.com/file"
               />
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="block mb-2">Name (optional)</label>
+          <div>
+            <label className="font-freeman block mb-2">
+              Custom Name <span className="text-sm">(optional)</span>
+            </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border rounded"
-              placeholder="Custom name"
+              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              placeholder="Enter custom name"
             />
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="button-primary bg-white px-4 py-2"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={uploadType === 'file' ? !file : !url}
+              disabled={isSubmitting || (uploadType === 'file' ? !file : !url)}
+              className="button-primary bg-[#FFD000] px-4 py-2"
             >
-              Upload
+              {isSubmitting ? 'Uploading...' : 'Upload'}
             </button>
           </div>
         </form>

@@ -14,6 +14,8 @@ import {
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Loader from '../components/global/Loader';
+import FooterPattern from '../components/global/FooterPattern';
 
 export default function SharedLinksPage() {
   const { data: session, status } = useSession();
@@ -76,8 +78,15 @@ export default function SharedLinksPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <h1 className="text-6xl font-anton mb-8">SHARED LINKS</h1>
+            <div className='flex justify-center items-center mt-10'><Loader /></div>
+          </div>
+        </main>
+        <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
       </div>
     );
   }
@@ -87,21 +96,21 @@ export default function SharedLinksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-white relative">
+      <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Shared Links</h1>
-          <p className="text-gray-600">
+        <div className="text-center mb-12">
+          <h1 className="text-6xl font-anton mb-4">SHARED LINKS</h1>
+          <p className="text-xl font-freeman">
             Manage your public and monetized shared links
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700">Filter by type:</span>
-            <div className="flex space-x-2">
+        <div className="bg-white border-2 border-black brutal-shadow-left p-6 mb-8">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-lg font-freeman">Filter by type:</span>
+            <div className="flex flex-wrap gap-3">
               {[
                 { key: 'all', label: 'All Links', count: pagination.totalItems },
                 { key: 'public', label: 'Public', count: '?' },
@@ -110,10 +119,10 @@ export default function SharedLinksPage() {
                 <button
                   key={key}
                   onClick={() => setFilter(key as any)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 border-2 border-black font-freeman transition-all ${
                     filter === key
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
+                      : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
                   }`}
                 >
                   {label} {count !== '?' && `(${count})`}
@@ -124,22 +133,20 @@ export default function SharedLinksPage() {
         </div>
 
         {/* Links List */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-white border-2 border-black brutal-shadow-left overflow-hidden">
           {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your shared links...</p>
+            <div className="p-12 text-center">
+              <div className='flex justify-center items-center mt-10'><Loader /></div>
             </div>
           ) : links.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-gray-400 text-5xl mb-4">🔗</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No shared links yet</h3>
-              <p className="text-gray-600 mb-4">
+            <div className="p-12 text-center">
+              <h3 className="text-2xl font-anton mb-4">NO SHARED LINKS YET</h3>
+              <p className="text-lg font-freeman mb-6">
                 Create your first shared link from the file manager
               </p>
               <button
-                onClick={() => router.push('/file-manager')}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => router.push('/dashboard')}
+                className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Go to File Manager
               </button>
@@ -147,8 +154,8 @@ export default function SharedLinksPage() {
           ) : (
             <>
               {/* Table Header */}
-              <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <div className="bg-amber-100 px-6 py-4 border-b-2 border-black">
+                <div className="grid grid-cols-12 gap-4 text-base font-freeman">
                   <div className="col-span-4">Content</div>
                   <div className="col-span-2">Type</div>
                   <div className="col-span-2">Views</div>
@@ -158,21 +165,21 @@ export default function SharedLinksPage() {
               </div>
 
               {/* Table Body */}
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y-2 divide-black">
                 {links.map((link) => (
-                  <div key={link._id} className="px-6 py-4 hover:bg-gray-50">
+                  <div key={link._id} className="px-6 py-4 hover:bg-amber-100 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       {/* Content */}
                       <div className="col-span-4">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">
                             {link.item.type === 'folder' ? '📁' : '📄'}
                           </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                          <div className="min-w-0">
+                            <p className="text-lg font-freeman truncate">
                               {link.title}
                             </p>
-                            <p className="text-sm text-gray-500 truncate">
+                            <p className="text-base truncate">
                               {link.item.name}
                               {link.item.size && ` • ${formatFileSize(link.item.size)}`}
                             </p>
@@ -182,33 +189,33 @@ export default function SharedLinksPage() {
 
                       {/* Type */}
                       <div className="col-span-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLinkTypeColor(link.type)}`}>
+                        <span className="px-3 py-1 bg-[#FFD000] border-2 border-black font-freeman inline-block">
                           {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
                         </span>
                         {link.type === 'monetized' && link.price && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="mt-2 font-freeman">
                             {formatPrice(link.price)}
                           </p>
                         )}
                       </div>
 
                       {/* Views */}
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-900">{link.accessCount}</p>
+                      <div className="col-span-2 font-freeman">
+                        <p className="text-lg">{link.accessCount} views</p>
                         {link.type === 'monetized' && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-base">
                             {link.paidUsers.length} paid
                           </p>
                         )}
                       </div>
 
                       {/* Created */}
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-900">
+                      <div className="col-span-2 font-freeman">
+                        <p className="text-base">
                           {formatDate(link.createdAt)}
                         </p>
                         {link.expiresAt && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-base">
                             Expires: {formatDate(link.expiresAt)}
                           </p>
                         )}
@@ -216,20 +223,20 @@ export default function SharedLinksPage() {
 
                       {/* Actions */}
                       <div className="col-span-2">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleCopyLink(link.linkId)}
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                            className={`px-3 py-1 border-2 border-black font-freeman transition-all ${
                               copySuccess === link.linkId
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
+                                : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
                             }`}
                           >
                             {copySuccess === link.linkId ? 'Copied!' : 'Copy Link'}
                           </button>
                           <button
                             onClick={() => window.open(generateShareableUrl(link.linkId), '_blank')}
-                            className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                            className="px-3 py-1 bg-white border-2 border-black brutal-shadow-left font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                           >
                             Preview
                           </button>
@@ -245,15 +252,15 @@ export default function SharedLinksPage() {
 
         {/* Pagination */}
         {pagination.total > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="text-lg font-freeman">
               Showing {((pagination.current - 1) * 10) + 1} to {Math.min(pagination.current * 10, pagination.totalItems)} of {pagination.totalItems} results
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handlePageChange(pagination.current - 1)}
                 disabled={pagination.current === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-white border-2 border-black brutal-shadow-left px-4 py-2 font-freeman disabled:opacity-50 disabled:cursor-not-allowed hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Previous
               </button>
@@ -261,11 +268,11 @@ export default function SharedLinksPage() {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 text-sm border rounded ${
+                  className={`px-4 py-2 border-2 border-black font-freeman ${
                     page === pagination.current
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
+                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
+                      : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
+                  } transition-all`}
                 >
                   {page}
                 </button>
@@ -273,14 +280,16 @@ export default function SharedLinksPage() {
               <button
                 onClick={() => handlePageChange(pagination.current + 1)}
                 disabled={pagination.current === pagination.total}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-white border-2 border-black brutal-shadow-left px-4 py-2 font-freeman disabled:opacity-50 disabled:cursor-not-allowed hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Next
               </button>
             </div>
           </div>
         )}
-      </div>
+      </main>
+      <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
     </div>
   );
 } 

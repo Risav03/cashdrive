@@ -10,6 +10,7 @@ import { BreadcrumbNav } from './BreadcrumbNav';
 import { CreateFolderModal } from './CreateFolderModal';
 import { FileItem } from './FileItem';
 import { UploadModal } from './UploadModal';
+import Loader from '../global/Loader';
 
 export const FileExplorer = () => {
   const { user, isLoadingUser, showNotification } = useApp();
@@ -33,8 +34,18 @@ export const FileExplorer = () => {
         const root = await getUserRootFolder();
         setCurrentFolder(root);
         const rootItems = await getItemsByParentId(root._id);
-        console.log('Root items:', rootItems);
-        setItems(rootItems);
+        
+        // Sort items: folders first, then files, both sorted by date
+        const sortedItems = rootItems.sort((a, b) => {
+          // First, separate folders and files
+          if (a.type === 'folder' && b.type === 'file') return -1;
+          if (a.type === 'file' && b.type === 'folder') return 1;
+          
+          // Then sort by date (newest first)
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+        setItems(sortedItems);
         setBreadcrumbs([]);
       } catch (error) {
         console.error('Failed to load root folder:', error);
@@ -52,7 +63,18 @@ export const FileExplorer = () => {
     setIsLoading(true);
     try {
       const newItems = await getItemsByParentId(currentFolder._id);
-      setItems(newItems);
+      
+      // Sort items: folders first, then files, both sorted by date
+      const sortedItems = newItems.sort((a, b) => {
+        // First, separate folders and files
+        if (a.type === 'folder' && b.type === 'file') return -1;
+        if (a.type === 'file' && b.type === 'folder') return 1;
+        
+        // Then sort by date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      setItems(sortedItems);
       const path = await getBreadcrumbPath(currentFolder._id);
       setBreadcrumbs(path);
     } catch (error) {
@@ -70,8 +92,8 @@ export const FileExplorer = () => {
 
   if (isLoadingUser) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className='flex justify-center items-center mt-10'>
+        <Loader />
       </div>
     );
   }
@@ -157,70 +179,72 @@ export const FileExplorer = () => {
   };
 
   return (
-    <div className="p-6 text-slate-800">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">File Explorer</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsCreateFolderModalOpen(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-          >
-            New Folder
-          </button>
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Upload
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4 mb-4">
-        {currentFolder?._id && (
-          <button
-            onClick={handleBack}
-            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-            title="Go back"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-6 w-6 text-gray-600" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-amber-100 border-2 border-black brutal-shadow-left p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-anton text-3xl">File Explorer</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsCreateFolderModalOpen(true)}
+              className="button-primary bg-white px-4 py-2 text-base"
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M15 19l-7-7 7-7" 
+              New Folder
+            </button>
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="button-primary bg-[#FFD000] px-4 py-2 text-base"
+            >
+              Upload
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-4 bg-white border-2 border-black p-3">
+          {currentFolder?._id && (
+            <button
+              onClick={handleBack}
+              className="p-2 bg-[#FFD000] border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all"
+              title="Go back"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-6 w-6" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M15 19l-7-7 7-7" 
+                />
+              </svg>
+            </button>
+          )}
+          {breadcrumbs.length > 0 && (
+            <BreadcrumbNav items={breadcrumbs} onNavigate={handleNavigate} />
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className='flex justify-center items-center mt-10 scale-75'>
+            <Loader />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {items.map((item) => (
+              <FileItem
+                key={item._id}
+                item={item}
+                onItemClick={handleItemClick}
+                onListToMarketplace={handleListToMarketplace}
+                onShareItem={handleShareItem}
               />
-            </svg>
-          </button>
-        )}
-        {breadcrumbs.length > 0 && (
-          <BreadcrumbNav items={breadcrumbs} onNavigate={handleNavigate} />
+            ))}
+          </div>
         )}
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {items.map((item) => (
-            <FileItem
-              key={item._id}
-              item={item}
-              onItemClick={handleItemClick}
-              onListToMarketplace={handleListToMarketplace}
-              onShareItem={handleShareItem}
-            />
-          ))}
-        </div>
-      )}
 
       <CreateFolderModal
         isOpen={isCreateFolderModalOpen}

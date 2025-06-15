@@ -72,7 +72,7 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     if (isClient) {
-      fetchListings();
+    fetchListings();
     }
   }, [filters, isClient]);
 
@@ -144,15 +144,15 @@ export default function MarketplacePage() {
             </h2>
             <div className="mt-12 bg-red-100 border-2 border-black p-8 brutal-shadow-left">
               <h3 className="text-xl font-freeman mb-4">
-                Error loading listings
-              </h3>
+                    Error loading listings
+                  </h3>
               <p className="font-freeman mb-6">{error}</p>
-              <button
-                onClick={fetchListings}
+                    <button
+                      onClick={fetchListings}
                 className="button-primary bg-[#FFD000] px-8 py-2"
-              >
-                Try again
-              </button>
+                    >
+                      Try again
+                    </button>
             </div>
           </div>
         </main>
@@ -193,7 +193,7 @@ export default function MarketplacePage() {
                 const [sortBy, sortOrder] = e.target.value.split('-');
                 setFilters(prev => ({ ...prev, sortBy, sortOrder: sortOrder as 'asc' | 'desc', page: 1 }));
               }}
-              className="px-4 py-2 bg-amber-50 border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              className="px-4 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
             >
               <option value="createdAt-desc">Newest first</option>
               <option value="createdAt-asc">Oldest first</option>
@@ -246,11 +246,11 @@ export default function MarketplacePage() {
                   href={`/marketplace/${listing._id}`}
                   className="bg-amber-100 border-2 border-black brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all duration-300 flex flex-col"
                 >
-                  <div className="h-48 bg-amber-50 border-b-2 border-black flex items-center justify-center p-6">
+                  <div className="h-48 bg-white border-b-2 border-black flex items-center justify-center p-6">
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-7xl">
-                        {getFileIcon(listing.item.mimeType)}
-                      </span>
+                      {getFileIcon(listing.item.mimeType)}
+                    </span>
                     </div>
                   </div>
                   <div className="p-6 flex-1">
@@ -290,35 +290,35 @@ export default function MarketplacePage() {
             {/* Pagination */}
             {pagination.total > 1 && (
               <div className="mt-8 flex items-center justify-center space-x-2">
-                <button
-                  onClick={() => handlePageChange(pagination.current - 1)}
-                  disabled={pagination.current === 1}
-                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                
-                {Array.from({ length: pagination.total }, (_, i) => i + 1).map((page) => (
                   <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`button-primary px-4 py-2 ${
-                      page === pagination.current
-                        ? 'bg-[#FFD000]'
-                        : 'bg-amber-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                
-                <button
-                  onClick={() => handlePageChange(pagination.current + 1)}
-                  disabled={pagination.current === pagination.total}
+                    onClick={() => handlePageChange(pagination.current - 1)}
+                    disabled={pagination.current === 1}
                   className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                  >
+                    Previous
+                  </button>
+                  
+                  {Array.from({ length: pagination.total }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                    className={`button-primary px-4 py-2 ${
+                        page === pagination.current
+                        ? 'bg-[#FFD000]'
+                        : 'bg-white'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => handlePageChange(pagination.current + 1)}
+                    disabled={pagination.current === pagination.total}
+                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
               </div>
             )}
           </>

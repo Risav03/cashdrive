@@ -7,7 +7,7 @@ import { AuthButton } from '../components/auth/cards/card'
 
 const Test = () => {
   return (
-    <div className='w-screen h-screen bg-amber-50 flex flex-col items-center justify-start'>
+    <div className='w-screen h-screen bg-white flex flex-col items-center justify-start'>
         
 
             <div className=' flex flex-row justify-between items-center px-5 w-full h-fit py-5 mx-auto border-b-4 border-black bg-[#FFD000] '>
