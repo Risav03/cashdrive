@@ -83,7 +83,8 @@ export default function ListingDetailPage() {
       
       alert(`Purchase successful! ${result.message}\nFile copied to: ${result.copiedItem.path}\nReceipt: ${result.transaction.receiptNumber}`);
     } catch (err: any) {
-      alert('Purchase failed: ' + err.message);
+      console.log('Purchase error:', err);
+      alert('Purchase failed: ' + err);
     } finally {
       setPurchaseLoading(false);
     }

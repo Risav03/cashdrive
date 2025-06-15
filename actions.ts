@@ -21,7 +21,8 @@ export async function getWallet(wallet:`0x${string}`, id:string){
           const fetchWithPayment = wrapFetchWithPayment(fetch, account as any);
 
 fetchWithPayment(`${process.env.NEXT_PUBLIC_HOST_NAME as string}/api/listings/${id}/purchase`, { //url should be something like https://api.example.com/paid-endpoint
-  method: "GET",
+  method: "POST",
+  
 })
   .then(async response => {
     const body = await response.json();
