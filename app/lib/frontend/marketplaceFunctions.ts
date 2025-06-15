@@ -11,7 +11,7 @@ import {
     UpdateListingOptions
 } from '../types';
 import { CdpClient } from '@coinbase/cdp-sdk';
-import { getWallet } from '@/app/actions';
+import { getWallet } from '@/actions';
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {
@@ -182,15 +182,10 @@ export function getFileIcon(mimeType?: string): string {
   return '📄';
 }
 
-export async function purchaseListing(listingId: string, wallet:`0x${string}`): Promise<PurchaseResponse> {
+export async function purchaseListing(listingId: string, wallet:`0x${string}`): Promise<any> {
   try {
-    const account = await getWallet(wallet);
-
-    console.log(account)
-    const response = await axios.post(`/api/listings/${listingId}/purchase`, {}, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.data;
+    const res = await getWallet(wallet, listingId);
+    return res;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
       throw new Error('Unauthorized - Please log in');
@@ -227,6 +222,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
 export async function getTransaction(transactionId: string): Promise<Transaction> {
   try {
     const response = await axios.get(`/api/transactions/${transactionId}`);
+    console.log("res from purchase", response)
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
