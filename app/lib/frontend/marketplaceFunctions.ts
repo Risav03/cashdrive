@@ -1,17 +1,15 @@
+import { purchaseFromMarketplace } from '@/actions';
 import axios from 'axios';
 import {
-    CreateListingOptions,
-    Listing,
-    ListingFilters,
-    ListingsResponse,
-    PurchaseResponse,
-    Transaction,
-    TransactionFilters,
-    TransactionsResponse,
-    UpdateListingOptions
+  CreateListingOptions,
+  Listing,
+  ListingFilters,
+  ListingsResponse,
+  Transaction,
+  TransactionFilters,
+  TransactionsResponse,
+  UpdateListingOptions
 } from '../types';
-import { CdpClient } from '@coinbase/cdp-sdk';
-import { getWallet } from '@/actions';
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {
@@ -184,7 +182,7 @@ export function getFileIcon(mimeType?: string): string {
 
 export async function purchaseListing(listingId: string, wallet:`0x${string}`): Promise<any> {
   try {
-    const res = await getWallet(wallet, listingId);
+    const res = await purchaseFromMarketplace(wallet, listingId);
     return res;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
@@ -285,4 +283,47 @@ export async function hasUserPurchased(listingId: string): Promise<boolean> {
     console.error('Error checking purchase status:', error);
     return false;
   }
+}
+
+// Blockchain utility functions
+export function formatBlockchainAddress(address: string): string {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+export function formatTransactionHash(hash: string): string {
+  if (!hash) return '';
+  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+}
+
+export function getBlockExplorerUrl(network: string, txHash: string): string {
+  const baseUrls: { [key: string]: string } = {
+    'base-sepolia': 'https://sepolia.basescan.org/tx/',
+    'base': 'https://basescan.org/tx/',
+    'ethereum': 'https://etherscan.io/tx/',
+    'sepolia': 'https://sepolia.etherscan.io/tx/',
+  };
+  
+  const baseUrl = baseUrls[network] || baseUrls['base-sepolia'];
+  return `${baseUrl}${txHash}`;
+}
+
+export function getNetworkDisplayName(network: string): string {
+  const networkNames: { [key: string]: string } = {
+    'base-sepolia': 'Base Sepolia',
+    'base': 'Base',
+    'ethereum': 'Ethereum',
+    'sepolia': 'Sepolia',
+  };
+  
+  return networkNames[network] || network.charAt(0).toUpperCase() + network.slice(1);
+}
+
+export function copyToClipboard(text: string, successMessage: string = 'Copied to clipboard!'): void {
+  navigator.clipboard.writeText(text).then(() => {
+    // You could integrate with a toast notification system here
+    console.log(successMessage);
+  }).catch(err => {
+    console.error('Failed to copy text: ', err);
+  });
 } 
