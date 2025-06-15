@@ -178,4 +178,6 @@ export interface ListingFilters {
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   page?: number;
+  search?: string;
+  tags?: string[];
 } 

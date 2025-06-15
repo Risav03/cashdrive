@@ -39,6 +39,8 @@ export async function getListings(filters: ListingFilters = {}): Promise<Listing
     if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.page) params.append('page', filters.page.toString());
+    if (filters.search) params.append('search', filters.search);
+    if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
     
     const url = `/api/listings${params.toString() ? '?' + params.toString() : ''}`;
     const response = await axios.get(url);
@@ -282,6 +284,16 @@ export async function hasUserPurchased(listingId: string): Promise<boolean> {
   } catch (error: any) {
     console.error('Error checking purchase status:', error);
     return false;
+  }
+}
+
+export async function getAvailableTags(): Promise<string[]> {
+  try {
+    const response = await axios.get('/api/listings/tags');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching available tags:', error);
+    return [];
   }
 }
 
