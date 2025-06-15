@@ -215,7 +215,7 @@ export default function TransactionDetailPage() {
                           {formatBlockchainAddress(transaction.metadata.blockchainTransaction)}
                         </span>
                         <button
-                          onClick={() => copyToClipboard(transaction.metadata.blockchainTransaction, 'Transaction hash copied!')}
+                          onClick={() => copyToClipboard(transaction.metadata?.blockchainTransaction || '', 'Transaction hash copied!')}
                           className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
                           title="Copy transaction hash"
                         >
@@ -225,16 +225,16 @@ export default function TransactionDetailPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Network:</span>
-                      <span className="text-gray-900">{getNetworkDisplayName(transaction.metadata.network)}</span>
+                      <span className="text-gray-900">{getNetworkDisplayName(transaction.metadata?.network || '')}</span>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="text-gray-500">Payer Wallet:</span>
                       <div className="text-right">
                         <span className="text-gray-900 font-mono text-sm">
-                          {formatBlockchainAddress(transaction.metadata.payer)}
+                          {formatBlockchainAddress(transaction.metadata?.payer || '')}
                         </span>
                         <button
-                          onClick={() => copyToClipboard(transaction.metadata.payer, 'Wallet address copied!')}
+                          onClick={() => copyToClipboard(transaction.metadata?.payer || '', 'Wallet address copied!')}
                           className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
                           title="Copy wallet address"
                         >
@@ -245,14 +245,14 @@ export default function TransactionDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Payment Status:</span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        transaction.metadata.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        transaction.metadata?.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {transaction.metadata.success ? 'Confirmed' : 'Failed'}
+                        {transaction.metadata?.success ? 'Confirmed' : 'Failed'}
                       </span>
                     </div>
                     <div className="mt-4">
                       <a
-                        href={getBlockExplorerUrl(transaction.metadata.network, transaction.metadata.blockchainTransaction)}
+                        href={getBlockExplorerUrl(transaction.metadata?.network || '', transaction.metadata?.blockchainTransaction || '')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
