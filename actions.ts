@@ -13,13 +13,7 @@ export async function getWallet(wallet:`0x${string}`, id:string){
             walletSecret: process.env.CDP_WALLET_SECRET,
           });
       
-          console.log(cdp)
-      
           const account = await cdp.evm.getAccount({address: wallet});
-        //   const account2 = await cdp.evm.createAccount();
-      
-          console.log(account, process.env.NEXT_PUBLIC_HOST_NAME);
-
 
         const api = withPaymentInterceptor(
             axios.create({
