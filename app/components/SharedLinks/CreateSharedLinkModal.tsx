@@ -148,7 +148,7 @@ export default function CreateSharedLinkModal({
                   <div className="text-3xl flex-shrink-0">
                     {item.type === 'folder' 
                       ? <FaFolder className="w-6 h-6" />
-                      : createElement(getFileIcon(item.mime), { className: "w-6 h-6" })
+                      : createElement(getFileIcon(item.mimeType), { className: "w-6 h-6" })
                     }
                   </div>
                   <div className="min-w-0"> {/* prevent text overflow */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anton } from "next/font/google";
 import "./globals.css";
 import { Provider } from "./utils/providers/Provider";
+import { FileViewer } from "./components/FileViewer";
 
 // const anton = Anton({
 //   variable: "--font-anton",
@@ -26,6 +27,7 @@ export default function RootLayout({
       >
         <Provider>
           {children}
+          <FileViewer />
         </Provider>
       </body>
     </html>
