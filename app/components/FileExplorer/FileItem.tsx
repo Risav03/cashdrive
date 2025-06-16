@@ -48,24 +48,34 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }
         <div
           onClick={handleItemClick}
           className={`
-            bg-amber-100 border-2 border-black brutal-shadow-left
-            hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center
-            transition-all duration-300 cursor-pointer p-4
+            bg-amber-100 hover:bg-white border-2 border-black button-primary
+            transition-all duration-100 cursor-pointer p-4
+            h-[120px]
             ${isHovered ? 'translate-x-1 translate-y-1 brutal-shadow-center' : ''}
           `}
         >
-          {/* Main Content - Horizontal Layout */}
-          <div className="flex items-center gap-3 mt-10">
-            <div className="text-3xl flex-shrink-0">
-              <IconComponent className="w-8 h-8" />
+          {/* Main Content - Vertical Layout */}
+          <div className="flex flex-col h-full">
+            {/* Type indicator */}
+            <div className="mb-2">
+              <span className="font-freeman text-xs px-2 py-0.5 bg-white border-2 border-black brutal-shadow-center">
+                {item.type}
+              </span>
             </div>
-            <div className="min-w-0">
-              <div className="font-freeman truncate">{item.name}</div>
-              {item.type === 'file' && item.mimeType && (
-                <div className="font-freeman text-xs truncate text-gray-700">
-                  {item.mimeType}
-                </div>
-              )}
+
+            {/* File/Folder Content */}
+            <div className="flex items-center gap-3 flex-1">
+              <div className="text-3xl flex-shrink-0">
+                <IconComponent className="w-8 h-8" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-freeman truncate">{item.name}</div>
+                {item.type === 'file' && item.mimeType && (
+                  <div className="font-freeman text-xs truncate text-gray-700">
+                    {item.mimeType}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -87,7 +97,7 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }
               {onListToMarketplace && (
                 <button
                   onClick={handleMarketplaceClick}
-                  className="bg-[#FFD000] border-2 border-black brutal-shadow-center hover:translate-y-1 hover:brutal-shadow-left p-1 transition-all"
+                  className="bg-primary border-2 border-black brutal-shadow-center hover:translate-y-1 hover:brutal-shadow-left p-1 transition-all"
                   title={`List ${item.name} to marketplace`}
                 >
                   <MdOutlineStore className="w-4 h-4" />
@@ -95,13 +105,6 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }
               )}
             </div>
           )}
-
-          {/* Type indicator */}
-          <div className="absolute top-2 left-2">
-            <span className="font-freeman text-xs px-2 py-0.5 bg-white border-2 border-black brutal-shadow-center">
-              {item.type}
-            </span>
-          </div>
         </div>
       </div>
     </>

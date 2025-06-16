@@ -59,7 +59,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
             <h2 className="font-anton text-3xl">UPLOAD</h2>
             <button
               onClick={onClose}
-              className="text-2xl hover:text-[#FFD000]"
+              className="text-2xl hover:text-primary"
             >
               ×
             </button>
@@ -73,8 +73,8 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
               <button
                 type="button"
                 onClick={() => setUploadType('file')}
-                className={`flex-1 button-primary ${
-                  uploadType === 'file' ? 'bg-[#FFD000]' : 'bg-white'
+                className={`flex-1 button-primary duration-100 ${
+                  uploadType === 'file' ? 'bg-primary' : 'bg-white'
                 } py-2`}
               >
                 File
@@ -82,8 +82,8 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
               <button
                 type="button"
                 onClick={() => setUploadType('url')}
-                className={`flex-1 button-primary ${
-                  uploadType === 'url' ? 'bg-[#FFD000]' : 'bg-white'
+                className={`flex-1 button-primary duration-100 ${
+                  uploadType === 'url' ? 'bg-primary' : 'bg-white'
                 } py-2`}
               >
                 URL
@@ -98,7 +98,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
                 <input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center file:mr-4 file:py-2 file:px-4 file:border-2 file:border-black file:brutal-shadow-center file:bg-[#FFD000] file:font-freeman file:text-sm hover:file:brutal-shadow-left file:transition-all"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center file:mr-4 file:py-2 file:px-4 file:border-2 file:border-black file:brutal-shadow-center file:bg-primary file:font-freeman file:text-sm hover:file:brutal-shadow-left file:transition-all"
                 />
               </div>
               {file && (
@@ -114,7 +114,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="https://example.com/file"
               />
             </div>
@@ -128,7 +128,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
               placeholder="Enter custom name"
             />
           </div>
@@ -137,7 +137,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
             <button
               type="button"
               onClick={onClose}
-              className="button-primary bg-white px-4 py-2"
+              className="button-primary bg-white px-4 py-2 duration-100"
               disabled={isSubmitting}
             >
               Cancel
@@ -145,7 +145,7 @@ export const UploadModal = ({ isOpen, onClose, onUpload, parentId }: UploadModal
             <button
               type="submit"
               disabled={isSubmitting || (uploadType === 'file' ? !file : !url)}
-              className="button-primary bg-[#FFD000] px-4 py-2"
+              className="button-primary bg-primary px-4 py-2 duration-100"
             >
               {isSubmitting ? 'Uploading...' : 'Upload'}
             </button>

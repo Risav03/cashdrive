@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 
 interface MarketplaceSearchProps {
   onSearch: (searchTerm: string, tags: string[]) => void;
@@ -60,6 +60,11 @@ export default function MarketplaceSearch({
 
   const hasActiveFilters = searchTerm.length > 0 || selectedTags.length > 0;
 
+  // Add useMemo to prevent unnecessary re-renders of the loading spinner
+  const loadingSpinner = useMemo(() => (
+    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+  ), []);
+
   return (
     <div className="bg-amber-100 border-2 border-black brutal-shadow-left p-6 mb-8">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -67,9 +72,7 @@ export default function MarketplaceSearch({
         <div className="flex-1 relative">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#FFD000]"></div>
-              ) : (
+              {isLoading ? loadingSpinner : (
                 <svg className="h-5 w-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -85,7 +88,7 @@ export default function MarketplaceSearch({
                   setSearchTerm('');
                 }
               }}
-              className="block w-full pl-10 pr-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              className="block w-full pl-10 pr-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
             />
           </div>
         </div>
@@ -95,7 +98,7 @@ export default function MarketplaceSearch({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowTagDropdown(!showTagDropdown)}
-              className="button-primary bg-[#FFD000] px-4 py-2 flex items-center"
+              className="button-primary bg-primary px-4 py-2 flex items-center duration-100"
             >
               <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -115,7 +118,7 @@ export default function MarketplaceSearch({
                         type="checkbox"
                         checked={selectedTags.includes(tag)}
                         onChange={() => handleTagToggle(tag)}
-                        className="mr-3 h-4 w-4 border-2 border-black focus:ring-[#FFD000]"
+                        className="mr-3 h-4 w-4 border-2 border-black focus:ring-primary"
                       />
                       {tag}
                     </label>
@@ -147,7 +150,7 @@ export default function MarketplaceSearch({
           {selectedTags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center px-3 py-1 bg-[#FFD000] border-2 border-black font-freeman text-sm brutal-shadow-center"
+              className="inline-flex items-center px-3 py-1 bg-primary border-2 border-black font-freeman text-sm brutal-shadow-center"
             >
               {tag}
               <button

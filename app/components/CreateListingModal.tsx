@@ -97,7 +97,7 @@ export default function CreateListingModal({
             <h2 className="font-anton text-3xl">Create Listing</h2>
             <button
               onClick={onClose}
-              className="text-2xl hover:text-[#FFD000]"
+              className="text-2xl hover:text-primary"
             >
               ×
             </button>
@@ -127,7 +127,7 @@ export default function CreateListingModal({
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="Enter listing title"
                 required
               />
@@ -139,7 +139,7 @@ export default function CreateListingModal({
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 rows={4}
                 placeholder="Describe your listing"
                 required
@@ -154,7 +154,7 @@ export default function CreateListingModal({
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                   placeholder="0.00"
                   min="0.01"
                   step="0.01"
@@ -170,7 +170,7 @@ export default function CreateListingModal({
                 name="tags"
                 value={formData.tags}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="design, template, pdf"
               />
               <p className="font-freeman text-sm mt-1">Separate tags with commas</p>
@@ -181,14 +181,14 @@ export default function CreateListingModal({
             <button
               type="button"
               onClick={onClose}
-              className="button-primary bg-white px-4 py-2"
+              className="button-primary bg-white px-4 py-2 duration-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="button-primary bg-[#FFD000] px-4 py-2"
+              className="button-primary bg-primary px-4 py-2 duration-100"
             >
               {loading ? 'Creating...' : 'Create Listing'}
             </button>

@@ -96,6 +96,11 @@
   @apply translate-x-1 translate-y-1;
 }
 
+.button-primary-pressed {
+  box-shadow: 2px 2px #2c2a29;
+  @apply border-[#2c2a29] border-2 font-freeman text-xl translate-x-1 translate-y-1;
+}
+
 .slow-spin {
   animation: spin 10s linear infinite;
 }

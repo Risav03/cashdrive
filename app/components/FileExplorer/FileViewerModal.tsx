@@ -78,7 +78,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
             <a
               href={item.url}
               download={item.name}
-              className="button-primary bg-[#FFD000] px-6 py-3 inline-block"
+              className="button-primary bg-primary px-6 py-3 inline-block"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -148,7 +148,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
         <a
           href={item.url}
           download={item.name}
-          className="button-primary bg-[#FFD000] px-6 py-3 inline-block"
+          className="button-primary bg-primary px-6 py-3 inline-block"
           target="_blank"
           rel="noopener noreferrer"
         >

@@ -5,8 +5,9 @@ import { formatPrice, getAvailableTags, getFileIcon, getListings, getStatusColor
 import { createHighlightedElement } from '@/app/lib/frontend/searchUtils';
 import { Listing, ListingsResponse } from '@/app/lib/types';
 import Link from 'next/link';
+import { DashboardCard } from '../components/ui/DashboardCard';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import FooterPattern from '../components/global/FooterPattern';
 import Loader from '../components/global/Loader';
 
@@ -35,7 +36,7 @@ export default function MarketplacePage() {
     setIsClient(true);
   }, []);
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -50,7 +51,7 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   const fetchAvailableTags = async () => {
     try {
@@ -62,31 +63,49 @@ export default function MarketplacePage() {
   };
 
   const handleSearch = useCallback((searchTerm: string, tags: string[]) => {
-    setFilters(prev => ({
-      ...prev,
-      search: searchTerm,
-      tags,
-      page: 1 // Reset to first page when searching
-    }));
+    setFilters(prev => {
+      if (prev.search === searchTerm && 
+          JSON.stringify(prev.tags) === JSON.stringify(tags)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        search: searchTerm,
+        tags,
+        page: 1
+      };
+    });
   }, []);
 
   useEffect(() => {
     if (isClient) {
-    fetchListings();
+      const timeoutId = setTimeout(() => {
+        fetchListings();
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [filters, isClient]);
+  }, [fetchListings, isClient]);
 
   useEffect(() => {
     fetchAvailableTags();
   }, []);
 
   const handleSortChange = (sortBy: string) => {
-    setFilters(prev => ({
-      ...prev,
-      sortBy,
-      sortOrder: prev.sortBy === sortBy && prev.sortOrder === 'desc' ? 'asc' : 'desc',
-      page: 1
-    }));
+    setFilters(prev => {
+      const newSortOrder = prev.sortBy === sortBy && prev.sortOrder === 'desc' ? 'asc' : 'desc';
+      
+      if (prev.sortBy === sortBy && prev.sortOrder === newSortOrder) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        sortBy,
+        sortOrder: newSortOrder,
+        page: 1
+      };
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -149,7 +168,7 @@ export default function MarketplacePage() {
               <p className="font-freeman mb-6">{error}</p>
                     <button
                       onClick={fetchListings}
-                className="button-primary bg-[#FFD000] px-8 py-2"
+                className="button-primary bg-primary px-8 py-2"
                     >
                       Try again
                     </button>
@@ -169,11 +188,13 @@ export default function MarketplacePage() {
           <h2 className="heading-text-2 text-6xl font-anton mb-8">
             MARKETPLACE
           </h2>
-          <p className="mt-3 max-w-md mx-auto text-2xl font-freeman">
+          <p className="mt-3 max-w-md mx-auto text-xl font-freeman">
             Browse and discover amazing digital products from creators around the world
           </p>
         </div>
-
+        
+        <DashboardCard />
+        
         {/* Search Component */}
         <MarketplaceSearch
           onSearch={handleSearch}
@@ -193,7 +214,7 @@ export default function MarketplacePage() {
                 const [sortBy, sortOrder] = e.target.value.split('-');
                 setFilters(prev => ({ ...prev, sortBy, sortOrder: sortOrder as 'asc' | 'desc', page: 1 }));
               }}
-              className="px-4 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              className="px-4 py-2 bg-white border-2 border-black font-freeman focus:outline-none brutal-shadow-center"
             >
               <option value="createdAt-desc">Newest first</option>
               <option value="createdAt-asc">Oldest first</option>
@@ -230,9 +251,9 @@ export default function MarketplacePage() {
             {(filters.search || filters.tags.length > 0) && (
               <button
                 onClick={() => setFilters(prev => ({ ...prev, search: '', tags: [], page: 1 }))}
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="mt-4 button-primary bg-white px-4 py-2 mx-auto flex items-center duration-100"
               >
-                Clear all filters
+                <span className="font-freeman">Clear all filters</span>
               </button>
             )}
           </div>
@@ -244,18 +265,20 @@ export default function MarketplacePage() {
                 <Link
                   key={listing._id}
                   href={`/marketplace/${listing._id}`}
-                  className="bg-amber-100 border-2 border-black brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all duration-300 flex flex-col"
+                  className="bg-amber-100 border-2 border-black  button-primary hover:brutal-shadow-center transition-all duration-100 flex flex-col"
                 >
                   <div className="h-48 bg-white border-b-2 border-black flex items-center justify-center p-6">
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-7xl">
-                      {getFileIcon(listing.item.mimeType)}
+                      {React.createElement(getFileIcon(listing.item.mimeType), {
+                        className: "w-20 h-20"
+                      })}
                     </span>
                     </div>
                   </div>
                   <div className="p-6 flex-1">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="px-4 py-1 bg-[#FFD000] border-2 border-black font-freeman text-sm">
+                      <span className="px-4 py-1 bg-primary border-2 border-black font-freeman text-sm">
                         {listing.status}
                       </span>
                       <span className="font-freeman text-sm">
@@ -293,7 +316,7 @@ export default function MarketplacePage() {
                   <button
                     onClick={() => handlePageChange(pagination.current - 1)}
                     disabled={pagination.current === 1}
-                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="button-primary bg-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
@@ -304,7 +327,7 @@ export default function MarketplacePage() {
                       onClick={() => handlePageChange(page)}
                     className={`button-primary px-4 py-2 ${
                         page === pagination.current
-                        ? 'bg-[#FFD000]'
+                        ? 'bg-primary'
                         : 'bg-white'
                       }`}
                     >
@@ -315,7 +338,7 @@ export default function MarketplacePage() {
                   <button
                     onClick={() => handlePageChange(pagination.current + 1)}
                     disabled={pagination.current === pagination.total}
-                  className="button-primary bg-[#FFD000] px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="button-primary bg-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>

@@ -7,6 +7,10 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Loader from '../components/global/Loader';
 import FooterPattern from '../components/global/FooterPattern';
+import { DashboardCard } from '../components/ui/DashboardCard';
+import { getFileIcon as getExplorerFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { FaFolder } from 'react-icons/fa';
+import React from 'react';
 
 export default function TransactionsPage() {
   const { data: session } = useSession();
@@ -68,7 +72,7 @@ export default function TransactionsPage() {
             <p className="mt-4 text-xl font-freeman">Please log in to view your transaction history</p>
             <Link
               href="/api/auth/signin"
-              className="mt-8 inline-block bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+              className="mt-8 inline-block bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
             >
               Sign In
             </Link>
@@ -108,7 +112,7 @@ export default function TransactionsPage() {
               <p className="text-lg mb-4">{error}</p>
               <button
                 onClick={fetchTransactions}
-                className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-4 py-2 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                className="bg-primary border-2 border-black brutal-shadow-left px-4 py-2 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Try again
               </button>
@@ -129,6 +133,8 @@ export default function TransactionsPage() {
           <p className="text-xl font-freeman">View your purchase and sale history</p>
         </div>
 
+        <DashboardCard />
+        
         {/* Filters */}
         <div className="mb-8 bg-primary border-2 border-black brutal-shadow-left p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -139,7 +145,7 @@ export default function TransactionsPage() {
               <select
                 value={filters.type}
                 onChange={(e) => handleFilterChange({ type: e.target.value as any })}
-                className="w-full bg-amber-100 border-2 border-black p-2 font-freeman focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
+                className="w-full bg-amber-100 border-2 border-black p-2 font-freeman brutal-shadow-left focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="all">All Transactions</option>
                 <option value="purchases">Purchases</option>
@@ -154,7 +160,7 @@ export default function TransactionsPage() {
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange({ status: e.target.value as any })}
-                className="w-full bg-amber-100 border-2 border-black p-2 font-freeman focus:outline-none focus:ring-2 focus:ring-[#FFD000]"
+                className="w-full bg-amber-100 border-2 border-black p-2 font-freeman brutal-shadow-left focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">All Statuses</option>
                 <option value="completed">Completed</option>
@@ -173,7 +179,7 @@ export default function TransactionsPage() {
         </div>
 
         {transactions.length === 0 ? (
-          <div className="text-center py-12 bg-white border-2 border-black brutal-shadow-left">
+          <div className="text-center py-12 bg-white border-2 border-black brutal-shadow-right">
             <h3 className="text-2xl font-anton mb-4">No transactions found</h3>
             <p className="text-lg font-freeman mb-6">
               {filters.type === 'purchases' 
@@ -184,7 +190,7 @@ export default function TransactionsPage() {
             </p>
             <Link
               href="/marketplace"
-              className="inline-block bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+              className="inline-block bg-primary border-2 border-black button-primary duration-100 px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
             >
               Browse Marketplace
             </Link>
@@ -202,22 +208,28 @@ export default function TransactionsPage() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 text-3xl">
-                            {getFileIcon(transaction.item.mimeType)}
+                          <div className="flex-shrink-0">
+                            {transaction.item.type === 'folder' ? (
+                              <FaFolder className="w-8 h-8" />
+                            ) : (
+                              React.createElement(getExplorerFileIcon(transaction.item.mimeType), {
+                                className: "w-8 h-8"
+                              })
+                            )}
                           </div>
                           <div className="ml-4">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-lg font-freeman">
                                 {transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}
                               </p>
-                              <span className="px-3 py-1 bg-[#FFD000] border-2 border-black text-sm font-freeman">
+                              <span className="px-3 py-1 bg-primary border-2 border-black text-sm font-freeman">
                                 {transaction.transactionType}
                               </span>
                               <span className="px-3 py-1 bg-amber-100 border-2 border-black text-sm font-freeman">
                                 {transaction.listing ? 'Marketplace' : 'Shared Link'}
                               </span>
                               {transaction.metadata?.blockchainTransaction && (
-                                <span className="px-3 py-1 bg-[#FFD000] border-2 border-black text-sm font-freeman flex items-center">
+                                <span className="px-3 py-1 bg-primary border-2 border-black text-sm font-freeman flex items-center">
                                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
@@ -280,7 +292,7 @@ export default function TransactionsPage() {
                     onClick={() => handlePageChange(page)}
                     className={`px-4 py-2 border-2 border-black font-freeman ${
                       page === pagination.current
-                        ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
+                        ? 'bg-primary brutal-shadow-center translate-x-1 translate-y-1'
                         : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
                     } transition-all`}
                   >
