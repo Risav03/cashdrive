@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anton } from "next/font/google";
 import "./globals.css";
 import { Provider } from "./utils/providers/Provider";
+import { WalletComp } from "./components/wallet/walletComp";
 
 // const anton = Anton({
 //   variable: "--font-anton",
@@ -25,6 +26,7 @@ export default function RootLayout({
         className={` antialiased text-black `}
       >
         <Provider>
+          <WalletComp/>
           {children}
         </Provider>
       </body>
