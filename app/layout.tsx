@@ -11,7 +11,7 @@ import { Provider } from "./utils/providers/Provider";
 
 export const metadata: Metadata = {
   title: "Cash Drive",
-  description: "Cash Drive",
+  description: "Earn money by monetizing your content using our Drive Links",
 };
 
 export default function RootLayout({
