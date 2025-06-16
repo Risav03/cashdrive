@@ -123,7 +123,7 @@ export default function SignUpForm() {
               disabled={loading}
               className="button-primary bg-[#FFD000] w-full py-2 px-4 font-freeman text-xl"
             >
-              {loading ? <span className='w-full flex flex-col gap-2 items-center justify-center'><Image src={loadericon} alt="loader" className='w-10 h-10 animate-spin' />Creating your dashboard</span> : 'Sign up'}
+              {loading ? <span className='w-full flex gap-2 items-center justify-center'><Image src={loadericon} alt="loader" className='w-6 h-6 animate-spin' />Creating your dashboard</span> : 'Sign up'}
             </button>
           </div>
         </form>
