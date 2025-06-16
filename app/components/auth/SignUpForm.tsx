@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import FooterPattern from '../global/FooterPattern';
+import Image from 'next/image';
+import loadericon from  '@/assets/loader_2.svg';
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -36,6 +38,7 @@ export default function SignUpForm() {
       const data = await res.json();
 
       if (!res.ok) {
+        setLoading(false);
         if (data.error === 'User already exists') {
           setError('An account with this email already exists. Please sign in instead.');
         } else {
@@ -47,9 +50,8 @@ export default function SignUpForm() {
       }
     } catch (error: any) {
       setError(error.message);
-    } finally {
       setLoading(false);
-    }
+    } 
   };
 
   return (
@@ -121,7 +123,7 @@ export default function SignUpForm() {
               disabled={loading}
               className="button-primary bg-[#FFD000] w-full py-2 px-4 font-freeman text-xl"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? <span className='w-full flex flex-col gap-2 items-center justify-center'><Image src={loadericon} alt="loader" className='w-10 h-10 animate-spin' />Creating your dashboard</span> : 'Sign up'}
             </button>
           </div>
         </form>
