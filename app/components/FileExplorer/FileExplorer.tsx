@@ -1,7 +1,7 @@
 'use client';
 
 import { useApp } from '@/app/context/AppContext';
-import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, uploadItem } from '@/app/lib/frontend/explorerFunctions';
+import { createFolder, deleteItem, getBreadcrumbPath, getItem, getItemsByParentId, uploadItem } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
 import { useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
@@ -223,6 +223,15 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     }
   };
 
+  const handleDeleteItem = async (item: Item) => {
+    try {
+      await deleteItem(item._id);
+      await loadFolderContents(currentPage);
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    }
+  };
+
   return (
     <div className={compact ? 'p-0' : 'p-6'}>
       <div className={compact ? '' : 'max-w-7xl mx-auto'}>
@@ -295,6 +304,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
                   onItemClick={handleItemClick}
                   onListToMarketplace={handleListToMarketplace}
                   onShareItem={handleShareItem}
+                  onDeleteItem={handleDeleteItem}
                 />
               ))}
             </div>

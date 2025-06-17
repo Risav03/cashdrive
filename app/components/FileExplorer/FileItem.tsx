@@ -4,7 +4,7 @@ import { useApp } from '@/app/context/AppContext';
 import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
 import { Item } from '@/app/lib/types';
 import { useState } from 'react';
-import { BiShareAlt } from 'react-icons/bi';
+import { BiShareAlt, BiTrash } from 'react-icons/bi';
 import { FaFolder, FaRobot } from 'react-icons/fa';
 import { MdOutlineStore } from 'react-icons/md';
 
@@ -13,9 +13,10 @@ interface FileItemProps {
   onItemClick: (item: Item) => void;
   onListToMarketplace?: (item: Item) => void;
   onShareItem?: (item: Item) => void;
+  onDeleteItem?: (item: Item) => void;
 }
 
-export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }: FileItemProps) => {
+export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem, onDeleteItem }: FileItemProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { openFileViewer } = useApp();
   const IconComponent = item.type === 'folder' ? FaFolder : getFileIcon(item.mimeType);
@@ -36,6 +37,11 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShareItem?.(item);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeleteItem?.(item);
   };
 
   // Only show AI Ready badge for completed processing
@@ -97,8 +103,19 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem }
           </div>
 
           {/* Action buttons */}
-          {isHovered && (onListToMarketplace || onShareItem) && (
+          {isHovered && (onListToMarketplace || onShareItem || onDeleteItem) && (
             <div className="absolute top-2 right-2 flex gap-1">
+              {/* Delete button */}
+              {onDeleteItem && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="bg-red-100 border-2 border-black brutal-shadow-center hover:translate-y-1 hover:brutal-shadow-left p-1 transition-all"
+                  title={`Delete ${item.name}`}
+                >
+                  <BiTrash className="w-4 h-4" />
+                </button>
+              )}
+              
               {/* Share button */}
               {onShareItem && (
                 <button
