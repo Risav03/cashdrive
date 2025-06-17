@@ -21,7 +21,9 @@ export default function CreateListingModal({
     title: '',
     description: '',
     price: '',
-    tags: ''
+    tags: '',
+    affiliateEnabled: false,
+    defaultCommissionRate: 10
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,9 @@ export default function CreateListingModal({
         title: selectedItem.name,
         description: '',
         price: '',
-        tags: ''
+        tags: '',
+        affiliateEnabled: false,
+        defaultCommissionRate: 10
       });
       setError(null);
     }
@@ -62,7 +66,9 @@ export default function CreateListingModal({
         title: formData.title.trim(),
         description: formData.description.trim(),
         price,
-        tags: tags.length > 0 ? tags : undefined
+        tags: tags.length > 0 ? tags : undefined,
+        affiliateEnabled: formData.affiliateEnabled,
+        defaultCommissionRate: formData.affiliateEnabled ? formData.defaultCommissionRate : 0
       };
 
       await createListing(listingData);
@@ -71,7 +77,9 @@ export default function CreateListingModal({
         title: '',
         description: '',
         price: '',
-        tags: ''
+        tags: '',
+        affiliateEnabled: false,
+        defaultCommissionRate: 10
       });
       onClose();
       onListingCreated?.();
@@ -83,8 +91,14 @@ export default function CreateListingModal({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : 
+              type === 'number' ? parseFloat(value) || 0 : 
+              value 
+    }));
   };
 
   if (!isOpen) return null;
@@ -174,6 +188,41 @@ export default function CreateListingModal({
                 placeholder="design, template, pdf"
               />
               <p className="font-freeman text-sm mt-1">Separate tags with commas</p>
+            </div>
+
+            <div className="bg-white border-2 border-black p-4 brutal-shadow-center space-y-4">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="affiliateEnabled"
+                  name="affiliateEnabled"
+                  checked={formData.affiliateEnabled}
+                  onChange={handleInputChange}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="affiliateEnabled" className="font-freeman">
+                  Enable Affiliate Program
+                </label>
+              </div>
+              
+              {formData.affiliateEnabled && (
+                <div>
+                  <label className="font-freeman block mb-2">Default Commission Rate (%)</label>
+                  <input
+                    type="number"
+                    name="defaultCommissionRate"
+                    value={formData.defaultCommissionRate}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000]"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                  <p className="font-freeman text-sm mt-1">
+                    Default commission rate for new affiliates
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

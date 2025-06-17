@@ -1,5 +1,7 @@
 import { Item, Listing, Transaction, User } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
+import { Affiliate } from '@/app/models/Affiliate';
+import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -81,6 +83,7 @@ export async function POST(
   try {
     const userIdFromHeader = request.headers.get('x-user-id');
     const userEmailFromHeader = request.headers.get('x-user-email');
+    const affiliateCodeFromHeader = request.headers.get('x-affiliate-code');
     
     let userId: string | undefined;
     let userEmail: string | undefined;
@@ -179,6 +182,46 @@ export async function POST(
       
     const copiedItem = await copyItemToMarketplaceFolder(userId, listing.item);
 
+    // Handle affiliate commission if applicable
+    let affiliateTransaction = null;
+    if (affiliateCodeFromHeader) {
+      try {
+        const affiliate = await Affiliate.findOne({
+          affiliateCode: affiliateCodeFromHeader,
+          listing: listing._id,
+          status: 'active'
+        });
+
+        if (affiliate && affiliate.affiliateUser.toString() !== userId) {
+          const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
+          
+          affiliateTransaction = await AffiliateTransaction.create({
+            affiliate: affiliate._id,
+            originalTransaction: transaction._id,
+            affiliateUser: affiliate.affiliateUser,
+            owner: affiliate.owner,
+            buyer: userId,
+            saleAmount: listing.price,
+            commissionRate: affiliate.commissionRate,
+            commissionAmount,
+            affiliateCode: affiliateCodeFromHeader,
+            status: 'pending'
+          });
+
+          // Update affiliate stats
+          await Affiliate.findByIdAndUpdate(affiliate._id, {
+            $inc: { 
+              totalEarnings: commissionAmount,
+              totalSales: 1
+            }
+          });
+        }
+      } catch (affiliateError) {
+        console.error('Error processing affiliate commission:', affiliateError);
+        // Don't fail the main transaction for affiliate errors
+      }
+    }
+
     await transaction.populate('listing', 'title price');
     await transaction.populate('buyer', 'name email');
     await transaction.populate('seller', 'name email');
@@ -192,6 +235,10 @@ export async function POST(
         path: `/marketplace/${copiedItem.name}`
       },
       paymentDetails: paymentResponse,
+      affiliateCommission: affiliateTransaction ? {
+        amount: affiliateTransaction.commissionAmount,
+        rate: affiliateTransaction.commissionRate
+      } : null,
       message: 'Purchase completed successfully'
     }, { status: 201 });
 

@@ -182,9 +182,9 @@ export function getFileIcon(mimeType?: string): string {
   return '📄';
 }
 
-export async function purchaseListing(listingId: string, wallet:`0x${string}`): Promise<any> {
+export async function purchaseListing(listingId: string, wallet:`0x${string}`, affiliateCode?: string): Promise<any> {
   try {
-    const res = await purchaseFromMarketplace(wallet, listingId);
+    const res = await purchaseFromMarketplace(wallet, listingId, affiliateCode);
     return res;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
