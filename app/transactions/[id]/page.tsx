@@ -5,7 +5,7 @@ import { Transaction } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import Loader from '@/app/components/global/Loader';
 import FooterPattern from '@/app/components/global/FooterPattern';
 
@@ -322,7 +322,7 @@ export default function TransactionDetailPage() {
                 <h2 className="text-xl font-anton mb-4">Item Details</h2>
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    <span className="text-4xl">{getFileIcon(transaction.item.mimeType)}</span>
+                    <span className="text-4xl">{createElement(getFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}</span>
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900">{transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}</h3>

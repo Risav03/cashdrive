@@ -6,7 +6,7 @@ import { Listing } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
 
@@ -219,7 +219,7 @@ export default function ListingDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               {/* Left side content */}
               <div className="flex items-start gap-3">
-                <span className="text-4xl shrink-0">{getFileIcon(listing.item.mimeType)}</span>
+                <span className="text-4xl shrink-0">{createElement(getFileIcon(listing.item.mimeType), { className: "w-6 h-6" })}</span>
                 <div className="min-w-0"> {/* Prevent text overflow */}
                   <h1 className="text-xl font-freeman mb-1 break-words">{listing.title}</h1>
                   <div className="flex flex-wrap items-center gap-2 text-sm font-freeman text-gray-700">
