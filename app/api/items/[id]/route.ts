@@ -208,9 +208,11 @@ async function collectItemsToDeleteWithSession(
   session: mongoose.ClientSession
 ): Promise<any[]> {
   const item = await Item.findById(itemId).session(session);
-  if (!item || item.owner !== ownerId) return [];
+  console.log('item', item);
+  if (!item || String(item.owner) !== String(ownerId)) return [];
 
   const itemsToDelete = [item];
+  console.log('itemsToDelete', itemsToDelete);
 
   if (item.type === 'folder') {
     const children = await Item.find({ parentId: itemId }).session(session);
@@ -219,7 +221,7 @@ async function collectItemsToDeleteWithSession(
       itemsToDelete.push(...childItems);
     }
   }
-
+  console.log('itemsToDelete', itemsToDelete);
   return itemsToDelete;
 }
 
