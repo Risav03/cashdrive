@@ -72,7 +72,7 @@ export const WalletComp = () => {
     <>
       <div 
         onClick={() => setIsModalOpen(true)}
-        className="absolute top-4 right-4 z-40 bg-gray-800/90 
+        className="fixed top-4 right-4 z-40 bg-gray-800/90 
                    backdrop-blur-md shadow-lg rounded-lg px-4 py-1 border-2 border-black
                    cursor-pointer hover:scale-105 transition-all duration-300"
       >
