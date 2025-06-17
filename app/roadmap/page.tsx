@@ -44,7 +44,7 @@ export default function RoadmapPage() {
               Building the future of creator monetization, one milestone at a time.
             </p>
             <p className="font-freeman text-gray-700">
-              We're committed to revolutionizing how creators monetize their digital assets. This isn't just a roadmap—it's our promise to the creator community.
+              We&apos;re committed to revolutionizing how creators monetize their digital assets. This isn&apos;t just a roadmap—it&apos;s our promise to the creator community.
             </p>
             <div className="mt-8 p-6 bg-red-100 border-2 border-black brutal-shadow-left">
               <div className="flex items-start gap-4">
@@ -52,7 +52,7 @@ export default function RoadmapPage() {
                 <div>
                   <h3 className="font-anton text-xl mb-2"> <span className="text-3xl">⚔️</span> THE MIYAZAKI MISSION</h3>
                   <p className="font-freeman text-gray-800">
-                    We're building <b>CashDrive</b> to right the wrongs in AI content creation. When ChatGPT went viral using Miyazaki's iconic Ghibli art style, the legendary creator never saw a penny. This stops now. Our platform ensures creators are properly compensated when AI systems train on or generate content inspired by their work.
+                    We&apos;re building <b>CashDrive</b> to right the wrongs in AI content creation. When ChatGPT went viral using Miyazaki&apos;s iconic Ghibli art style, the legendary creator never saw a penny. This stops now. Our platform ensures creators are properly compensated when AI systems train on or generate content inspired by their work.
                   </p>
                 </div>
               </div>

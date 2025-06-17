@@ -1,14 +1,14 @@
 "use client"
 
-import Image from 'next/image'
-import React, { useState } from 'react'
 import banner from '@/assets/banner_full.svg'
 import loader1 from '@/assets/loader_1.svg'
 import loader2 from '@/assets/loader_2.svg'
 import loader3 from '@/assets/loader_3.svg'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState } from 'react'
 import { AuthButton } from './components/auth/cards/card'
 import Navbar from './components/global/Navbar'
-import Link from 'next/link'
 
 // Accordion data
 const accordionData = [
@@ -270,7 +270,7 @@ const Test = () => {
             {[
               { name: "Aanya R.", role: "3D Artist", quote: "Finally sold my Blender models without touching a marketplace. Just dropped the link." },
               { name: "Sarah M.", role: "AI Prompt Engineer", quote: "Made $8K sharing my prompt packs — no ads, no funnels, just file drops." },
-              { name: "Nina D.", role: "Design Curator", quote: "I don't even make stuff — I collect and resell! Earning off discovery is wild." }
+              { name: "Nina D.", role: "Design Curator", quote: "I don&apos;t even make stuff — I collect and resell! Earning off discovery is wild." }
             ].map((testimonial, index) => (
               <div key={index} className="bg-white border-2 border-black p-6 brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all">
                 <div className="flex items-center gap-4 mb-4">
@@ -282,7 +282,7 @@ const Test = () => {
                     <p className="font-freeman text-sm">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="font-freeman text-lg">"{testimonial.quote}"</p>
+                <p className="font-freeman text-lg">&ldquo;{testimonial.quote}&rdquo;</p>
               </div>
             ))}
           </div>

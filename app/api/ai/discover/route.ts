@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       const queryWords = query.toLowerCase().split(/\s+/);
       const titleWords = listing.title.toLowerCase().split(/\s+/);
       const descWords = listing.description.toLowerCase().split(/\s+/);
-      const allWords = [...titleWords, ...descWords, ...listing.tags.map(t => t.toLowerCase())];
+      const allWords = [...titleWords, ...descWords, ...listing.tags.map((t: string) => t.toLowerCase())];
 
       let keywordMatches = 0;
       for (const queryWord of queryWords) {
