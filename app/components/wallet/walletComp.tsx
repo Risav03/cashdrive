@@ -7,6 +7,7 @@ import abi from '@/app/utils/abi/erc20abi'
 
 export const WalletComp = () => {
 
+    
     const {data:session} = useSession()
     const [balance, setBalance] = React.useState<string | null>(null);
 
