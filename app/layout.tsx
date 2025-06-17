@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   description: "Earn money by monetizing your content using our Drive Links",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
