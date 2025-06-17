@@ -10,9 +10,9 @@ const Navbar = () => {
             </h1>
         </div>
         <div className='w-1/2 text-xl h-full flex flex-row gap-5 justify-end items-center font-freeman'>
-            <h3 className='hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer'>HOME</h3>
+            {/* <h3 className='hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer'>HOME</h3>
             <Link href='/marketplace'><h3 className='hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer'>MARKETPLACE</h3></Link>
-            <h3 className='hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer'>GITHUB</h3>
+            <h3 className='hover:text-white hover:scale-105 transition-all duration-300 cursor-pointer'>GITHUB</h3> */}
         </div>
     </div>
   )

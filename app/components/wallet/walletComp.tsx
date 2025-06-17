@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import abi from '@/app/utils/abi/erc20abi';
@@ -11,10 +12,13 @@ import { BiMoney } from 'react-icons/bi';
 
 export const WalletComp = () => {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [balance, setBalance] = React.useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isHomePage = pathname === '/';
 
   async function fetchBalance() {
     try {
@@ -86,32 +90,34 @@ export const WalletComp = () => {
 
   return (
     <>
-      {/* Wallet Button */}
-      <button 
-        onClick={() => setIsModalOpen(true)}
-        className="fixed top-4 right-4 z-40 bg-amber-100 border-2 
-                   px-4 pb-4 pl-2 py-2 font-freeman button-primary transition-all duration-100"
-      >
-        <div className="flex items-center gap-4">
-          <div className="bg-primary p-2  border-2 border-black brutal-shadow-center">
-            <FaWallet className="h-5 w-5" />
-          </div>
-          <div className="flex flex-col items-start">
-            <div className="flex items-center gap-2">
-              <p className="font-freeman text-sm">
-                {session?.user.wallet?.slice(0, 6)}...{session?.user.wallet?.slice(-4)}
-              </p>
-              {/* <span className="bg-white px-2 py-0.5 text-xs border-2 border-black brutal-shadow-center">
-                WALLET
-              </span> */}
+      {/* Wallet Button - Only show if not on homepage */}
+      {!isHomePage && (
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="fixed top-4 right-4 z-40 bg-amber-100 border-2 
+                     px-4 pb-4 pl-2 py-2 font-freeman button-primary transition-all duration-100"
+        >
+          <div className="flex items-center gap-4">
+            <div className="bg-primary p-2  border-2 border-black brutal-shadow-center">
+              <FaWallet className="h-5 w-5" />
             </div>
-            <p className="font-freeman font-bold text-sm flex items-center gap-1">
-              <BiMoney className="h-4 w-fit" />
-              <span>{balance || '...'} USDC</span>
-            </p>
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2">
+                <p className="font-freeman text-sm">
+                  {session?.user.wallet?.slice(0, 6)}...{session?.user.wallet?.slice(-4)}
+                </p>
+                {/* <span className="bg-white px-2 py-0.5 text-xs border-2 border-black brutal-shadow-center">
+                  WALLET
+                </span> */}
+              </div>
+              <p className="font-freeman font-bold text-sm flex items-center gap-1">
+                <BiMoney className="h-4 w-fit" />
+                <span>{balance || '...'} USDC</span>
+              </p>
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+      )}
 
       {/* Modal Overlay */}
       {isModalOpen && (
