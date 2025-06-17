@@ -1,4 +1,4 @@
-import { purchaseFromMarketplace } from '@/actions';
+import { purchaseFromMarketplace } from '@/actions/actions';
 import axios from 'axios';
 import {
   CreateListingOptions,

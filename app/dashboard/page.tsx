@@ -3,11 +3,13 @@
 import { FileExplorer } from '../components/FileExplorer/FileExplorer';
 import { DashboardCard } from '../components/ui/DashboardCard';
 import FooterPattern from '../components/global/FooterPattern';
+// import { WalletComp } from '../components/wallet/walletComp';
 
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white relative">
       <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+      {/* <WalletComp/> */}
         <div className="text-center p-8 rounded-lg">
           <h2 className="heading-text-2 text-6xl font-anton mb-8">
             DASHBOARD
