@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anton } from "next/font/google";
 import "./globals.css";
 import { Provider } from "./utils/providers/Provider";
+import { USDCBalanceProvider } from "./contexts/USDCBalanceContext";
 
 import { WalletComp } from "./components/wallet/walletComp";
 
@@ -31,9 +32,11 @@ export default function RootLayout({
         className={` antialiased text-black `}
       >
         <Provider>
-          <WalletComp/>
-          {children}
-          <FileViewer />
+          <USDCBalanceProvider>
+            <WalletComp/>
+            {children}
+            <FileViewer />
+          </USDCBalanceProvider>
         </Provider>
       </body>
     </html>

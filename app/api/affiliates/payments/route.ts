@@ -5,6 +5,7 @@ import connectDB from '@/app/lib/mongodb';
 import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import { User } from '@/app/lib/models';
 import { CdpClient } from "@coinbase/cdp-sdk";
+import { getUSDCBalanceServer } from '@/app/lib/backend/helperFunctions/blockchainUtils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,19 +73,20 @@ export async function POST(request: NextRequest) {
         // Get owner's account to send payment
         const ownerAccount = await cdp.evm.getAccount({ address: owner.wallet });
         
-        // Check owner's balance before attempting transfer
-        const balance = await ownerAccount.getBalance('USDC');
-        console.log(`Owner balance: ${balance} USDC, commission needed: ${transaction.commissionAmount} USDC`);
+        // Check owner's USDC balance using our server-side helper
+        const balanceFloat = await getUSDCBalanceServer(owner.wallet);
+        console.log(`Owner USDC balance: ${balanceFloat} USDC, commission needed: ${transaction.commissionAmount} USDC`);
         
-        if (parseFloat(balance) < transaction.commissionAmount) {
-          throw new Error(`Insufficient funds: owner has ${balance} USDC but needs ${transaction.commissionAmount} USDC for commission`);
+        if (balanceFloat < transaction.commissionAmount) {
+          throw new Error(`Insufficient USDC funds: owner has ${balanceFloat} USDC but needs ${transaction.commissionAmount} USDC for commission`);
         }
         
         // Create the transfer transaction
         const transferResult = await ownerAccount.transfer({
           to: affiliateUser.wallet,
-          amount: transaction.commissionAmount,
-          asset: 'USDC'
+          amount: BigInt(Math.floor(transaction.commissionAmount * 10**6)), // Convert to USDC wei (6 decimals)
+          token: 'usdc',
+          network: 'base-sepolia'
         });
 
         // Update transaction as paid
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             ...transaction.metadata,
             paymentTransaction: transferResult.transactionHash,
-            paymentNetwork: transferResult.network?.name || 'base-sepolia',
+            paymentNetwork: 'base-sepolia', // Default to base-sepolia since network property doesn't exist
             processedAt: new Date(),
             paymentMethod: 'blockchain_transfer'
           }

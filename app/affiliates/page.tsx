@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import AffiliateCard from '@/app/components/Affiliates/AffiliateCard';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
+import { useUSDCBalance } from '@/app/contexts/USDCBalanceContext';
 
 interface Affiliate {
   _id: string;
@@ -69,6 +70,7 @@ interface AffiliateTransaction {
 export default function AffiliatesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { balanceFloat: usdcBalance, refreshBalance } = useUSDCBalance();
   const [activeTab, setActiveTab] = useState<'owned' | 'affiliate' | 'transactions'>('owned');
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [transactions, setTransactions] = useState<AffiliateTransaction[]>([]);
@@ -196,6 +198,7 @@ export default function AffiliatesPage() {
         alert(`Payment processing completed!\n${data.summary.paid} payments successful, ${data.summary.failed} failed.`);
         setSelectedTransactions([]);
         fetchData(); // Refresh data
+        await refreshBalance(); // Update USDC balance
       } else {
         throw new Error(data.error || 'Failed to process payments');
       }
@@ -384,12 +387,17 @@ export default function AffiliatesPage() {
                         </div>
                         
                         {selectedTransactions.length > 0 && (
-                          <p className="font-freeman text-sm mt-2 text-gray-600">
-                            Total to pay: ${transactions
-                              .filter(t => selectedTransactions.includes(t._id))
-                              .reduce((sum, t) => sum + t.commissionAmount, 0)
-                              .toFixed(2)}
-                          </p>
+                          <div className="mt-2 space-y-1">
+                            <p className="font-freeman text-sm text-gray-600">
+                              Total to pay: ${transactions
+                                .filter(t => selectedTransactions.includes(t._id))
+                                .reduce((sum, t) => sum + t.commissionAmount, 0)
+                                .toFixed(2)} USDC
+                            </p>
+                            <p className="font-freeman text-xs text-gray-500">
+                              Your USDC balance: ${usdcBalance.toFixed(2)} USDC
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}

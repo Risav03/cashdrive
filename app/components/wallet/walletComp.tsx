@@ -3,41 +3,21 @@
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import abi from '@/app/utils/abi/erc20abi';
 import { fundWallet } from '@/actions/fundWallet';
 import { IoCopyOutline } from 'react-icons/io5';
 import { FaCheckCircle, FaWallet } from 'react-icons/fa';
 import { BiMoney } from 'react-icons/bi';
+import { useUSDCBalance } from '@/app/contexts/USDCBalanceContext';
 
 export const WalletComp = () => {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [balance, setBalance] = React.useState<string | null>(null);
+  const { balance, refreshBalance } = useUSDCBalance();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const isHomePage = pathname === '/';
-
-  async function fetchBalance() {
-    try {
-      const provider = new ethers.providers.JsonRpcProvider(
-        'https://base-sepolia.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq'
-      );
-      const contract = new ethers.Contract(
-        '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as `0x${string}`,
-        abi,
-        provider
-      );
-      const balance = await contract.balanceOf(session?.user.wallet as `0x${string}`);
-      const balanceInEth = balance / 10 ** 6;
-
-      setBalance(balanceInEth.toLocaleString());
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-    }
-  }
 
   async function fundAcc() {
     try {
@@ -46,7 +26,7 @@ export const WalletComp = () => {
 
       if (res?.transactionHash) {
         console.log(`Successfully funded wallet ${session?.user.wallet} with USDC`);
-        fetchBalance();
+        await refreshBalance(); // Use context method
         setIsModalOpen(false);
       }
     } catch (err) {
@@ -64,11 +44,7 @@ export const WalletComp = () => {
     }
   };
 
-  useEffect(() => {
-    if (session) {
-      fetchBalance();
-    }
-  }, [session]);
+  // Remove the old fetchBalance useEffect since context handles this
 
   // Close modal when clicking outside
   useEffect(() => {

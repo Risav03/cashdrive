@@ -5,6 +5,7 @@ import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { CdpClient } from "@coinbase/cdp-sdk";
+import { getUSDCBalanceServer } from '@/app/lib/backend/helperFunctions/blockchainUtils';
 
 function generateReceiptNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -242,24 +243,21 @@ export async function POST(
               // Get the seller's account (they received the payment, now pay commission)
               const sellerAccount = await cdp.evm.getAccount({ address: affiliate.owner.wallet });
               
-              // Check seller's balance before attempting transfer
-              const balance = await sellerAccount.getBalance('USDC');
-              const balanceFloat = parseFloat(balance);
-              console.log(`Seller balance: ${balance} USDC, commission needed: ${commissionAmount} USDC`);
+              // Check seller's USDC balance using our server-side helper
+              const balanceFloat = await getUSDCBalanceServer(affiliate.owner.wallet);
+              console.log(`Seller USDC balance: ${balanceFloat} USDC, commission needed: ${commissionAmount} USDC`);
               
-              // Add buffer for gas fees (0.001 USDC)
-              const gasBuffer = 0.001;
-              const totalNeeded = commissionAmount + gasBuffer;
-              
-              if (balanceFloat < totalNeeded) {
-                throw new Error(`Insufficient funds: seller has ${balance} USDC but needs ${totalNeeded} USDC (${commissionAmount} commission + ${gasBuffer} gas)`);
+              // No gas buffer needed since CDP handles gas fees
+              if (balanceFloat < commissionAmount) {
+                throw new Error(`Insufficient USDC funds: seller has ${balanceFloat} USDC but needs ${commissionAmount} USDC for commission`);
               }
               
               // Transfer commission from seller to affiliate
               const commissionTransfer = await sellerAccount.transfer({
                 to: affiliate.affiliateUser.wallet,
-                amount: commissionAmount,
-                asset: 'USDC'
+                amount: BigInt(Math.floor(commissionAmount * 10**6)), // Convert to USDC wei (6 decimals)
+                token: 'usdc',
+                network: 'base-sepolia'
               });
 
               // Update affiliate transaction as paid with blockchain proof
@@ -270,10 +268,10 @@ export async function POST(
                   ...affiliateTransaction.metadata,
                   autoPayoutSuccess: true,
                   paymentTransaction: commissionTransfer.transactionHash,
-                  paymentNetwork: commissionTransfer.network?.name || 'base-sepolia',
+                  paymentNetwork: 'base-sepolia', // Default to base-sepolia since network property doesn't exist
                   processedAt: new Date(),
                   paymentMethod: 'auto_payout_from_seller',
-                  sellerBalance: balance,
+                  sellerBalance: balanceFloat,
                   mainPurchaseTx: paymentResponse.transaction
                 }
               });
