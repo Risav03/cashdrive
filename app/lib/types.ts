@@ -53,7 +53,7 @@ export interface User {
   name: string;
   wallet: string;
   email: string;
-  rootStorageId: string;
+  rootFolder: string;
 }
 
 export interface BreadcrumbItem {

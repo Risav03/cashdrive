@@ -169,7 +169,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
 
   const handleCreateFolder = async (options: CreateFolderOptions) => {
     try {
-      const parentId = currentFolder?._id || user.rootStorageId;
+      const parentId = currentFolder?._id || user.rootFolder;
       
       await createFolder({
         ...options,
@@ -273,7 +273,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
         isOpen={isCreateFolderModalOpen}
         onClose={() => setIsCreateFolderModalOpen(false)}
         onCreateFolder={handleCreateFolder}
-        parentId={currentFolder?._id || user.rootStorageId}
+        parentId={currentFolder?._id || user.rootFolder}
       />
 
       <UploadModal

@@ -27,7 +27,6 @@ const userSchema = new mongoose.Schema({
     ref: 'Item',
     required: true,
   },
-
   createdAt: {
     type: Date,
     default: Date.now,
@@ -46,7 +45,6 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword: string) {
   return bcrypt.compare(candidatePassword, this.password);
 };

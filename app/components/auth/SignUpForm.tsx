@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import FooterPattern from '../global/FooterPattern';
+import loadericon from '@/assets/loader_2.svg';
+import { signIn } from 'next-auth/react';
 import Image from 'next/image';
-import loadericon from  '@/assets/loader_2.svg';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import FooterPattern from '../global/FooterPattern';
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -23,30 +24,26 @@ export default function SignUpForm() {
     const password = formData.get('password') as string;
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        name,
+        isRegistration: 'true',
+        redirect: false,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (result?.error) {
         setLoading(false);
-        if (data.error === 'User already exists') {
+        if (result.error.includes('already exists')) {
           setError('An account with this email already exists. Please sign in instead.');
         } else {
-          throw new Error(data.error || 'Something went wrong');
+          setError(result.error);
         }
+      } else if (result?.ok) {
+        router.push('/dashboard');
       } else {
-        // Redirect to sign in page after successful registration
-        router.push('/auth/signin?registered=true');
+        setLoading(false);
+        setError('Something went wrong during registration');
       }
     } catch (error: any) {
       setError(error.message);
