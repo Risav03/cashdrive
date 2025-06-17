@@ -51,7 +51,7 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, parentId }:
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+              className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
               placeholder="Enter folder name"
               autoFocus
             />
@@ -61,14 +61,14 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreateFolder, parentId }:
             <button
               type="button"
               onClick={onClose}
-              className="button-primary bg-white px-4 py-2"
+              className="button-primary bg-white px-4 py-2 duration-100"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="button-primary bg-[#FFD000] px-4 py-2"
+              className="button-primary bg-primary px-4 py-2 duration-100"
               disabled={isSubmitting || !folderName.trim()}
             >
               {isSubmitting ? 'Creating...' : 'Create'}

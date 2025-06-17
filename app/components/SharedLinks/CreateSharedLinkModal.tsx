@@ -103,7 +103,7 @@ export default function CreateSharedLinkModal({
             </h2>
             <button
               onClick={handleClose}
-              className="text-2xl hover:text-[#FFD000]"
+              className="text-2xl hover:text-primary"
             >
               ×
             </button>
@@ -112,7 +112,7 @@ export default function CreateSharedLinkModal({
 
         {displayUrl ? (
           <div className="p-6 space-y-6">
-            <div className="bg-[#FFD000] border-2 border-black p-4 brutal-shadow-center">
+            <div className="bg-primary border-2 border-black p-4 brutal-shadow-center">
               <p className="font-freeman mb-4">Your link is ready to share!</p>
               <div className="flex gap-2">
                 <input
@@ -133,7 +133,7 @@ export default function CreateSharedLinkModal({
             <div className="flex justify-end">
               <button
                 onClick={handleClose}
-                className="button-primary bg-[#FFD000] px-4 py-2"
+                className="button-primary bg-primary px-4 py-2"
               >
                 Done
               </button>
@@ -148,13 +148,13 @@ export default function CreateSharedLinkModal({
                   <div className="text-3xl flex-shrink-0">
                     {item.type === 'folder' 
                       ? <FaFolder className="w-6 h-6" />
-                      : createElement(getFileIcon(item.mime), { className: "w-6 h-6" })
+                      : createElement(getFileIcon(item.mimeType), { className: "w-6 h-6" })
                     }
                   </div>
                   <div className="min-w-0"> {/* prevent text overflow */}
                     <div className="font-freeman truncate">{item.name}</div>
                     <div className="font-freeman text-xs">
-                      <span className="px-2 py-0.5 bg-[#FFD000] border-2 border-black brutal-shadow-center inline-block">
+                      <span className="px-2 py-0.5 bg-primary border-2 border-black brutal-shadow-center inline-block">
                         {item.type}
                       </span>
                     </div>
@@ -170,8 +170,8 @@ export default function CreateSharedLinkModal({
                   className={`
                     flex-1 border-2 border-black p-4 cursor-pointer transition-all
                     ${formData.type === 'public' 
-                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1' 
-                      : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
+                      ? 'bg-primary button-primary-pressed' 
+                      : 'bg-white button-primary duration-100'
                     }
                   `}
                 >
@@ -195,8 +195,8 @@ export default function CreateSharedLinkModal({
                   className={`
                     flex-1 border-2 border-black p-4 cursor-pointer transition-all
                     ${formData.type === 'monetized' 
-                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1' 
-                      : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
+                      ? 'bg-primary button-primary-pressed' 
+                      : 'bg-white button-primary duration-100'
                     }
                   `}
                 >
@@ -224,7 +224,7 @@ export default function CreateSharedLinkModal({
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 required
                 maxLength={100}
               />
@@ -235,7 +235,7 @@ export default function CreateSharedLinkModal({
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 rows={3}
                 maxLength={500}
                 placeholder="Optional description for your shared link"
@@ -250,7 +250,7 @@ export default function CreateSharedLinkModal({
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                    className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                     min="0.01"
                     step="0.01"
                     required
@@ -266,7 +266,7 @@ export default function CreateSharedLinkModal({
                 type="datetime-local"
                 value={formData.expiresAt}
                 onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 min={new Date().toISOString().slice(0, 16)}
               />
               <p className="font-freeman text-sm mt-1">Leave empty for permanent link</p>
@@ -276,14 +276,14 @@ export default function CreateSharedLinkModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="button-primary bg-white px-4 py-2"
+                className="button-primary bg-white px-4 py-2 duration-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !formData.title}
-                className="button-primary bg-[#FFD000] px-4 py-2"
+                className="button-primary bg-primary px-4 py-2 duration-100"
               >
                 {isLoading ? 'Creating...' : 'Create Link'}
               </button>

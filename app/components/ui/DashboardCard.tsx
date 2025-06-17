@@ -1,9 +1,12 @@
 'use client'
+import { useApp } from '@/app/context/AppContext'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export const DashboardCard = () => {
-  const {data: session} = useSession()
+  const {user} = useApp()
+  const pathname = usePathname()
   
   return (
     <div className="max-w-4xl mx-auto mb-12">
@@ -14,12 +17,12 @@ export const DashboardCard = () => {
               Welcome back,
             </p>
             <h1 className="font-anton text-3xl">
-              {session?.user?.name}!
+              {user?.name}!
             </h1>
           </div>
           <Link 
             href="/api/auth/signout"
-            className="button-primary bg-red-100 px-4 py-2 mt-4 sm:mt-0"
+            className="button-primary bg-red-400 px-4 py-2 mt-4 sm:mt-0 duration-100"
           >
             Sign Out
           </Link>
@@ -28,27 +31,35 @@ export const DashboardCard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/marketplace"
-            className="bg-[#FFD000] border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+            className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
+              pathname === '/marketplace' ? 'bg-primary button-primary-pressed' : 'bg-white'
+            }`}
           >
             Marketplace
           </Link>
           <Link
             href="/transactions"
-            className="bg-white border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+            className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
+              pathname === '/transactions' ? 'bg-primary button-primary-pressed' : 'bg-white'
+            }`}
           >
             Transactions
           </Link>
           <Link
             href="/shared-links"
-            className="bg-white border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+            className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
+              pathname === '/shared-links' ? 'bg-primary button-primary-pressed' : 'bg-white'
+            }`}
           >
             Shared Links
           </Link>
           <Link
-            href="/"
-            className="bg-white border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+            href="/dashboard"
+            className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
+              pathname === '/dashboard' ? 'bg-primary button-primary-pressed' : 'bg-white'
+            }`}
           >
-            Home
+            Dashboard
           </Link>
         </div>
       </div>

@@ -16,7 +16,7 @@ export const BreadcrumbNav = ({ items, onNavigate }: BreadcrumbNavProps) => {
           {index > 0 && <span className="mx-2 text-black">/</span>}
           <button
             onClick={() => onNavigate(item.id)}
-            className="hover:text-[#FFD000] transition-colors"
+            className="hover:text-primary transition-colors"
           >
             {index === 0 ? 'My Drive' : item.name}
           </button>

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { Anton } from "next/font/google";
 import "./globals.css";
 import { Provider } from "./utils/providers/Provider";
+
 import { WalletComp } from "./components/wallet/walletComp";
+
+import { FileViewer } from "./components/FileViewer";
+
 
 // const anton = Anton({
 //   variable: "--font-anton",
@@ -14,6 +18,7 @@ export const metadata: Metadata = {
   title: "Cash Drive",
   description: "Earn money by monetizing your content using our Drive Links",
 };
+
 
 export default function RootLayout({
   children,
@@ -28,6 +33,7 @@ export default function RootLayout({
         <Provider>
           <WalletComp/>
           {children}
+          <FileViewer />
         </Provider>
       </body>
     </html>
