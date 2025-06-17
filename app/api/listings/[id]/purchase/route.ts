@@ -4,6 +4,7 @@ import { Affiliate } from '@/app/models/Affiliate';
 import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { CdpClient } from "@coinbase/cdp-sdk";
 
 function generateReceiptNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -190,31 +191,124 @@ export async function POST(
           affiliateCode: affiliateCodeFromHeader,
           listing: listing._id,
           status: 'active'
-        });
+        }).populate('affiliateUser', 'name email wallet')
+          .populate('owner', 'name email wallet');
 
         if (affiliate && affiliate.affiliateUser.toString() !== userId) {
           const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
           
+          // Create affiliate transaction record
           affiliateTransaction = await AffiliateTransaction.create({
             affiliate: affiliate._id,
             originalTransaction: transaction._id,
-            affiliateUser: affiliate.affiliateUser,
-            owner: affiliate.owner,
+            affiliateUser: affiliate.affiliateUser._id,
+            owner: affiliate.owner._id,
             buyer: userId,
             saleAmount: listing.price,
             commissionRate: affiliate.commissionRate,
             commissionAmount,
             affiliateCode: affiliateCodeFromHeader,
-            status: 'pending'
+            status: 'pending',
+            metadata: {
+              originalTransactionId: transaction._id,
+              listingId: listing._id,
+              createdFromPurchase: true,
+              autoPayoutAttempted: true
+            }
           });
 
-          // Update affiliate stats
+          // AUTO COMMISSION PAYOUT - Process AFTER purchase completion
+          try {
+            console.log(`Attempting auto-payout of ${commissionAmount} from seller to affiliate ${affiliate.affiliateUser.email}`);
+            
+            // Validate affiliate has a wallet
+            if (!affiliate.affiliateUser.wallet || !affiliate.affiliateUser.wallet.startsWith('0x')) {
+              throw new Error('Affiliate does not have a valid wallet address');
+            }
+
+            // Validate seller has a wallet  
+            if (!affiliate.owner.wallet || !affiliate.owner.wallet.startsWith('0x')) {
+              throw new Error('Content owner does not have a valid wallet address');
+            }
+
+            // Only proceed if the main purchase was successful
+            if (paymentResponse && paymentResponse.success && transaction.status === 'completed') {
+              const cdp = new CdpClient({
+                apiKeyId: process.env.CDP_API_KEY_ID,
+                apiKeySecret: process.env.CDP_API_KEY_SECRET,
+                walletSecret: process.env.CDP_WALLET_SECRET,
+              });
+
+              // Get the seller's account (they received the payment, now pay commission)
+              const sellerAccount = await cdp.evm.getAccount({ address: affiliate.owner.wallet });
+              
+              // Check seller's balance before attempting transfer
+              const balance = await sellerAccount.getBalance('USDC');
+              const balanceFloat = parseFloat(balance);
+              console.log(`Seller balance: ${balance} USDC, commission needed: ${commissionAmount} USDC`);
+              
+              // Add buffer for gas fees (0.001 USDC)
+              const gasBuffer = 0.001;
+              const totalNeeded = commissionAmount + gasBuffer;
+              
+              if (balanceFloat < totalNeeded) {
+                throw new Error(`Insufficient funds: seller has ${balance} USDC but needs ${totalNeeded} USDC (${commissionAmount} commission + ${gasBuffer} gas)`);
+              }
+              
+              // Transfer commission from seller to affiliate
+              const commissionTransfer = await sellerAccount.transfer({
+                to: affiliate.affiliateUser.wallet,
+                amount: commissionAmount,
+                asset: 'USDC'
+              });
+
+              // Update affiliate transaction as paid with blockchain proof
+              await AffiliateTransaction.findByIdAndUpdate(affiliateTransaction._id, {
+                status: 'paid',
+                paidAt: new Date(),
+                metadata: {
+                  ...affiliateTransaction.metadata,
+                  autoPayoutSuccess: true,
+                  paymentTransaction: commissionTransfer.transactionHash,
+                  paymentNetwork: commissionTransfer.network?.name || 'base-sepolia',
+                  processedAt: new Date(),
+                  paymentMethod: 'auto_payout_from_seller',
+                  sellerBalance: balance,
+                  mainPurchaseTx: paymentResponse.transaction
+                }
+              });
+
+              console.log(`✅ Auto-payout successful! Commission ${commissionAmount} USDC sent from seller ${affiliate.owner.email} to affiliate ${affiliate.affiliateUser.email} - TX: ${commissionTransfer.transactionHash}`);
+              
+            } else {
+              throw new Error('Main purchase not completed successfully - cannot process commission');
+            }
+
+          } catch (autoPayoutError: any) {
+            console.error('Auto-payout failed, keeping as pending:', autoPayoutError);
+            
+            // Update metadata to indicate auto-payout failed
+            await AffiliateTransaction.findByIdAndUpdate(affiliateTransaction._id, {
+              metadata: {
+                ...affiliateTransaction.metadata,
+                autoPayoutFailed: true,
+                autoPayoutError: autoPayoutError.message,
+                failedAt: new Date(),
+                requiresManualPayout: true,
+                mainPurchaseSuccessful: paymentResponse?.success || false
+              }
+            });
+          }
+
+          // Update affiliate stats regardless of payout success
           await Affiliate.findByIdAndUpdate(affiliate._id, {
             $inc: { 
               totalEarnings: commissionAmount,
               totalSales: 1
             }
           });
+
+          console.log(`Created affiliate transaction ${affiliateTransaction._id} for ${commissionAmount} commission`);
         }
       } catch (affiliateError) {
         console.error('Error processing affiliate commission:', affiliateError);
@@ -227,6 +321,11 @@ export async function POST(
     await transaction.populate('seller', 'name email');
     await transaction.populate('item', 'name type size mimeType');
 
+    // Refresh affiliate transaction to get latest status
+    if (affiliateTransaction) {
+      affiliateTransaction = await AffiliateTransaction.findById(affiliateTransaction._id);
+    }
+
     return NextResponse.json({
       transaction,
       copiedItem: {
@@ -237,7 +336,12 @@ export async function POST(
       paymentDetails: paymentResponse,
       affiliateCommission: affiliateTransaction ? {
         amount: affiliateTransaction.commissionAmount,
-        rate: affiliateTransaction.commissionRate
+        rate: affiliateTransaction.commissionRate,
+        status: affiliateTransaction.status,
+        autoPayoutSuccess: affiliateTransaction.metadata?.autoPayoutSuccess || false,
+        autoPayoutFailed: affiliateTransaction.metadata?.autoPayoutFailed || false,
+        paymentTransaction: affiliateTransaction.metadata?.paymentTransaction,
+        autoPayoutError: affiliateTransaction.metadata?.autoPayoutError
       } : null,
       message: 'Purchase completed successfully'
     }, { status: 201 });

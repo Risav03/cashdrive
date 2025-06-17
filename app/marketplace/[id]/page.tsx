@@ -105,6 +105,24 @@ export default function ListingDetailPage() {
       successMessage += `📋 Receipt: ${result.transactionData.transaction.receiptNumber}\n`;
       successMessage += `📁 File Location: ${result.transactionData.copiedItem.path}\n\n`;
       
+      // Add affiliate commission information
+      if (result.transactionData.affiliateCommission) {
+        const commission = result.transactionData.affiliateCommission;
+        successMessage += `🤝 Affiliate Commission:\n`;
+        successMessage += `• Amount: $${commission.amount.toFixed(2)} (${commission.rate}%)\n`;
+        
+        if (commission.autoPayoutSuccess) {
+          successMessage += `• ✅ Commission PAID automatically from seller to affiliate!\n`;
+          successMessage += `• Payment TX: ${commission.paymentTransaction?.slice(0, 20)}...\n`;
+        } else if (commission.autoPayoutFailed) {
+          successMessage += `• ⚠️ Auto-payout failed - seller must manually process commission\n`;
+          successMessage += `• Reason: ${commission.autoPayoutError}\n`;
+        } else {
+          successMessage += `• Status: ${commission.status.toUpperCase()} - awaiting seller payment\n`;
+        }
+        successMessage += `\n`;
+      }
+      
       if (result.transactionData.paymentDetails) {
         successMessage += `🔗 Blockchain Details:\n`;
         successMessage += `• Network: ${result.transactionData.paymentDetails.network}\n`;

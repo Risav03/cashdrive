@@ -46,12 +46,23 @@ interface AffiliateTransaction {
   saleAmount: number;
   status: 'pending' | 'paid' | 'failed';
   createdAt: string;
+  paidAt?: string;
   buyer: {
     name: string;
     email: string;
   };
   affiliate: {
     affiliateCode: string;
+  };
+  affiliateUser: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  owner: {
+    _id: string;
+    name: string;
+    email: string;
   };
 }
 
@@ -69,6 +80,8 @@ export default function AffiliatesPage() {
     pendingCommissions: 0,
     activeAffiliates: 0
   });
+  const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -157,6 +170,59 @@ export default function AffiliatesPage() {
       }
     } catch (error) {
       console.error('Error deleting affiliate:', error);
+    }
+  };
+
+  const handleProcessPayments = async (payAll: boolean = false) => {
+    if (!confirm(payAll ? 
+      'Are you sure you want to pay ALL pending commissions? This will transfer crypto to affiliate wallets.' : 
+      'Are you sure you want to pay the selected commissions? This will transfer crypto to affiliate wallets.'
+    )) return;
+
+    try {
+      setPaymentLoading(true);
+      const response = await fetch('/api/affiliates/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionIds: payAll ? undefined : selectedTransactions,
+          payAll
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert(`Payment processing completed!\n${data.summary.paid} payments successful, ${data.summary.failed} failed.`);
+        setSelectedTransactions([]);
+        fetchData(); // Refresh data
+      } else {
+        throw new Error(data.error || 'Failed to process payments');
+      }
+    } catch (error: any) {
+      console.error('Error processing payments:', error);
+      alert('Payment processing failed: ' + error.message);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleTransactionSelect = (transactionId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedTransactions(prev => [...prev, transactionId]);
+    } else {
+      setSelectedTransactions(prev => prev.filter(id => id !== transactionId));
+    }
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      const pendingTransactionIds = transactions
+        .filter(t => t.status === 'pending' && t.owner._id === session?.user?.id)
+        .map(t => t._id);
+      setSelectedTransactions(pendingTransactionIds);
+    } else {
+      setSelectedTransactions([]);
     }
   };
 
@@ -257,33 +323,144 @@ export default function AffiliatesPage() {
                     <p className="font-freeman text-lg">No transactions found</p>
                   </div>
                 ) : (
-                  transactions.map((transaction) => (
-                    <div key={transaction._id} className="bg-white border-2 border-black brutal-shadow-left p-4">
-                      <div className="flex justify-between items-start">
+                  <>
+                    {/* Auto-Payout Info */}
+                    <div className="bg-green-100 border-2 border-black brutal-shadow-left p-4 mb-6">
+                      <h3 className="font-anton text-lg mb-2">🚀 Auto-Commission System</h3>
+                      <p className="font-freeman text-sm mb-4">
+                        Affiliate commissions are now paid <strong>automatically</strong> after purchase completion! 
+                        Once you receive payment, commissions are instantly sent from your wallet to affiliates.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div>
-                          <p className="font-freeman text-sm text-gray-600">
-                            {new Date(transaction.createdAt).toLocaleDateString()}
-                          </p>
-                          <p className="font-anton text-lg">
-                            ${transaction.commissionAmount.toFixed(2)} commission
-                          </p>
-                          <p className="font-freeman text-sm">
-                            {transaction.commissionRate}% of ${transaction.saleAmount.toFixed(2)} sale
-                          </p>
-                          <p className="font-freeman text-sm">
-                            Code: {transaction.affiliate.affiliateCode}
-                          </p>
+                          <span className="font-semibold">✅ Auto-Paid:</span> {transactions.filter(t => (t as any).metadata?.autoPayoutSuccess).length}
                         </div>
-                        <span className={`px-3 py-1 text-xs font-freeman border-2 border-black ${
-                          transaction.status === 'paid' ? 'bg-green-100' :
-                          transaction.status === 'pending' ? 'bg-yellow-100' :
-                          'bg-red-100'
-                        }`}>
-                          {transaction.status.toUpperCase()}
-                        </span>
+                        <div>
+                          <span className="font-semibold">⚠️ Auto-Failed:</span> {transactions.filter(t => (t as any).metadata?.autoPayoutFailed).length}
+                        </div>
+                        <div>
+                          <span className="font-semibold">⏳ Manual Pending:</span> {transactions.filter(t => t.status === 'pending' && !(t as any).metadata?.autoPayoutAttempted).length}
+                        </div>
                       </div>
                     </div>
-                  ))
+
+                    {/* Manual Payment Controls - Only show if there are failed auto-payouts or old pending transactions */}
+                    {transactions.some(t => t.status === 'pending' && t.owner._id === session?.user?.id) && (
+                      <div className="bg-blue-100 border-2 border-black brutal-shadow-left p-4 mb-6">
+                        <h3 className="font-anton text-lg mb-4">Manual Payment Processing</h3>
+                        <p className="font-freeman text-sm mb-4 text-gray-700">
+                          For transactions where auto-payout failed or wasn't available:
+                        </p>
+                        <div className="flex flex-wrap gap-4 items-center">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="selectAll"
+                              checked={selectedTransactions.length > 0 && 
+                                selectedTransactions.length === transactions.filter(t => t.status === 'pending' && t.owner._id === session?.user?.id).length}
+                              onChange={(e) => handleSelectAll(e.target.checked)}
+                              className="w-4 h-4"
+                            />
+                            <label htmlFor="selectAll" className="font-freeman text-sm">
+                              Select All Pending ({transactions.filter(t => t.status === 'pending' && t.owner._id === session?.user?.id).length})
+                            </label>
+                          </div>
+                          
+                          <button
+                            onClick={() => handleProcessPayments(false)}
+                            disabled={paymentLoading || selectedTransactions.length === 0}
+                            className="button-primary bg-[#FFD000] px-4 py-2 text-sm disabled:opacity-50"
+                          >
+                            {paymentLoading ? 'Processing...' : `Pay Selected (${selectedTransactions.length})`}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleProcessPayments(true)}
+                            disabled={paymentLoading}
+                            className="button-primary bg-green-100 px-4 py-2 text-sm disabled:opacity-50"
+                          >
+                            {paymentLoading ? 'Processing...' : 'Pay All Pending'}
+                          </button>
+                        </div>
+                        
+                        {selectedTransactions.length > 0 && (
+                          <p className="font-freeman text-sm mt-2 text-gray-600">
+                            Total to pay: ${transactions
+                              .filter(t => selectedTransactions.includes(t._id))
+                              .reduce((sum, t) => sum + t.commissionAmount, 0)
+                              .toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Transactions List */}
+                    {transactions.map((transaction) => {
+                      const isOwner = transaction.owner._id === session?.user?.id;
+                      const isPending = transaction.status === 'pending';
+                      const isSelected = selectedTransactions.includes(transaction._id);
+                      
+                      return (
+                        <div key={transaction._id} className="bg-white border-2 border-black brutal-shadow-left p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                {isOwner && isPending && (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => handleTransactionSelect(transaction._id, e.target.checked)}
+                                    className="w-4 h-4"
+                                  />
+                                )}
+                                <div>
+                                  <p className="font-freeman text-sm text-gray-600">
+                                    {new Date(transaction.createdAt).toLocaleDateString()}
+                                    {transaction.paidAt && (
+                                      <span className="ml-2 text-green-600">
+                                        • Paid: {new Date(transaction.paidAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="font-anton text-lg">
+                                    ${transaction.commissionAmount.toFixed(2)} commission
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-freeman">
+                                <div>
+                                  <p><span className="font-semibold">Rate:</span> {transaction.commissionRate}% of ${transaction.saleAmount.toFixed(2)} sale</p>
+                                  <p><span className="font-semibold">Code:</span> {transaction.affiliate.affiliateCode}</p>
+                                  {(transaction as any).metadata?.autoPayoutSuccess && (
+                                    <p className="text-green-600"><span className="font-semibold">✅ Auto-paid:</span> TX {(transaction as any).metadata.paymentTransaction?.slice(0, 10)}...</p>
+                                  )}
+                                  {(transaction as any).metadata?.autoPayoutFailed && (
+                                    <p className="text-red-600"><span className="font-semibold">⚠️ Auto-payout failed:</span> Requires manual processing</p>
+                                  )}
+                                </div>
+                                <div>
+                                  <p><span className="font-semibold">Affiliate:</span> {transaction.affiliateUser.name}</p>
+                                  <p><span className="font-semibold">Owner:</span> {transaction.owner.name}</p>
+                                  {(transaction as any).metadata?.paymentMethod && (
+                                    <p><span className="font-semibold">Payment Method:</span> {(transaction as any).metadata.paymentMethod.replace(/_/g, ' ')}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <span className={`px-3 py-1 text-xs font-freeman border-2 border-black ${
+                              transaction.status === 'paid' ? 'bg-green-100' :
+                              transaction.status === 'pending' ? 'bg-yellow-100' :
+                              'bg-red-100'
+                            }`}>
+                              {transaction.status.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
             ) : (

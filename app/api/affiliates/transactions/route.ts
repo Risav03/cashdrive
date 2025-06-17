@@ -88,3 +88,58 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+
+    const { transactionIds, status, markAll } = await request.json();
+
+    if (!['paid', 'failed'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status. Must be "paid" or "failed"' }, { status: 400 });
+    }
+
+    let query: any;
+    
+    if (markAll) {
+      // Mark all pending transactions for this user as content owner
+      query = {
+        owner: session.user.id,
+        status: 'pending'
+      };
+    } else if (transactionIds && Array.isArray(transactionIds)) {
+      // Mark specific transactions
+      query = {
+        _id: { $in: transactionIds },
+        owner: session.user.id, // Only allow owners to mark their affiliate transactions as paid
+        status: 'pending'
+      };
+    } else {
+      return NextResponse.json({ error: 'Either provide transactionIds array or set markAll to true' }, { status: 400 });
+    }
+
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+
+    if (status === 'paid') {
+      updateData.paidAt = new Date();
+    }
+
+    const result = await AffiliateTransaction.updateMany(query, updateData);
+
+    return NextResponse.json({
+      message: `Successfully updated ${result.modifiedCount} transactions to ${status}`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error updating affiliate transactions:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
