@@ -1,5 +1,7 @@
 import { authOptions } from '@/app/lib/backend/authConfig';
 import { SharedLink, Transaction } from '@/app/lib/models';
+import { Affiliate } from '@/app/models/Affiliate';
+import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import connectDB from '@/app/lib/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,6 +34,7 @@ export async function POST(
     // First try to get session from headers (for server actions)
     const userIdFromHeader = request.headers.get('x-user-id');
     const userEmailFromHeader = request.headers.get('x-user-email');
+    const affiliateCodeFromHeader = request.headers.get('x-affiliate-code');
     
     let userId: string | undefined;
     let userEmail: string | undefined;
@@ -139,6 +142,46 @@ export async function POST(
       $addToSet: { paidUsers: userId }
     });
 
+    // Handle affiliate commission if applicable
+    let affiliateTransaction = null;
+    if (affiliateCodeFromHeader) {
+      try {
+        const affiliate = await Affiliate.findOne({
+          affiliateCode: affiliateCodeFromHeader,
+          sharedLink: sharedLink._id,
+          status: 'active'
+        });
+
+        if (affiliate && affiliate.affiliateUser.toString() !== userId) {
+          const commissionAmount = (sharedLink.price * affiliate.commissionRate) / 100;
+          
+          affiliateTransaction = await AffiliateTransaction.create({
+            affiliate: affiliate._id,
+            originalTransaction: transaction._id,
+            affiliateUser: affiliate.affiliateUser,
+            owner: affiliate.owner,
+            buyer: userId,
+            saleAmount: sharedLink.price,
+            commissionRate: affiliate.commissionRate,
+            commissionAmount,
+            affiliateCode: affiliateCodeFromHeader,
+            status: 'pending'
+          });
+
+          // Update affiliate stats
+          await Affiliate.findByIdAndUpdate(affiliate._id, {
+            $inc: { 
+              totalEarnings: commissionAmount,
+              totalSales: 1
+            }
+          });
+        }
+      } catch (affiliateError) {
+        console.error('Error processing affiliate commission:', affiliateError);
+        // Don't fail the main transaction for affiliate errors
+      }
+    }
+
     await transaction.populate('buyer', 'name email');
     await transaction.populate('seller', 'name email');
     await transaction.populate('item', 'name type size mimeType');
@@ -146,6 +189,10 @@ export async function POST(
     return NextResponse.json({
       transaction,
       paymentDetails: paymentResponse,
+      affiliateCommission: affiliateTransaction ? {
+        amount: affiliateTransaction.commissionAmount,
+        rate: affiliateTransaction.commissionRate
+      } : null,
       message: 'Payment successful! You can now access the content.',
       sharedLink: {
         linkId: sharedLink.linkId,

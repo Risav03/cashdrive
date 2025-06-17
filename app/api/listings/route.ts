@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
     
     const body = await request.json();
-    const { itemId, title, description, price, tags } = body;
+    const { itemId, title, description, price, tags, affiliateEnabled, defaultCommissionRate } = body;
     
     if (!itemId || !title || !description || !price) {
       return NextResponse.json(
@@ -127,7 +127,9 @@ export async function POST(request: NextRequest) {
       title,
       description,
       price,
-      tags: Array.isArray(tags) ? tags : []
+      tags: Array.isArray(tags) ? tags : [],
+      affiliateEnabled: affiliateEnabled || false,
+      defaultCommissionRate: affiliateEnabled ? (defaultCommissionRate || 0) : 0
     });
     
     await listing.populate('item', 'name type size mimeType url');

@@ -41,6 +41,16 @@ const listingSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0
+  },
+  affiliateEnabled: {
+    type: Boolean,
+    default: false
+  },
+  defaultCommissionRate: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
   }
 }, {
   timestamps: true,

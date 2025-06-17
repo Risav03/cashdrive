@@ -28,7 +28,7 @@ export const DashboardCard = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Link
             href="/marketplace"
             className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
@@ -52,6 +52,12 @@ export const DashboardCard = () => {
             }`}
           >
             Shared Links
+          </Link>
+          <Link
+            href="/affiliates"
+            className="bg-white border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+          >
+            Affiliates
           </Link>
           <Link
             href="/dashboard"

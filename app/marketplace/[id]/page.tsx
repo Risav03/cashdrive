@@ -5,14 +5,17 @@ import { deleteListing, formatPrice, getFileIcon, getListing, getStatusColor, ha
 import { Listing } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createElement, useEffect, useState } from 'react';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
+import AffiliateSetupModal from '@/app/components/Affiliates/AffiliateSetupModal';
+import { FiCopy, FiShare2, FiUsers } from 'react-icons/fi';
 
 export default function ListingDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,8 +25,13 @@ export default function ListingDetailPage() {
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [alreadyPurchased, setAlreadyPurchased] = useState(false);
   const [checkingPurchase, setCheckingPurchase] = useState(false);
+  const [showAffiliateModal, setShowAffiliateModal] = useState(false);
+  const [affiliateCode, setAffiliateCode] = useState<string | null>(null);
+  const [affiliateInfo, setAffiliateInfo] = useState<any>(null);
+  const [affiliateValidated, setAffiliateValidated] = useState(false);
 
   const listingId = params.id as string;
+  const refCode = searchParams.get('ref');
 
   const fetchListing = async () => {
     try {
@@ -74,13 +82,19 @@ export default function ListingDetailPage() {
       return;
     }
 
+    if (!session.user.wallet) {
+      alert('No wallet found. Please connect your wallet and try again.');
+      return;
+    }
+
     if (!confirm(`Are you sure you want to purchase "${listing?.title}" for ${formatPrice(listing?.price || 0)}?`)) {
       return;
     }
 
     try {
       setPurchaseLoading(true);
-      const result = await purchaseListing(listingId, session.user.wallet as `0x${string}`);
+      console.log('Attempting purchase with wallet:', session.user.wallet);
+      const result = await purchaseListing(listingId, session.user.wallet as `0x${string}`, affiliateCode || undefined);
       console.log("Purchase result:", result);
       setPurchaseSuccess(true);
 
@@ -119,6 +133,34 @@ export default function ListingDetailPage() {
       checkPurchaseStatus();
     }
   }, [purchaseSuccess, listingId, session]);
+
+  const validateAffiliateCode = async (code: string) => {
+    try {
+      const response = await fetch(`/api/affiliates/code/${code}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAffiliateInfo(data.affiliate);
+        setAffiliateValidated(true);
+        return true;
+      } else {
+        setAffiliateInfo(null);
+        setAffiliateValidated(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error validating affiliate code:', error);
+      setAffiliateInfo(null);
+      setAffiliateValidated(false);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (refCode) {
+      setAffiliateCode(refCode);
+      validateAffiliateCode(refCode);
+    }
+  }, [refCode]);
 
   if (loading) {
     return (
@@ -249,6 +291,15 @@ export default function ListingDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-4">
+                {/* Affiliate Notification */}
+                {affiliateValidated && affiliateInfo && (
+                  <div className="bg-green-100 border-2 border-green-400 p-4 brutal-shadow-left">
+                    <p className="font-freeman text-sm">
+                      <span className="font-bold">You are buying through an affiliate link.</span> The referrer will earn {affiliateInfo.commissionRate}% commission.
+                    </p>
+                  </div>
+                )}
+                
                 <div>
                   <h2 className="text-lg font-freeman mb-2">Description</h2>
                   <p className="font-freeman text-sm whitespace-pre-wrap">{listing.description}</p>
@@ -378,10 +429,51 @@ export default function ListingDetailPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Affiliate Section */}
+                {listing.affiliateEnabled && isOwner && (
+                  <div className="bg-white border-2 border-black p-3 brutal-shadow-left">
+                    <h3 className="text-lg font-freeman mb-2 flex items-center gap-2">
+                      <FiUsers className="w-4 h-4" />
+                      Affiliate Program
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <p className="font-freeman text-sm">
+                        Default commission: {listing.defaultCommissionRate}%
+                      </p>
+                      <button
+                        onClick={() => setShowAffiliateModal(true)}
+                        className="button-primary bg-[#FFD000] w-full py-2 px-4 text-sm"
+                      >
+                        Add Affiliate
+                      </button>
+                      <Link
+                        href="/affiliates"
+                        className="button-primary bg-white w-full py-2 px-4 text-sm text-center block"
+                      >
+                        Manage Affiliates
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Affiliate Setup Modal */}
+        <AffiliateSetupModal
+          isOpen={showAffiliateModal}
+          onClose={() => setShowAffiliateModal(false)}
+          contentId={listing._id}
+          contentType="listing"
+          contentTitle={listing.title}
+          onSuccess={() => {
+            // Refresh the page or show success message
+            alert('Affiliate created successfully!');
+          }}
+        />
       </main>
       <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
       <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />

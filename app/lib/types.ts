@@ -63,6 +63,8 @@ export interface Listing {
   status: 'active' | 'inactive';
   tags: string[];
   views: number;
+  affiliateEnabled: boolean;
+  defaultCommissionRate: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +75,8 @@ export interface CreateListingOptions {
   description: string;
   price: number;
   tags?: string[];
+  affiliateEnabled?: boolean;
+  defaultCommissionRate?: number;
 }
 
 export interface UpdateListingOptions {
@@ -81,6 +85,8 @@ export interface UpdateListingOptions {
   price?: number;
   status?: 'active' | 'inactive';
   tags?: string[];
+  affiliateEnabled?: boolean;
+  defaultCommissionRate?: number;
 }
 
 export interface ListingsResponse {

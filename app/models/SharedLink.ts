@@ -13,6 +13,8 @@ export interface ISharedLink extends Document {
   expiresAt?: Date;
   accessCount: number;
   paidUsers: mongoose.Types.ObjectId[];
+  affiliateEnabled: boolean;
+  defaultCommissionRate: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,7 +74,17 @@ const sharedLinkSchema = new Schema<ISharedLink>({
   paidUsers: [{
     type: Schema.Types.ObjectId,
     ref: 'User'
-  }]
+  }],
+  affiliateEnabled: {
+    type: Boolean,
+    default: false
+  },
+  defaultCommissionRate: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  }
 }, {
   timestamps: true,
   collection: 'sharedlinks'
