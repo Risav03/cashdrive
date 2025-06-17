@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { secrets } from './config';
 
@@ -52,6 +52,73 @@ export async function uploadFileToS3(
   } catch (error) {
     console.error('Error uploading file to S3:', error);
     throw new Error('Failed to upload file to S3');
+  }
+}
+
+export async function deleteFileFromS3(key: string): Promise<void> {
+  try {
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(deleteCommand);
+    console.log(`Successfully deleted S3 file: ${key}`);
+  } catch (error) {
+    console.error('Error deleting file from S3:', error);
+    throw new Error(`Failed to delete file from S3: ${key}`);
+  }
+}
+
+export async function deleteFileFromS3ByUrl(url: string): Promise<void> {
+  try {
+    // Extract key from S3 URL
+    const key = extractKeyFromS3Url(url);
+    if (!key) {
+      throw new Error('Invalid S3 URL format');
+    }
+    
+    await deleteFileFromS3(key);
+  } catch (error) {
+    console.error('Error deleting file from S3 by URL:', error);
+    throw new Error(`Failed to delete file from S3: ${url}`);
+  }
+}
+
+export function extractKeyFromS3Url(url: string): string | null {
+  try {
+    // Handle different S3 URL formats:
+    // https://bucket.s3.region.amazonaws.com/key
+    // https://s3.region.amazonaws.com/bucket/key
+    
+    const urlObj = new URL(url);
+    
+    // Format: https://bucket.s3.region.amazonaws.com/key
+    if (urlObj.hostname.includes('.s3.')) {
+      return urlObj.pathname.substring(1); // Remove leading slash
+    }
+    
+    // Format: https://s3.region.amazonaws.com/bucket/key
+    if (urlObj.hostname.startsWith('s3.')) {
+      const pathParts = urlObj.pathname.split('/');
+      return pathParts.slice(2).join('/'); // Remove empty string and bucket name
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting key from S3 URL:', error);
+    return null;
+  }
+}
+
+export async function cleanupOrphanedS3File(uploadResult: UploadResult): Promise<void> {
+  try {
+    console.log(`Attempting to cleanup orphaned S3 file: ${uploadResult.url}`);
+    await deleteFileFromS3(uploadResult.key);
+    console.log(`Successfully cleaned up orphaned S3 file: ${uploadResult.key}`);
+  } catch (error) {
+    console.error('Failed to cleanup orphaned S3 file:', error);
+    // Don't throw here - this is cleanup, we don't want to mask the original error
   }
 }
 

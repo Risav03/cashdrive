@@ -1,42 +1,115 @@
 import { processFileForAI } from '@/app/lib/ai/aiService';
 import { authOptions } from '@/app/lib/backend/authConfig';
-import { getUserRootFolder } from '@/app/lib/backend/helperFunctions/getUserRootFolder';
 import { validateS3Config } from '@/app/lib/config';
 import connectDB from '@/app/lib/mongodb';
-import { uploadFileToS3 } from '@/app/lib/s3';
+import { cleanupOrphanedS3File, uploadFileToS3 } from '@/app/lib/s3';
 import { Item } from '@/app/models/Item';
+import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
+  const dbSession = await mongoose.startSession();
+  
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
-    const rootFolder = await getUserRootFolder();
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const cursor = searchParams.get('cursor');
 
     await connectDB();
 
-    // Get current user session for ownership filtering
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const query = parentId 
-      ? { parentId, owner: session.user.id } 
-      : { _id: rootFolder };
-    
-    const items = await Item.find(query);
-    return NextResponse.json(items);
+    return await dbSession.withTransaction(async () => {
+      let query: any = parentId 
+        ? { parentId, owner: session.user.id } 
+        : { _id: session.user.rootFolder };
+
+      if (!parentId) {
+        const items = await Item.find(query).session(dbSession);
+        return NextResponse.json({
+          items,
+          pagination: {
+            current: 1,
+            total: 1,
+            count: items.length,
+            totalItems: items.length,
+            hasNextPage: false,
+            hasPreviousPage: false,
+            nextCursor: null,
+            limit: items.length
+          }
+        });
+      }
+
+      if (parentId) {
+        const parentFolder = await Item.findOne({ 
+          _id: parentId, 
+          owner: session.user.id,
+          type: 'folder'
+        }).session(dbSession);
+        
+        if (!parentFolder) {
+          throw new Error('Parent folder not found or unauthorized');
+        }
+      }
+
+      if (cursor) {
+        query._id = { $lt: cursor };
+      }
+
+      const totalItems = await Item.countDocuments({
+        parentId,
+        owner: session.user.id
+      }).session(dbSession);
+
+      const items = await Item.find(query)
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(limit)
+        .session(dbSession)
+        .lean();
+
+      const totalPages = Math.ceil(totalItems / limit);
+      const hasNextPage = items.length === limit;
+      const hasPreviousPage = page > 1;
+      const nextCursor = hasNextPage ? items[items.length - 1]._id : null;
+
+      return NextResponse.json({
+        items,
+        pagination: {
+          current: page,
+          total: totalPages,
+          count: items.length,
+          totalItems,
+          hasNextPage,
+          hasPreviousPage,
+          nextCursor,
+          limit
+        }
+      });
+    });
+
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+    console.error('Items GET API error:', error);
+    
+    if (error.message === 'Unauthorized' || error.message === 'Parent folder not found or unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } finally {
+    await dbSession.endSession();
   }
 }
 
 export async function POST(request: NextRequest) {
+  const dbSession = await mongoose.startSession();
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -44,139 +117,172 @@ export async function POST(request: NextRequest) {
     }
 
     const contentType = request.headers.get('content-type');
-    const rootFolder = await getUserRootFolder();
     await connectDB();
 
     if (contentType?.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      const file = formData.get('file') as File;
-      const url = formData.get('url') as string;
-      const parentId = formData.get('parentId') as string;
-      const name = formData.get('name') as string;
+      return await dbSession.withTransaction(async () => {
+        const formData = await request.formData();
+        const file = formData.get('file') as File;
+        const url = formData.get('url') as string;
+        const parentId = formData.get('parentId') as string;
+        const name = formData.get('name') as string;
 
-      if (!name) {
-        return NextResponse.json(
-          { error: 'Name is required' },
-          { status: 400 }
-        );
-      }
-
-      if (!file && !url) {
-        return NextResponse.json(
-          { error: 'Either file or URL must be provided' },
-          { status: 400 }
-        );
-      }
-
-      if (parentId) {
-        const parentFolder = await Item.findById(parentId);
-        if (!parentFolder || parentFolder.type !== 'folder') {
-          return NextResponse.json(
-            { error: 'Invalid parent folder' },
-            { status: 400 }
-          );
+        if (!name) {
+          throw new Error('Name is required');
         }
-      }
 
-      let fileUrl: string;
-      let fileSize: number = 0;
-      let mimeType: string | null = null;
+        if (!file && !url) {
+          throw new Error('Either file or URL must be provided');
+        }
 
-      if (file) {
-        fileSize = file.size;
-        mimeType = file.type;
+        if (parentId) {
+          const parentFolder = await Item.findById(parentId).session(dbSession);
+          if (!parentFolder || parentFolder.type !== 'folder') {
+            throw new Error('Invalid parent folder');
+          }
+          
+          if (parentFolder.owner.toString() !== session.user.id) {
+            throw new Error('Unauthorized access to parent folder');
+          }
+        }
 
-        if (validateS3Config()) {
-          try {
-            const uploadResult = await uploadFileToS3(file, name, session.user.id);
-            fileUrl = uploadResult.url;
-            fileSize = uploadResult.size;
-          } catch (error) {
-            console.error('S3 upload failed:', error);
-            return NextResponse.json(
-              { error: 'File upload failed' },
-              { status: 500 }
+        let fileUrl: string;
+        let fileSize: number = 0;
+        let mimeType: string | null = null;
+        let uploadResult: any = null;
+
+        if (file) {
+          fileSize = file.size;
+          mimeType = file.type;
+
+          if (validateS3Config()) {
+            try {
+              uploadResult = await uploadFileToS3(file, name, session.user.id);
+              fileUrl = uploadResult.url;
+              fileSize = uploadResult.size;
+            } catch (error) {
+              console.error('S3 upload failed:', error);
+              throw new Error('File upload failed');
+            }
+          } else {
+            console.warn('S3 not configured, using placeholder URL');
+            fileUrl = 'placeholder-url-s3-not-configured';
+          }
+        } else if (url) {
+          fileUrl = url;
+          fileSize = 0;
+          mimeType = null;
+        } else {
+          throw new Error('Either file or URL must be provided');
+        }
+
+        try {
+          const [item] = await Item.create([{
+            name,
+            type: 'file',
+            parentId: parentId || session.user.rootFolder,
+            owner: session.user.id,
+            size: fileSize,
+            mimeType: mimeType,
+            url: fileUrl,
+          }], { session: dbSession });
+
+          const shouldProcessAI = mimeType && [
+            'text/plain', 
+            'application/pdf', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          ].includes(mimeType);
+
+          if (shouldProcessAI) {
+            await Item.findByIdAndUpdate(
+              item._id, 
+              { 'aiProcessing.queued': true, 'aiProcessing.queuedAt': new Date() },
+              { session: dbSession }
             );
           }
-        } else {
-          console.warn('S3 not configured, using placeholder URL');
-          fileUrl = 'placeholder-url-s3-not-configured';
-        }
-      } else if (url) {
-        fileUrl = url;
-        fileSize = 0;
-        mimeType = null;
-      } else {
-        return NextResponse.json(
-          { error: 'Either file or URL must be provided' },
-          { status: 400 }
-        );
-      }
 
-      const item = await Item.create({
-        name,
-        type: 'file',
-        parentId: parentId || rootFolder,
-        owner: session.user.id,
-        size: fileSize,
-        mimeType: mimeType,
-        url: fileUrl,
+          if (shouldProcessAI) {
+            setImmediate(() => {
+              processFileForAI(item._id.toString()).catch(error => {
+                console.error('AI processing failed for file:', item.name, error);
+              });
+            });
+          }
+
+          return NextResponse.json(item, { status: 201 });
+
+        } catch (dbError) {
+          if (uploadResult && validateS3Config()) {
+            try {
+              console.warn('Database operation failed, attempting S3 cleanup for:', uploadResult.url);
+              await cleanupOrphanedS3File(uploadResult);
+            } catch (cleanupError) {
+              console.error('Failed to cleanup S3 file:', cleanupError);
+            }
+          }
+          throw dbError;
+        }
       });
 
-      if (mimeType && ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimeType)) {
-        processFileForAI(item._id.toString()).catch(error => {
-          console.error('AI processing failed for file:', item.name, error);
-        });
-      }
+    } else {
+      return await dbSession.withTransaction(async () => {
+        const body = await request.json();
+        const { name, parentId, type } = body;
 
-      return NextResponse.json(item, { status: 201 });
-    }
-    else {
-      const body = await request.json();
-      const { name, parentId, type } = body;
-
-      if (!name || !type) {
-        return NextResponse.json(
-          { error: 'Name and type are required' },
-          { status: 400 }
-        );
-      }
-
-      if (!['file', 'folder'].includes(type)) {
-        return NextResponse.json(
-          { error: 'Invalid type. Must be "file" or "folder".' },
-          { status: 400 }
-        );
-      }
-
-      if (parentId) {
-        const parentFolder = await Item.findById(parentId);
-        if (!parentFolder || parentFolder.type !== 'folder') {
-          return NextResponse.json(
-            { error: 'Invalid parent folder' },
-            { status: 400 }
-          );
+        if (!name || !type) {
+          throw new Error('Name and type are required');
         }
-      }
 
-      if (type === 'folder') {
-        const item = await Item.create({
-          name,
-          type: 'folder',
-          parentId: parentId || rootFolder,
-          owner: session.user.id,
-        });
-        return NextResponse.json(item, { status: 201 });
-      }
+        if (!['file', 'folder'].includes(type)) {
+          throw new Error('Invalid type. Must be "file" or "folder".');
+        }
 
+        if (parentId) {
+          const parentFolder = await Item.findById(parentId).session(dbSession);
+          if (!parentFolder || parentFolder.type !== 'folder') {
+            throw new Error('Invalid parent folder');
+          }
+          
+          if (parentFolder.owner.toString() !== session.user.id) {
+            throw new Error('Unauthorized access to parent folder');
+          }
+        }
 
+        if (type === 'folder') {
+          const [item] = await Item.create([{
+            name,
+            type: 'folder',
+            parentId: parentId || session.user.rootFolder,
+            owner: session.user.id,
+          }], { session: dbSession });
+
+          return NextResponse.json(item, { status: 201 });
+        }
+
+        throw new Error('Unsupported operation');
+      });
     }
 
   } catch (error: any) {
+    console.error('API Error:', error);
+    
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    if (error.message.includes('Name is required') || 
+        error.message.includes('Either file or URL must be provided') ||
+        error.message.includes('Invalid parent folder') ||
+        error.message.includes('Invalid type')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    
+    if (error.message.includes('File upload failed')) {
+      return NextResponse.json({ error: 'File upload failed' }, { status: 500 });
+    }
+    
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    await dbSession.endSession();
   }
 } 

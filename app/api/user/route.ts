@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/lib/backend/authConfig';
 import connectDB from '@/app/lib/mongodb';
 import User from '@/app/models/User';
-import { authOptions } from '@/app/lib/backend/authConfig';
+import mongoose from 'mongoose';
+import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
+  const dbSession = await mongoose.startSession();
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -12,30 +15,46 @@ export async function GET() {
     }
 
     await connectDB();
-    const user = await User.findById(session.user.id).select('-password');
+
+    return await dbSession.withTransaction(async () => {
+      const user = await User.findById(session.user.id)
+        .select('-password')
+        .session(dbSession);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return NextResponse.json({
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          rootFolder: user.rootFolder.toString(),
+          createdAt: user.createdAt
+        }
+      });
+    });
+
+  } catch (error: any) {
+    console.error('GET /api/user error:', error);
     
-    if (!user) {
+    if (error.message === 'User not found') {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    return NextResponse.json({
-      user: {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        rootFolder: user.rootFolder.toString(),
-        createdAt: user.createdAt
-      }
-    });
-  } catch (error: any) {
+    
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
     );
+  } finally {
+    await dbSession.endSession();
   }
 }
 
 export async function POST(request: NextRequest) {
+  const dbSession = await mongoose.startSession();
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -50,20 +69,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const user = await User.findOne({ email }).select('_id name email');
+    return await dbSession.withTransaction(async () => {
+      const user = await User.findOne({ email })
+        .select('_id name email')
+        .session(dbSession);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Don't allow users to create affiliates for themselves
+      if (user.email === session.user.email) {
+        throw new Error('Cannot create affiliate for yourself');
+      }
+
+      return NextResponse.json({ user });
+    });
+
+  } catch (error: any) {
+    console.error('POST /api/user error:', error);
     
-    if (!user) {
+    if (error.message === 'User not found') {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // Don't allow users to create affiliates for themselves
-    if (user.email === session.user.email) {
+    
+    if (error.message === 'Cannot create affiliate for yourself') {
       return NextResponse.json({ error: 'Cannot create affiliate for yourself' }, { status: 400 });
     }
-
-    return NextResponse.json({ user });
-  } catch (error) {
-    console.error('Error finding user:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } finally {
+    await dbSession.endSession();
   }
 }

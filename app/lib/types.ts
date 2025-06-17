@@ -185,6 +185,20 @@ export interface TransactionsResponse {
   };
 }
 
+export interface ItemsResponse {
+  items: Item[];
+  pagination: {
+    current: number;
+    total: number;
+    count: number;
+    totalItems: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    nextCursor: string | null;
+    limit: number;
+  };
+}
+
 export interface TransactionFilters {
   type?: 'purchases' | 'sales' | 'all';
   status?: 'completed' | 'pending' | 'failed' | 'refunded';

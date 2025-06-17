@@ -50,13 +50,10 @@ export async function processFileForAI(itemId: string): Promise<void> {
     const response = await s3Client.send(getObjectCommand);
     const fileBuffer = Buffer.from(await response.Body!.transformToByteArray());
 
-    // Process text content
     const processedText = await processTextFile(fileBuffer, item.mimeType);
 
-    // Generate embeddings for chunks
     const embeddingResults = await generateEmbeddings(processedText.chunks);
 
-    // Update item with processed data
     item.aiProcessing = {
       status: 'completed',
       textContent: processedText.content,
@@ -75,7 +72,6 @@ export async function processFileForAI(itemId: string): Promise<void> {
   } catch (error) {
     console.error('Error processing file for AI:', error);
     
-    // Update status to failed
     const item = await Item.findById(itemId);
     if (item) {
       item.aiProcessing.status = 'failed';
@@ -219,4 +215,129 @@ export async function ensureAIGeneratedFolder(userId: string) {
   }
 
   return aiFolder;
+}
+
+export async function generateAndSaveContent({
+  prompt,
+  contentType = 'article',
+  title,
+  sourceQuery,
+  userId,
+  userDisplayName
+}: {
+  prompt: string;
+  contentType?: string;
+  title?: string;
+  sourceQuery?: string;
+  userId: string;
+  userDisplayName?: string;
+}) {
+  const { chatCompletion } = await import('./openaiClient');
+  const { generatePDF } = await import('./pdfGenerator');
+  const { uploadFileToS3 } = await import('../s3');
+  const { Item } = await import('../../models/Item');
+
+  // Search for relevant content if sourceQuery provided
+  let contextContent = '';
+  let sourceFileIds: string[] = [];
+  
+  if (sourceQuery) {
+    const searchResults = await searchUserContent(sourceQuery, userId, 8);
+    if (searchResults.length > 0) {
+      contextContent = searchResults
+        .map(result => `From ${result.item.name}:\n${result.chunk.text}`)
+        .join('\n\n---\n\n');
+      sourceFileIds = searchResults.map(result => result.item._id);
+    }
+  }
+
+  // Generate content using AI
+  const systemPrompt = `You are a professional content writer. Create high-quality ${contentType} content based on the user's request and provided context.
+
+${contextContent ? `Context from user's files:\n${contextContent}\n\n` : ''}
+
+Instructions:
+- Create well-structured, professional content
+- Use the context naturally and cite sources when relevant
+- Include proper headings and formatting
+- Make the content engaging and informative
+- Ensure the content is substantial and valuable
+- Format with markdown-style headers (# ## ###)
+
+Content Type: ${contentType}
+${title ? `Suggested Title: ${title}` : ''}`;
+
+  const messages = [
+    {
+      role: 'system' as const,
+      content: systemPrompt
+    },
+    {
+      role: 'user' as const,
+      content: prompt
+    }
+  ];
+
+  const response = await chatCompletion(messages, undefined, 0.7);
+  const content = response.choices[0].message.content || '';
+
+  // Extract title from content or use provided title
+  let finalTitle = title;
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  if (titleMatch) {
+    finalTitle = titleMatch[1].trim();
+  } else if (!finalTitle) {
+    // Generate title from prompt if none provided
+    const words = prompt.split(' ').slice(0, 8);
+    finalTitle = words.map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  }
+
+  // Create AI Generated folder if it doesn't exist
+  const aiFolder = await ensureAIGeneratedFolder(userId);
+
+  // Generate filename
+  const timestamp = new Date().toISOString().split('T')[0];
+  const fileName = `${finalTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}_${timestamp}.pdf`;
+
+  // Generate PDF
+  const pdfBuffer = await generatePDF({
+    title: finalTitle,
+    content: content,
+    author: userDisplayName || 'AI Assistant'
+  });
+
+  // Create a File object from the PDF buffer
+  const arrayBuffer = new Uint8Array(pdfBuffer).buffer;
+  const pdfFile = new File([arrayBuffer], fileName, { type: 'application/pdf' });
+
+  // Upload to S3 using the s3.ts utility
+  const uploadResult = await uploadFileToS3(pdfFile, fileName, userId);
+
+  // Save as Item in MongoDB
+  const newItem = await Item.create({
+    name: fileName,
+    type: 'file',
+    parentId: aiFolder._id,
+    owner: userId,
+    url: uploadResult.url,
+    size: pdfBuffer.length,
+    mimeType: 'application/pdf',
+    generatedBy: 'ai',
+    sourcePrompt: prompt,
+    sourceFiles: sourceFileIds
+  });
+
+  const wordCount = content.split(/\s+/).length;
+
+  return {
+    item: newItem,
+    content: {
+      title: finalTitle,
+      content,
+      wordCount
+    },
+    uploadResult
+  };
 } 

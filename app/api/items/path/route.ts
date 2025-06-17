@@ -1,12 +1,22 @@
-import { NextResponse } from 'next/server';
+import { authOptions } from '@/app/lib/backend/authConfig';
 import connectDB from '@/app/lib/mongodb';
 import { Item } from '@/app/models/Item';
-import { getUserRootFolder } from '@/app/lib/backend/helperFunctions/getUserRootFolder';
+import mongoose from 'mongoose';
+import { getServerSession } from 'next-auth/next';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
+  const session = await mongoose.startSession();
+  
   try {
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get('itemId');
+
+    const userSession = await getServerSession(authOptions);
+    
+    if (!userSession?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     if (!itemId) {
       return NextResponse.json(
@@ -15,31 +25,51 @@ export async function GET(request: Request) {
       );
     }
 
-    const rootFolder = await getUserRootFolder();
     await connectDB();
 
-    const path: any[] = [];
-    let currentId = itemId;
+    return await session.withTransaction(async () => {
+      const targetItem = await Item.findOne({ 
+        _id: itemId, 
+        owner: userSession.user.id 
+      }).session(session);
+      
+      if (!targetItem) {
+        throw new Error('Item not found or unauthorized');
+      }
 
-    while (currentId) {
-      const item = await Item.findById(currentId);
-      if (!item) break;
+      const path: any[] = [];
+      let currentId = itemId;
 
-      path.unshift({
-        id: item._id,
-        name: item.name,
-        type: item.type
-      });
+      while (currentId) {
+        const item = await Item.findOne({ 
+          _id: currentId, 
+          owner: userSession.user.id 
+        }).session(session);
+        
+        if (!item) break;
 
-      if (item._id.toString() === rootFolder.toString()) break;
-      currentId = item.parentId;
-    }
+        path.unshift({
+          id: item._id,
+          name: item.name,
+          type: item.type
+        });
 
-    return NextResponse.json(path);
+        if (item._id.toString() === userSession.user.rootFolder?.toString()) break;
+        currentId = item.parentId;
+      }
+
+      return NextResponse.json(path);
+    });
+
   } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+    console.error('Path API error:', error);
+    
+    if (error.message === 'Unauthorized' || error.message === 'Item not found or unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } finally {
+    await session.endSession();
   }
 } 

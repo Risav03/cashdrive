@@ -1,50 +1,54 @@
 import axios from 'axios';
-import { BreadcrumbItem, CreateFolderOptions, DeleteResult, Item, UpdateItemOptions, UploadOptions } from '../types';
 import { IconType } from 'react-icons';
-import { 
-  FaFolder, 
-  FaImage, 
-  FaVideo, 
-  FaMusic, 
-  FaFilePdf, 
-  FaFileWord, 
-  FaFileExcel, 
+import {
   FaFile,
-  FaFileCode,
   FaFileArchive,
-  FaFileCsv
+  FaFileCode,
+  FaFileCsv,
+  FaFileExcel,
+  FaFilePdf,
+  FaFileWord,
+  FaImage,
+  FaMusic,
+  FaVideo
 } from 'react-icons/fa';
+import { BreadcrumbItem, CreateFolderOptions, DeleteResult, Item, ItemsResponse, UpdateItemOptions, UploadOptions } from '../types';
 
-export async function getUserRootFolder(): Promise<Item> {
-  try {
-    const response = await axios.get('/api/items');
-    if (Array.isArray(response.data) && response.data.length > 0) {
-      return response.data[0];
-    } else {
-      throw new Error('Root folder not found');
-    }
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    throw new Error(error.message || 'Failed to fetch root folder');
+
+export async function getItemsByParentId(
+  parentId: string | null, 
+  options?: {
+    page?: number;
+    limit?: number;
+    cursor?: string;
   }
-}
-
-
-// Fetches items by parent folder ID. If parentId is null, fetches items in the root folder.
-export async function getItemsByParentId(parentId: string | null): Promise<Item[]> {
+): Promise<ItemsResponse> {
   try {
     let url = '/api/items';
+    const params = new URLSearchParams();
+    
     if (parentId) {
-      url += `?parentId=${encodeURIComponent(parentId)}`;
+      params.append('parentId', parentId);
     }
+    
+    if (options?.page) {
+      params.append('page', options.page.toString());
+    }
+    
+    if (options?.limit) {
+      params.append('limit', options.limit.toString());
+    }
+    
+    if (options?.cursor) {
+      params.append('cursor', options.cursor);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
     const response = await axios.get(url);
-    if (Array.isArray(response.data)) {
-      return response.data;
-    } else {
-      throw new Error('Invalid response format');
-    }
+    return response.data;
   } catch (error: any) {
     if (error.response && error.response.status === 401) {
       throw new Error('Unauthorized');

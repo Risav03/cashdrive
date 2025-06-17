@@ -1,7 +1,7 @@
 'use client';
 
 import { useApp } from '@/app/context/AppContext';
-import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, getUserRootFolder, uploadItem } from '@/app/lib/frontend/explorerFunctions';
+import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, uploadItem } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
 import { useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
@@ -28,20 +28,35 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedItemForSharing, setSelectedItemForSharing] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 1,
+    count: 0,
+    totalItems: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+    nextCursor: null as string | null,
+    limit: 20
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     async function loadRootFolder() {
-      if (!user) return;
+      if (!user || !user.rootFolder) return;
       
       setIsLoading(true);
       try {
-        const root = await getUserRootFolder();
+        const root = await getItem(user.rootFolder);
         setCurrentFolder(root);
-        const rootItems = await getItemsByParentId(root._id);
+        const response = await getItemsByParentId(root._id, {
+          page: 1,
+          limit: itemsPerPage
+        });
         
-        // Sort items: folders first, then files, both sorted by date
-        const sortedItems = rootItems.sort((a, b) => {
-          // First, separate folders and files
+        const sortedItems = response.items.sort((a, b) => {
+
           if (a.type === 'folder' && b.type === 'file') return -1;
           if (a.type === 'file' && b.type === 'folder') return 1;
           
@@ -50,6 +65,8 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
         });
 
         setItems(sortedItems);
+        setPagination(response.pagination);
+        setCurrentPage(1);
         setBreadcrumbs([]);
       } catch (error) {
         console.error('Failed to load root folder:', error);
@@ -59,17 +76,19 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     }
 
     loadRootFolder();
-  }, [user]);
+  }, [user, itemsPerPage]);
 
-  const loadFolderContents = async () => {
+  const loadFolderContents = async (page: number = 1) => {
     if (!currentFolder || !user) return;
     
     setIsLoading(true);
     try {
-      const newItems = await getItemsByParentId(currentFolder._id);
+      const response = await getItemsByParentId(currentFolder._id, {
+        page,
+        limit: itemsPerPage
+      });
       
-      // Sort items: folders first, then files, both sorted by date
-      const sortedItems = newItems.sort((a, b) => {
+      const sortedItems = response.items.sort((a, b) => {
         // First, separate folders and files
         if (a.type === 'folder' && b.type === 'file') return -1;
         if (a.type === 'file' && b.type === 'folder') return 1;
@@ -79,8 +98,13 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
       });
 
       setItems(sortedItems);
-      const path = await getBreadcrumbPath(currentFolder._id);
-      setBreadcrumbs(path);
+      setPagination(response.pagination);
+      setCurrentPage(page);
+      
+      if (page === 1) {
+        const path = await getBreadcrumbPath(currentFolder._id);
+        setBreadcrumbs(path);
+      }
     } catch (error) {
       console.error('Failed to load folder contents:', error);
     } finally {
@@ -90,9 +114,27 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
 
   useEffect(() => {
     if (currentFolder) {
-      loadFolderContents();
+      loadFolderContents(1);
     }
   }, [currentFolder, user]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.total) {
+      loadFolderContents(newPage);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.hasPreviousPage) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.hasNextPage) {
+      handlePageChange(currentPage + 1);
+    }
+  };
 
   if (isLoadingUser) {
     return (
@@ -102,7 +144,6 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     );
   }
 
-  // Show message if no user is found
   if (!user) {
     return <div>Please log in to view your files.</div>;
   }
@@ -147,7 +188,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const handleUpload = async (options: UploadOptions) => {
     try {
       await uploadItem(options);
-      await loadFolderContents();
+      await loadFolderContents(currentPage);
     } catch (error) {
       console.error('Upload failed:', error);
     }
@@ -157,10 +198,10 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     if (currentFolder && breadcrumbs.length > 0) {
       const parentBreadcrumb = breadcrumbs[breadcrumbs.length - 2];
       
-      if (!parentBreadcrumb) {
-        const root = await getUserRootFolder();
+      if (!parentBreadcrumb && user?.rootFolder) {
+        const root = await getItem(user.rootFolder);
         setCurrentFolder(root);
-      } else {
+      } else if (parentBreadcrumb) {
         const parentFolder = await getItem(parentBreadcrumb.id);
         setCurrentFolder(parentFolder);
       }
@@ -169,56 +210,39 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
 
   const handleCreateFolder = async (options: CreateFolderOptions) => {
     try {
-      const parentId = currentFolder?._id || user.rootFolder;
+      const parentId = currentFolder?._id || user?.rootFolder;
       
       await createFolder({
         ...options,
         parentId
       });
       
-      await loadFolderContents();
+      await loadFolderContents(currentPage);
     } catch (error) {
       console.error('Failed to create folder:', error);
     }
   };
 
   return (
-    <div className={compact ? "" : "max-w-4xl mx-auto"}>
-      <div className={compact ? "" : "bg-amber-100 border-2 border-black brutal-shadow-left p-6"}>
+    <div className={compact ? 'p-0' : 'p-6'}>
+      <div className={compact ? '' : 'max-w-7xl mx-auto'}>
         {!compact && (
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-anton text-3xl">File Explorer</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsCreateFolderModalOpen(true)}
-                className="button-primary bg-white px-4 py-2 text-base duration-100"
-              >
-                New Folder
-              </button>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-freeman">Files</h1>
+            <div className="flex gap-4">
               <button
                 onClick={() => setIsUploadModalOpen(true)}
-                className="button-primary bg-primary px-4 py-2 text-base duration-100"
+                className="bg-primary border-2 border-black brutal-shadow-left hover:translate-y-1 hover:brutal-shadow-center px-6 py-3 font-freeman transition-all"
               >
                 Upload
               </button>
+              <button
+                onClick={() => setIsCreateFolderModalOpen(true)}
+                className="bg-white border-2 border-black brutal-shadow-left hover:translate-y-1 hover:brutal-shadow-center px-6 py-3 font-freeman transition-all"
+              >
+                New Folder
+              </button>
             </div>
-          </div>
-        )}
-
-        {compact && (
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setIsCreateFolderModalOpen(true)}
-              className="button-primary bg-white px-3 py-1 text-sm duration-100 flex-1"
-            >
-              New Folder
-            </button>
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="button-primary bg-primary px-3 py-1 text-sm duration-100 flex-1"
-            >
-              Upload
-            </button>
           </div>
         )}
 
@@ -248,6 +272,13 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
           {breadcrumbs.length > 0 && (
             <BreadcrumbNav items={breadcrumbs} onNavigate={handleNavigate} />
           )}
+          
+          {/* Pagination Info */}
+          {pagination.totalItems > 0 && (
+            <div className="ml-auto text-sm font-freeman text-gray-600">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, pagination.totalItems)} of {pagination.totalItems} items
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -255,17 +286,76 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
             <Loader />
           </div>
         ) : (
-          <div className={`grid gap-${compact ? '2' : '4'} ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
-            {items.map((item) => (
-              <FileItem
-                key={item._id}
-                item={item}
-                onItemClick={handleItemClick}
-                onListToMarketplace={handleListToMarketplace}
-                onShareItem={handleShareItem}
-              />
-            ))}
-          </div>
+          <>
+            <div className={`grid gap-${compact ? '2' : '4'} ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+              {items.map((item) => (
+                <FileItem
+                  key={item._id}
+                  item={item}
+                  onItemClick={handleItemClick}
+                  onListToMarketplace={handleListToMarketplace}
+                  onShareItem={handleShareItem}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalItems > itemsPerPage && (
+              <div className="flex items-center justify-between mt-6 p-4 bg-white border-2 border-black">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={!pagination.hasPreviousPage}
+                    className={`px-4 py-2 border-2 border-black font-freeman transition-all ${
+                      pagination.hasPreviousPage
+                        ? 'bg-white hover:bg-gray-100 brutal-shadow-left hover:translate-y-1 hover:brutal-shadow-center'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, pagination.total) }, (_, i) => {
+                      const pageNum = Math.max(1, currentPage - 2) + i;
+                      if (pageNum > pagination.total) return null;
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-1 border-2 border-black font-freeman transition-all ${
+                            pageNum === currentPage
+                              ? 'bg-primary'
+                              : 'bg-white hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={handleNextPage}
+                    disabled={!pagination.hasNextPage}
+                    className={`px-4 py-2 border-2 border-black font-freeman transition-all ${
+                      pagination.hasNextPage
+                        ? 'bg-white hover:bg-gray-100 brutal-shadow-left hover:translate-y-1 hover:brutal-shadow-center'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+                
+                <div className="text-sm font-freeman text-gray-600">
+                  Page {currentPage} of {pagination.total}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
