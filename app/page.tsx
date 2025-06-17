@@ -8,20 +8,33 @@ import loader2 from '@/assets/loader_2.svg'
 import loader3 from '@/assets/loader_3.svg'
 import { AuthButton } from './components/auth/cards/card'
 import Navbar from './components/global/Navbar'
+import Link from 'next/link'
 
 // Accordion data
 const accordionData = [
   {
     title: "WHY CHOOSE US?",
-    content: "Experience the future of digital marketplaces with our brutalist, no-nonsense platform. We're not just another marketplace - we're a revolution in digital commerce."
+    content: "CashDrive isn't just a file host — it's a monetization engine. With x402, people can pay for your content without accounts or subscriptions. Our AI helps you create new content, and because we run on open MCP servers, any AI agent can discover and pay for your files too. Creators earn. Curators get rewarded. Copyright worries? Gone."
   },
   {
-    title: "HOW IT WORKS",
-    content: "List your digital products, set your price, and start earning. Our platform handles everything from secure payments to instant delivery. It's that simple."
+    title: "HOW DO I EARN FROM MY FILES?",
+    content: "Simply upload a file, list it on the marketplace, and share the link. When someone accesses it using x402, you get paid — instantly and directly. No signups, no platform fees, just pure creator revenue."
   },
   {
-    title: "CREATOR BENEFITS",
-    content: "Join thousands of creators who've found their audience and monetized their passion. Zero hidden fees, instant payouts, and complete control over your digital assets."
+    title: "WHAT IS X402?",
+    content: "x402 is a new internet payment standard that lets anyone pay for digital content via API, without needing accounts or subscriptions. It’s fast, secure, and perfect for microtransactions — ideal for creators and developers."
+  },
+  {
+    title: "HOW DOES THE AI AGENT HELP?",
+    content: "Our AI acts as your creative partner — generating new content ideas, organizing your drive, and even producing files you can sell. It’s like having an assistant who helps you earn more, 24/7."
+  },
+  {
+    title: "CAN OTHER AIs USE MY CONTENT?",
+    content: "Yes! Since the marketplace is accessible via MCP servers, other AI agents can find and curate your content. When they do, they pay you via x402 — so even bots help you earn, with no risk of copyright abuse."
+  },
+  {
+    title: "IS THIS SAFE AND PRIVATE?",
+    content: "Yes. Your payments are decentralized and secure through the x402 protocol. And since there's no need for accounts or logins, your data and identity stay yours."
   }
 ];
 
@@ -102,18 +115,18 @@ const Test = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
             icon={loader1}
-            title="SECURE PAYMENTS"
-            description="Industry-leading security protocols protect your transactions. Rest easy knowing your money is safe."
+            title="MONETIZE YOUR FILES"
+            description="Upload your files to the drive and list them on our marketplace — earn directly with x402 payments, no signups or subscriptions required."
           />
           <FeatureCard
             icon={loader2}
-            title="INSTANT DELIVERY"
-            description="Automated delivery system ensures your buyers get their purchases immediately after payment."
+            title="BUILT-IN AI ASSISTANT"
+            description="Our AI agent helps you brainstorm, create, and organize content for your drive — turning your ideas into income-ready files effortlessly."
           />
           <FeatureCard
             icon={loader3}
-            title="CREATOR DASHBOARD"
-            description="Powerful analytics and tools to help you understand and grow your business."
+            title="SHARE & EARN ANYWHERE"
+            description="Every file gets a public link you can share on socials. When someone pays to access it, you earn — no gatekeeping, no platforms needed."
           />
         </div>
       </section>
@@ -137,13 +150,13 @@ const Test = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="w-full bg-primary border-y-2 border-black py-12">
-        <div className="max-w-6xl mx-auto px-4">
+      <section className="w-full bg-primary border-y-2 border-black py-12 flex flex-col items-center justify-center">
+        <div className="w-[80%] mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { number: "10K+", label: "CREATORS" },
-              { number: "$1M+", label: "PAID OUT" },
-              { number: "50K+", label: "PRODUCTS SOLD" }
+              { number: "100+", label: "CREATORS EARNING" },
+              { number: "$18k+", label: "PAID VIA X402" },
+              { number: "12K+", label: "FILES MONETIZED" }
             ].map((stat, index) => (
               <div key={index} className="text-center">
                 <h3 className="font-anton text-6xl mb-2">{stat.number}</h3>
@@ -152,6 +165,8 @@ const Test = () => {
             ))}
           </div>
         </div>
+
+        <button className='bg-white border-2 mt-10 border-black button-primary transition-all duration-100 mx-auto font-anton text-2xl px-4 py-2'><Link href="/roadmap">Our Road Map</Link></button>
       </section>
 
       {/* New Interactive Process Section */}
@@ -166,22 +181,22 @@ const Test = () => {
               <ProcessStep 
                 number="01"
                 title="CREATE YOUR ACCOUNT"
-                description="Sign up in seconds with our streamlined onboarding process."
+                description="Sign up in seconds — no wallet setup or crypto knowledge needed. We handle it all behind the scenes."
               />
               <ProcessStep 
                 number="02"
-                title="UPLOAD YOUR PRODUCT"
-                description="Drag and drop your digital assets with our intuitive interface."
+                title="UPLOAD OR GENERATE FILES"
+                description="Upload your digital files, or let our AI agent help you create content that's ready to sell."
               />
               <ProcessStep 
                 number="03"
                 title="SET YOUR PRICE"
-                description="Choose your pricing strategy with flexible options."
+                description="Choose if you want to monetize your uploaded or generated content - powered by x402 microtransactions."
               />
               <ProcessStep 
                 number="04"
-                title="START EARNING"
-                description="Get paid instantly when customers purchase your products."
+                title="SHARE & START EARNING"
+                description="Share your product links anywhere. People can pay instantly to access your files — even AI agents on the open web."
               />
             </div>
           </div>
@@ -201,9 +216,9 @@ const Test = () => {
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   {[
                     { label: "Avg. Earnings", value: "$5.2K" },
-                    { label: "Products Sold", value: "1.2K" },
-                    { label: "Response Rate", value: "99%" },
-                    { label: "Satisfaction", value: "4.9★" }
+                    { label: "Curated by AIs", value: "850+ Picks" },
+                    { label: "Files Sold", value: "1.2K" },
+                    { label: "Creator Rating", value: "4.8★" }
                   ].map((metric, index) => (
                     <div key={index} className="bg-white border-2 border-black p-3 brutal-shadow-center hover:translate-y-1 transition-transform">
                       <p className="font-freeman text-xs">{metric.label}</p>
@@ -214,14 +229,27 @@ const Test = () => {
 
                 {/* Featured Products Preview */}
                 <div className="space-y-3">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="flex items-center gap-3 p-3 bg-white border-2 border-black brutal-shadow-center hover:translate-x-1 hover:translate-y-1 transition-transform">
+                  {[
+                    {
+                      name: "Midjourney Prompt Pack",
+                      price: 82.01
+                    },
+                    {
+                      name: "Hook Generator Templates",
+                      price: 35.38
+                    },
+                    {
+                      name: "Editable Poster Collection",
+                      price: 53.52
+                    }
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-white border-2 border-black brutal-shadow-center hover:translate-x-1 hover:translate-y-1 transition-transform">
                       <div className="w-10 h-10 bg-primary border-2 border-black flex items-center justify-center">
-                        <Image src={loader1} alt="product" className="w-6 h-6" />
+                        <Image src={(index==0)?loader1:index==1?loader2:loader3} alt="product" className="w-6 h-6" />
                       </div>
                       <div>
-                        <p className="font-freeman text-sm">Product {item}</p>
-                        <p className="font-anton text-lg">${(Math.random() * 100).toFixed(2)}</p>
+                        <p className="font-freeman text-sm">{item.name}</p>
+                        <p className="font-anton text-lg">${item.price}</p>
                       </div>
                     </div>
                   ))}
@@ -240,9 +268,9 @@ const Test = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: "Alex K.", role: "Digital Artist", quote: "Transformed how I sell my art prints online." },
-              { name: "Sarah M.", role: "Course Creator", quote: "Made $50K in my first month selling courses!" },
-              { name: "James R.", role: "Developer", quote: "The easiest way to monetize my code snippets." }
+              { name: "Aanya R.", role: "3D Artist", quote: "Finally sold my Blender models without touching a marketplace. Just dropped the link." },
+              { name: "Sarah M.", role: "AI Prompt Engineer", quote: "Made $8K sharing my prompt packs — no ads, no funnels, just file drops." },
+              { name: "Nina D.", role: "Design Curator", quote: "I don't even make stuff — I collect and resell! Earning off discovery is wild." }
             ].map((testimonial, index) => (
               <div key={index} className="bg-white border-2 border-black p-6 brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all">
                 <div className="flex items-center gap-4 mb-4">
