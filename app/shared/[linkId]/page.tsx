@@ -15,6 +15,9 @@ import { useEffect, useState } from 'react';
 import Loader from '@/app/components/global/Loader';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Link from 'next/link';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { FaFolder } from 'react-icons/fa';
+import React from 'react';
 
 export default function SharedLinkPage() {
   const params = useParams();
@@ -137,7 +140,7 @@ export default function SharedLinkPage() {
               <p className="font-freeman mb-6">{error}</p>
               <button
                 onClick={() => router.push('/')}
-                className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Go Home
               </button>
@@ -160,7 +163,7 @@ export default function SharedLinkPage() {
             </h2>
             <Link
               href="/"
-              className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
+              className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
             >
               Return Home
             </Link>
@@ -177,12 +180,27 @@ export default function SharedLinkPage() {
   return (
     <div className="min-h-screen bg-white relative">
       <main className="max-w-3xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* <div className="mb-6">
+          <Link
+            href="/shared-links"
+            className="button-primary bg-white px-4 py-1.5 inline-flex items-center font-freeman text-sm border-2 border-black brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+          >
+            ← Back to Shared Links
+          </Link>
+        </div> */}
+
         <div className="bg-amber-100 border-2 border-black brutal-shadow-left">
           {/* Header */}
-          <div className="bg-[#FFD000] border-b-2 border-black p-6">
+          <div className="bg-primary border-b-2 border-black p-6">
             <div className="flex items-center gap-4">
               <span className="text-4xl">
-                {link.item?.type === 'folder' ? '📁' : '📄'}
+                {link.item?.type === 'folder' ? (
+                  <FaFolder className="w-10 h-10" />
+                ) : (
+                  React.createElement(getFileIcon(link.item?.mimeType), {
+                    className: "w-10 h-10"
+                  })
+                )}
               </span>
               <div>
                 <h1 className="text-2xl font-anton mb-1">{link.title}</h1>
@@ -206,7 +224,7 @@ export default function SharedLinkPage() {
 
             {/* Link Type Badge */}
             <div className="mb-6">
-              <span className="px-3 py-1 bg-[#FFD000] border-2 border-black brutal-shadow-center font-freeman inline-block">
+              <span className="px-3 py-1 bg-primary border-2 border-black brutal-shadow-center font-freeman inline-block">
                 {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
                 {link.type === 'monetized' && link.price && ` - ${formatPrice(link.price)}`}
               </span>
@@ -243,7 +261,7 @@ export default function SharedLinkPage() {
                       <p className="font-freeman mb-4">Please sign in to add this content to your drive.</p>
                       <button
                         onClick={handleLogin}
-                        className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                        className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                       >
                         Sign In
                       </button>
@@ -252,7 +270,7 @@ export default function SharedLinkPage() {
                     <button
                       onClick={handleAddToDrive}
                       disabled={isProcessing}
-                      className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
                     </button>
@@ -269,7 +287,7 @@ export default function SharedLinkPage() {
                   <button
                     onClick={handleAddToDrive}
                     disabled={isProcessing}
-                    className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
                   </button>
@@ -287,7 +305,7 @@ export default function SharedLinkPage() {
                   </p>
                   <button
                     onClick={handleLogin}
-                    className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                    className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                   >
                     Sign In to Purchase
                   </button>
@@ -309,7 +327,7 @@ export default function SharedLinkPage() {
                   <button
                     onClick={handlePayment}
                     disabled={isProcessing}
-                    className="w-full bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Processing Payment...' : `Pay ${formatPrice(link.price)}`}
                   </button>

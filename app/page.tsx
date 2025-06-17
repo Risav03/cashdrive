@@ -40,7 +40,7 @@ const FeatureCard = ({ title, description, icon }: { title: string; description:
 const Accordion = ({ title, content, isOpen, onClick }: { title: string; content: string; isOpen: boolean; onClick: () => void }) => (
   <div className="border-2 border-black bg-white">
     <button
-      className={`w-full p-4 text-left font-anton text-xl flex justify-between items-center ${isOpen ? 'bg-[#FFD000]' : 'bg-amber-100'}`}
+      className={`w-full p-4 text-left font-anton text-xl flex justify-between items-center ${isOpen ? 'bg-primary' : 'bg-amber-100'}`}
       onClick={onClick}
     >
       {title}
@@ -56,7 +56,7 @@ const Accordion = ({ title, content, isOpen, onClick }: { title: string; content
 
 const ProcessStep = ({ number, title, description }: { number: string; title: string; description: string }) => (
   <div className="relative flex items-start gap-4 group">
-    <div className="w-12 h-12 bg-[#FFD000] border-2 border-black brutal-shadow-center flex items-center justify-center font-anton text-2xl group-hover:translate-y-1 group-hover:brutal-shadow-left transition-all">
+    <div className="w-12 h-12 bg-primary border-2 border-black brutal-shadow-center flex items-center justify-center font-anton text-2xl group-hover:translate-y-1 group-hover:brutal-shadow-left transition-all">
       {number}
     </div>
     <div className="flex-1">
@@ -67,7 +67,7 @@ const ProcessStep = ({ number, title, description }: { number: string; title: st
 );
 
 const MarqueeText = () => (
-  <div className="overflow-hidden py-3 bg-[#FFD000] border-2 border-black brutal-shadow-left">
+  <div className="overflow-hidden py-3 bg-primary border-2 border-black brutal-shadow-left">
     <div className="flex space-x-4 animate-[marquee_20s_linear_infinite]">
       {Array(5).fill("CREATOR SPOTLIGHT • FEATURED SELLERS • TOP PRODUCTS • ").map((text, i) => (
         <span key={i} className="text-2xl font-anton whitespace-nowrap">{text}</span>
@@ -137,7 +137,7 @@ const Test = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="w-full bg-[#FFD000] border-y-2 border-black py-12">
+      <section className="w-full bg-primary border-y-2 border-black py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -216,7 +216,7 @@ const Test = () => {
                 <div className="space-y-3">
                   {[1, 2, 3].map((item) => (
                     <div key={item} className="flex items-center gap-3 p-3 bg-white border-2 border-black brutal-shadow-center hover:translate-x-1 hover:translate-y-1 transition-transform">
-                      <div className="w-10 h-10 bg-[#FFD000] border-2 border-black flex items-center justify-center">
+                      <div className="w-10 h-10 bg-primary border-2 border-black flex items-center justify-center">
                         <Image src={loader1} alt="product" className="w-6 h-6" />
                       </div>
                       <div>
@@ -246,7 +246,7 @@ const Test = () => {
             ].map((testimonial, index) => (
               <div key={index} className="bg-white border-2 border-black p-6 brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-[#FFD000] border-2 border-black rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary border-2 border-black rounded-full flex items-center justify-center">
                     <span className="font-anton text-xl">{testimonial.name[0]}</span>
                   </div>
                   <div>

@@ -89,7 +89,7 @@ export default function SignUpForm() {
                 name="name"
                 type="text"
                 required
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="Enter your full name"
               />
             </div>
@@ -100,7 +100,7 @@ export default function SignUpForm() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="Enter your email"
               />
             </div>
@@ -111,7 +111,7 @@ export default function SignUpForm() {
                 name="password"
                 type="password"
                 required
-                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-[#FFD000] brutal-shadow-center"
+                className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 placeholder="Enter your password"
               />
             </div>
@@ -121,7 +121,7 @@ export default function SignUpForm() {
             <button
               type="submit"
               disabled={loading}
-              className="button-primary bg-[#FFD000] w-full py-2 px-4 font-freeman text-xl"
+              className="button-primary bg-primary w-full py-2 px-4 font-freeman text-xl"
             >
               {loading ? <span className='w-full flex gap-2 items-center justify-center'><Image src={loadericon} alt="loader" className='w-6 h-6 animate-spin' />Creating your dashboard</span> : 'Sign up'}
             </button>

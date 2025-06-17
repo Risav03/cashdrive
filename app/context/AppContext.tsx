@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { getCurrentUser } from '../lib/frontend/userFunctions';
-import { User } from '../lib/types';
+import { User, Item } from '../lib/types';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -24,6 +24,12 @@ interface AppContextType {
   };
   showNotification: (message: string, type: NotificationType) => void;
   hideNotification: () => void;
+  
+  // File viewer state
+  viewerItem: Item | null;
+  isViewerOpen: boolean;
+  openFileViewer: (item: Item) => void;
+  closeFileViewer: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -42,6 +48,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     type: 'info',
     show: false,
   });
+
+  // Add file viewer state
+  const [viewerItem, setViewerItem] = useState<Item | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   // All functions next
   const refreshUser = async () => {
@@ -74,6 +84,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotification(prev => ({ ...prev, show: false }));
   };
 
+  // Add file viewer functions
+  const openFileViewer = (item: Item) => {
+    setViewerItem(item);
+    setIsViewerOpen(true);
+  };
+
+  const closeFileViewer = () => {
+    setIsViewerOpen(false);
+    setViewerItem(null);
+  };
+
   const {data:session, status} = useSession()
 
 
@@ -92,6 +113,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     notification,
     showNotification,
     hideNotification,
+    viewerItem,
+    isViewerOpen,
+    openFileViewer,
+    closeFileViewer,
   };
 
   return (
