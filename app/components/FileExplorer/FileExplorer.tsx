@@ -5,14 +5,18 @@ import { createFolder, getBreadcrumbPath, getItem, getItemsByParentId, getUserRo
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
 import { useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
+import Loader from '../global/Loader';
 import CreateSharedLinkModal from '../SharedLinks/CreateSharedLinkModal';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { CreateFolderModal } from './CreateFolderModal';
 import { FileItem } from './FileItem';
 import { UploadModal } from './UploadModal';
-import Loader from '../global/Loader';
 
-export const FileExplorer = () => {
+interface FileExplorerProps {
+  compact?: boolean;
+}
+
+export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const { user, isLoadingUser, showNotification } = useApp();
   const [currentFolder, setCurrentFolder] = useState<Item | null>(null);
   const [items, setItems] = useState<Item[]>([]);
@@ -179,27 +183,46 @@ export const FileExplorer = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-amber-100 border-2 border-black brutal-shadow-left p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="font-anton text-3xl">File Explorer</h2>
-          <div className="flex gap-2">
+    <div className={compact ? "" : "max-w-4xl mx-auto"}>
+      <div className={compact ? "" : "bg-amber-100 border-2 border-black brutal-shadow-left p-6"}>
+        {!compact && (
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="font-anton text-3xl">File Explorer</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsCreateFolderModalOpen(true)}
+                className="button-primary bg-white px-4 py-2 text-base duration-100"
+              >
+                New Folder
+              </button>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="button-primary bg-primary px-4 py-2 text-base duration-100"
+              >
+                Upload
+              </button>
+            </div>
+          </div>
+        )}
+
+        {compact && (
+          <div className="flex gap-2 mb-4">
             <button
               onClick={() => setIsCreateFolderModalOpen(true)}
-              className="button-primary bg-white px-4 py-2 text-base duration-100"
+              className="button-primary bg-white px-3 py-1 text-sm duration-100 flex-1"
             >
               New Folder
             </button>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className="button-primary bg-primary px-4 py-2 text-base duration-100"
+              className="button-primary bg-primary px-3 py-1 text-sm duration-100 flex-1"
             >
               Upload
             </button>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-4 mb-4 bg-white border-2 border-black p-3">
+        <div className={`flex items-center gap-4 mb-4 ${compact ? 'bg-gray-50 border border-gray-200 p-2' : 'bg-white border-2 border-black p-3'}`}>
           {currentFolder?._id && (
             <button
               onClick={handleBack}
@@ -228,11 +251,11 @@ export const FileExplorer = () => {
         </div>
 
         {isLoading ? (
-          <div className='flex justify-center items-center mt-10 scale-75'>
+          <div className={`flex justify-center items-center ${compact ? 'mt-4' : 'mt-10'} scale-75`}>
             <Loader />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className={`grid gap-${compact ? '2' : '4'} ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
             {items.map((item) => (
               <FileItem
                 key={item._id}

@@ -13,6 +13,39 @@ export interface Item {
   content?: string;
   createdAt: Date;
   updatedAt: Date;
+  // AI processing fields
+  generatedBy?: 'ai';
+  sourcePrompt?: string;
+  sourceFiles?: string[];
+  aiProcessing?: {
+    status: 'processing' | 'completed' | 'failed';
+    textContent?: string;
+    chunks?: Array<{
+      text: string;
+      embedding: number[];
+      chunkIndex: number;
+    }>;
+    processedAt?: Date;
+    topics?: string[];
+  };
+  
+  // Content source tracking
+  contentSource?: 'user' | 'marketplace' | 'shared' | 'ai_generated';
+  
+  // Purchase information for marketplace items
+  purchaseInfo?: {
+    transactionId?: string;
+    purchasedAt?: Date;
+    originalName?: string;
+    originalSeller?: string;
+  };
+  
+  // Shared link information
+  sharedInfo?: {
+    linkId?: string;
+    sharedAt?: Date;
+    sharedBy?: string;
+  };
 }
 
 export interface User {

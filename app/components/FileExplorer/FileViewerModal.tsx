@@ -1,10 +1,10 @@
 'use client';
 
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { formatFileSize } from '@/app/lib/frontend/sharedLinkFunctions';
 import { Item } from '@/app/lib/types';
 import { useState } from 'react';
 import { MdClose, MdFullscreen, MdFullscreenExit } from 'react-icons/md';
-import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
-import { formatFileSize } from '@/app/lib/frontend/sharedLinkFunctions';
 
 interface FileViewerModalProps {
   isOpen: boolean;
@@ -47,6 +47,11 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
+    // Convert S3 key to proper file serving URL
+    const fileUrl = item.url.startsWith('http') 
+      ? item.url 
+      : `/api/files/${item.url}`;
+
     const isAudio = item.mime?.startsWith('audio/') || 
                    item.mimeType?.startsWith('audio/') ||
                    item.url.match(/\.(mp3|wav|ogg|m4a)$/i);
@@ -67,8 +72,8 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
               className="w-full"
               preload="metadata"
             >
-              <source src={item.url} type={item.mime || item.mimeType || 'audio/mpeg'} />
-              <a href={item.url} download={item.name} className="text-blue-500 hover:underline">
+              <source src={fileUrl} type={item.mime || item.mimeType || 'audio/mpeg'} />
+              <a href={fileUrl} download={item.name} className="text-blue-500 hover:underline">
                 Download Audio
               </a>
             </audio>
@@ -76,7 +81,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
 
           <div className="mt-4">
             <a
-              href={item.url}
+              href={fileUrl}
               download={item.name}
               className="button-primary bg-primary px-6 py-3 inline-block"
               target="_blank"
@@ -93,7 +98,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       return (
         <div className="h-full flex items-center justify-center p-4">
           <img 
-            src={item.url} 
+            src={fileUrl} 
             alt={item.name}
             className="max-w-full max-h-full object-contain"
           />
@@ -105,7 +110,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       return (
         <div className="h-full flex items-center justify-center p-4">
           <video 
-            src={item.url} 
+            src={fileUrl} 
             controls
             className="max-w-full max-h-full"
           >
@@ -118,7 +123,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
     if (item.mimeType === 'application/pdf') {
       return (
         <iframe
-          src={item.url}
+          src={fileUrl}
           className="w-full h-full"
           title={item.name}
         />
@@ -132,7 +137,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
         item.mimeType?.includes('css')) {
       return (
         <iframe
-          src={item.url}
+          src={fileUrl}
           className="w-full h-full"
           title={item.name}
         />
@@ -146,7 +151,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
         </div>
         <p className="mb-4 font-freeman">This file type cannot be previewed</p>
         <a
-          href={item.url}
+          href={fileUrl}
           download={item.name}
           className="button-primary bg-primary px-6 py-3 inline-block"
           target="_blank"

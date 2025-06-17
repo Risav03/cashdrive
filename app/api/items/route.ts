@@ -1,3 +1,4 @@
+import { processFileForAI } from '@/app/lib/ai/aiService';
 import { authOptions } from '@/app/lib/backend/authConfig';
 import { getUserRootFolder } from '@/app/lib/backend/helperFunctions/getUserRootFolder';
 import { validateS3Config } from '@/app/lib/config';
@@ -121,6 +122,12 @@ export async function POST(request: NextRequest) {
         mimeType: mimeType,
         url: fileUrl,
       });
+
+      if (mimeType && ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimeType)) {
+        processFileForAI(item._id.toString()).catch(error => {
+          console.error('AI processing failed for file:', item.name, error);
+        });
+      }
 
       return NextResponse.json(item, { status: 201 });
     }

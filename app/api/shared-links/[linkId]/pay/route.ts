@@ -31,7 +31,6 @@ export async function POST(
   { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
-    // First try to get session from headers (for server actions)
     const userIdFromHeader = request.headers.get('x-user-id');
     const userEmailFromHeader = request.headers.get('x-user-email');
     const affiliateCodeFromHeader = request.headers.get('x-affiliate-code');
@@ -40,7 +39,6 @@ export async function POST(
     let userEmail: string | undefined;
 
     if (userIdFromHeader && userEmailFromHeader) {
-      // Use headers if available (from server action)
       userId = userIdFromHeader;
       userEmail = userEmailFromHeader;
       console.log('Using session from headers:', { userId, userEmail });
@@ -94,19 +92,16 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // Extract payment details from x-payment-response header
     const paymentResponseHeader = request.headers.get('x-payment-response');
     const paymentResponse = parsePaymentResponse(paymentResponseHeader);
     
     console.log("Payment response from header:", paymentResponse);
     
-    // Generate transaction details
     const transactionId = uuidv4();
     const receiptNumber = generateReceiptNumber();
     
-    // Create transaction with payment details
     const transactionData: any = {
-      listing: null, // No listing for shared links
+      listing: null,
       buyer: userId,
       seller: sharedLink.owner._id,
       item: sharedLink.item._id,
@@ -123,7 +118,6 @@ export async function POST(
       }
     };
 
-    // Add blockchain transaction details if available
     if (paymentResponse) {
       transactionData.metadata = {
         ...transactionData.metadata,
@@ -137,7 +131,6 @@ export async function POST(
 
     const transaction = await Transaction.create(transactionData);
     
-    // Add user to paid users list
     await SharedLink.findByIdAndUpdate(sharedLink._id, {
       $addToSet: { paidUsers: userId }
     });
