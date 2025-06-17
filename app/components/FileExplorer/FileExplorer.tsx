@@ -186,13 +186,13 @@ export const FileExplorer = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setIsCreateFolderModalOpen(true)}
-              className="button-primary bg-white px-4 py-2 text-base"
+              className="button-primary bg-white px-4 py-2 text-base duration-100"
             >
               New Folder
             </button>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className="button-primary bg-[#FFD000] px-4 py-2 text-base"
+              className="button-primary bg-primary px-4 py-2 text-base duration-100"
             >
               Upload
             </button>
@@ -203,7 +203,7 @@ export const FileExplorer = () => {
           {currentFolder?._id && (
             <button
               onClick={handleBack}
-              className="p-2 bg-[#FFD000] border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all"
+              className="p-2 bg-primary border-2 border-black button-primary duration-100"
               title="Go back"
             >
               <svg 

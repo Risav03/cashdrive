@@ -1,4 +1,4 @@
-import { purchaseFromMarketplace } from '@/actions';
+import { purchaseFromMarketplace } from '@/actions/actions';
 import axios from 'axios';
 import {
   CreateListingOptions,
@@ -10,6 +10,8 @@ import {
   TransactionsResponse,
   UpdateListingOptions
 } from '../types';
+import { IconType } from 'react-icons';
+import { FaFile, FaFileArchive, FaFileCode, FaFileCsv, FaFileExcel, FaFilePdf, FaFileWord, FaImage, FaMusic, FaVideo } from 'react-icons/fa';
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {
@@ -168,19 +170,39 @@ export function getStatusColor(status: string): string {
   }
 }
 
-export function getFileIcon(mimeType?: string): string {
-  if (!mimeType) return '📄';
+export const getFileIcon = (mime?: string): IconType => {
+  if (!mime) return FaFile;
   
-  if (mimeType.startsWith('image/')) return '🖼️';
-  if (mimeType.startsWith('video/')) return '🎥';
-  if (mimeType.startsWith('audio/')) return '🎵';
-  if (mimeType.includes('pdf')) return '📄';
-  if (mimeType.includes('word')) return '📝';
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-  if (mimeType.includes('zip') || mimeType.includes('archive')) return '📦';
+  if (mime.startsWith('image/')) return FaImage;
+  if (mime.startsWith('video/')) return FaVideo;
+  if (mime.startsWith('audio/')) return FaMusic;
+  if (mime.includes('pdf')) return FaFilePdf;
+  if (mime.includes('word') || mime.includes('document')) return FaFileWord;
+  if (mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('sheet')) return FaFileExcel;
+  if (mime.includes('csv')) return FaFileCsv;
   
-  return '📄';
-}
+  if (
+    mime.includes('javascript') || 
+    mime.includes('typescript') ||
+    mime.includes('python') ||
+    mime.includes('java') ||
+    mime.includes('html') ||
+    mime.includes('css') ||
+    mime.includes('json') ||
+    mime.includes('xml') ||
+    mime.includes('text/plain')
+  ) return FaFileCode;
+  
+  if (
+    mime.includes('zip') ||
+    mime.includes('rar') ||
+    mime.includes('tar') ||
+    mime.includes('7z') ||
+    mime.includes('gzip')
+  ) return FaFileArchive;
+  
+  return FaFile;
+};
 
 export async function purchaseListing(listingId: string, wallet:`0x${string}`, affiliateCode?: string): Promise<any> {
   try {

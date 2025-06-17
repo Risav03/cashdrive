@@ -1,4 +1,4 @@
-import { purchaseMonetizedLink } from "@/actions";
+import { purchaseMonetizedLink } from "@/actions/actions";
 
 export interface SharedLink {
   _id: string;

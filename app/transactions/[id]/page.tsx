@@ -5,7 +5,7 @@ import { Transaction } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import Loader from '@/app/components/global/Loader';
 import FooterPattern from '@/app/components/global/FooterPattern';
 
@@ -50,7 +50,7 @@ export default function TransactionDetailPage() {
             <p className="text-xl font-freeman mb-8">Please log in to view transaction details</p>
             <Link
               href="/api/auth/signin"
-              className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
+              className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
             >
               Sign In
             </Link>
@@ -91,7 +91,7 @@ export default function TransactionDetailPage() {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={fetchTransaction}
-                  className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                  className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                 >
                   Try again
                 </button>
@@ -119,7 +119,7 @@ export default function TransactionDetailPage() {
             <h2 className="heading-text-2 text-6xl font-anton mb-8">NOT FOUND</h2>
             <Link
               href="/transactions"
-              className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
+              className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all inline-block"
             >
               Back to Transactions
             </Link>
@@ -147,7 +147,7 @@ export default function TransactionDetailPage() {
         {/* Receipt */}
         <div className="bg-amber-100 border-2 border-black brutal-shadow-left">
           {/* Header */}
-          <div className="p-6 border-b-2 border-black bg-[#FFD000]">
+          <div className="p-6 border-b-2 border-black bg-primary">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-anton">Transaction Receipt</h1>
@@ -322,7 +322,7 @@ export default function TransactionDetailPage() {
                 <h2 className="text-xl font-anton mb-4">Item Details</h2>
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    <span className="text-4xl">{getFileIcon(transaction.item.mimeType)}</span>
+                    <span className="text-4xl">{createElement(getFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}</span>
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900">{transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}</h3>
@@ -355,7 +355,7 @@ export default function TransactionDetailPage() {
 
             {/* Access Information */}
             {transaction.transactionType === 'purchase' && transaction.status === 'completed' && (
-              <div className="mt-6 bg-[#FFD000] border-2 border-black brutal-shadow-left p-4">
+              <div className="mt-6 bg-primary border-2 border-black brutal-shadow-left p-4">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <h3 className="text-xl font-anton mb-2">

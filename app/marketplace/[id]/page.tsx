@@ -6,7 +6,7 @@ import { Listing } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
 import AffiliateSetupModal from '@/app/components/Affiliates/AffiliateSetupModal';
@@ -197,7 +197,7 @@ export default function ListingDetailPage() {
               <div className="flex justify-center space-x-4">
                 <button
                   onClick={fetchListing}
-                  className="button-primary bg-[#FFD000] px-8 py-2"
+                  className="button-primary bg-primary px-8 py-2"
                 >
                   Try again
                 </button>
@@ -227,7 +227,7 @@ export default function ListingDetailPage() {
             </h2>
             <Link
               href="/marketplace"
-              className="button-primary bg-[#FFD000] px-8 py-2"
+              className="button-primary bg-primary px-8 py-2"
             >
               Back to Marketplace
             </Link>
@@ -261,7 +261,7 @@ export default function ListingDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               {/* Left side content */}
               <div className="flex items-start gap-3">
-                <span className="text-4xl shrink-0">{getFileIcon(listing.item.mimeType)}</span>
+                <span className="text-4xl shrink-0">{createElement(getFileIcon(listing.item.mimeType), { className: "w-6 h-6" })}</span>
                 <div className="min-w-0"> {/* Prevent text overflow */}
                   <h1 className="text-xl font-freeman mb-1 break-words">{listing.title}</h1>
                   <div className="flex flex-wrap items-center gap-2 text-sm font-freeman text-gray-700">
@@ -276,7 +276,7 @@ export default function ListingDetailPage() {
 
               {/* Right side content */}
               <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
-                <span className="px-2 py-0.5 bg-[#FFD000] border-2 border-black font-freeman text-sm brutal-shadow-center whitespace-nowrap">
+                <span className="px-2 py-0.5 bg-primary border-2 border-black font-freeman text-sm brutal-shadow-center whitespace-nowrap">
                   {listing.status}
                 </span>
                 <span className="text-xl font-freeman">
@@ -312,7 +312,7 @@ export default function ListingDetailPage() {
                       {listing.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-2 py-0.5 bg-[#FFD000] border-2 border-black font-freeman text-sm brutal-shadow-center"
+                          className="px-2 py-0.5 bg-primary border-2 border-black font-freeman text-sm brutal-shadow-center"
                         >
                           {tag}
                         </span>
@@ -375,7 +375,7 @@ export default function ListingDetailPage() {
                       <button 
                         onClick={handlePurchase}
                         disabled={purchaseLoading}
-                        className="button-primary bg-[#FFD000] w-full py-2 px-4 text-sm"
+                        className="button-primary bg-primary w-full py-2 px-4 text-sm"
                       >
                         {purchaseLoading ? 'Processing Purchase...' : `Purchase for ${formatPrice(listing.price)}`}
                       </button>
@@ -407,7 +407,7 @@ export default function ListingDetailPage() {
                     <div className="space-y-2">
                       <Link
                         href={`/marketplace/${listing._id}/edit`}
-                        className="button-primary bg-[#FFD000] w-full py-2 px-4 text-sm text-center"
+                        className="button-primary bg-primary w-full py-2 px-4 text-sm text-center"
                       >
                         Edit Listing
                       </Link>

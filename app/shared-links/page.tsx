@@ -16,6 +16,10 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Loader from '../components/global/Loader';
 import FooterPattern from '../components/global/FooterPattern';
+import { DashboardCard } from '../components/ui/DashboardCard';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { FaFolder } from 'react-icons/fa';
+import React from 'react';
 
 export default function SharedLinksPage() {
   const { data: session, status } = useSession();
@@ -81,7 +85,7 @@ export default function SharedLinksPage() {
       <div className="min-h-screen bg-white relative">
         <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            <h1 className="text-6xl font-anton mb-8">SHARED LINKS</h1>
+            <h1 className="text-6xl heading-text-2 font-anton mb-8">SHARED LINKS</h1>
             <div className='flex justify-center items-center mt-10'><Loader /></div>
           </div>
         </main>
@@ -98,14 +102,15 @@ export default function SharedLinksPage() {
   return (
     <div className="min-h-screen bg-white relative">
       <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-6xl font-anton mb-4">SHARED LINKS</h1>
+          <h1 className="text-6xl heading-text-2 font-anton mb-4">SHARED LINKS</h1>
           <p className="text-xl font-freeman">
             Manage your public and monetized shared links
           </p>
         </div>
 
+        <DashboardCard />
+        
         {/* Filters */}
         <div className="bg-white border-2 border-black brutal-shadow-left p-6 mb-8">
           <div className="flex flex-wrap items-center gap-4">
@@ -121,8 +126,8 @@ export default function SharedLinksPage() {
                   onClick={() => setFilter(key as any)}
                   className={`px-4 py-2 border-2 border-black font-freeman transition-all ${
                     filter === key
-                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
-                      : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
+                      ? 'bg-primary button-primary-pressed'
+                      : 'bg-white button-primary duration-100'
                   }`}
                 >
                   {label} {count !== '?' && `(${count})`}
@@ -140,13 +145,13 @@ export default function SharedLinksPage() {
             </div>
           ) : links.length === 0 ? (
             <div className="p-12 text-center">
-              <h3 className="text-2xl font-anton mb-4">NO SHARED LINKS YET</h3>
+              <h3 className="text-2xl heading-text-2 font-anton mb-4">NO SHARED LINKS YET</h3>
               <p className="text-lg font-freeman mb-6">
                 Create your first shared link from the file manager
               </p>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="bg-[#FFD000] border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                className="bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
               >
                 Go to File Manager
               </button>
@@ -173,7 +178,13 @@ export default function SharedLinksPage() {
                       <div className="col-span-4">
                         <div className="flex items-center gap-3">
                           <span className="text-3xl">
-                            {link.item.type === 'folder' ? '📁' : '📄'}
+                            {link.item.type === 'folder' ? (
+                              <FaFolder />
+                            ) : (
+                              React.createElement(getFileIcon(link.item.mimeType), {
+                                className: "w-8 h-8"
+                              })
+                            )}
                           </span>
                           <div className="min-w-0">
                             <p className="text-lg font-freeman truncate">
@@ -189,7 +200,7 @@ export default function SharedLinksPage() {
 
                       {/* Type */}
                       <div className="col-span-2">
-                        <span className="px-3 py-1 bg-[#FFD000] border-2 border-black font-freeman inline-block">
+                        <span className="px-3 py-1 bg-primary border-2 border-black font-freeman inline-block">
                           {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
                         </span>
                         {link.type === 'monetized' && link.price && (
@@ -228,15 +239,15 @@ export default function SharedLinksPage() {
                             onClick={() => handleCopyLink(link.linkId)}
                             className={`px-3 py-1 border-2 border-black font-freeman transition-all ${
                               copySuccess === link.linkId
-                                ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
-                                : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
+                                ? 'bg-primary button-primary-pressed text-sm font-freeman'
+                                : 'bg-white button-primary duration-100'
                             }`}
                           >
-                            {copySuccess === link.linkId ? 'Copied!' : 'Copy Link'}
+                            {copySuccess === link.linkId ? 'Copied!' : 'Copy'}
                           </button>
                           <button
                             onClick={() => window.open(generateShareableUrl(link.linkId), '_blank')}
-                            className="px-3 py-1 bg-white border-2 border-black brutal-shadow-left font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                            className="px-3 py-1 bg-white border-2 border-black button-primary duration-100 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
                           >
                             Preview
                           </button>
@@ -270,7 +281,7 @@ export default function SharedLinksPage() {
                   onClick={() => handlePageChange(page)}
                   className={`px-4 py-2 border-2 border-black font-freeman ${
                     page === pagination.current
-                      ? 'bg-[#FFD000] brutal-shadow-center translate-x-1 translate-y-1'
+                      ? 'bg-primary brutal-shadow-center translate-x-1 translate-y-1'
                       : 'bg-white brutal-shadow-left hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center'
                   } transition-all`}
                 >

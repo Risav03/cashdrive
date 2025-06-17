@@ -10,7 +10,7 @@ const Test = () => {
     <div className='w-screen h-screen bg-white flex flex-col items-center justify-start'>
         
 
-            <div className=' flex flex-row justify-between items-center px-5 w-full h-fit py-5 mx-auto border-b-4 border-black bg-[#FFD000] '>
+            <div className=' flex flex-row justify-between items-center px-5 w-full h-fit py-5 mx-auto border-b-4 border-black bg-primary '>
                 <div className='w-1/2 h-fit '>
                     <h1 className='heading-text-2 text-5xl  font-anton -mt-3 cursor-pointer '>
                         <span className='text-yellow-300 hover:text-white'>$$$</span>
