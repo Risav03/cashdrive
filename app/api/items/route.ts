@@ -9,8 +9,6 @@ import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  const dbSession = await mongoose.startSession();
-  
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
@@ -25,7 +23,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return await dbSession.withTransaction(async () => {
+    const dbSession = await mongoose.startSession();
+
+    try {
+      return await dbSession.withTransaction(async () => {
       let query: any = parentId 
         ? { parentId, owner: session.user.id } 
         : { _id: session.user.rootFolder };
@@ -92,7 +93,10 @@ export async function GET(request: Request) {
           limit
         }
       });
-    });
+      });
+    } finally {
+      await dbSession.endSession();
+    }
 
   } catch (error: any) {
     console.error('Items GET API error:', error);
@@ -102,8 +106,6 @@ export async function GET(request: Request) {
     }
     
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
-  } finally {
-    await dbSession.endSession();
   }
 }
 
