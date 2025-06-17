@@ -53,9 +53,12 @@ export const DashboardCard = () => {
           >
             Shared Links
           </Link>
+
           <Link
             href="/affiliates"
-            className="bg-white border-2 border-black brutal-shadow-center hover:translate-y-1 transition-all p-4 text-center font-freeman"
+            className={`border-2 border-black button-primary transition-all p-4 text-center font-freeman ${
+              pathname === '/affiliates' ? 'bg-primary button-primary-pressed' : 'bg-white'
+            }`}
           >
             Affiliates
           </Link>
