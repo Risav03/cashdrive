@@ -22,7 +22,6 @@ export default function SignOut() {
           </h2>
           <div className="mt-12 flex justify-center">
           <div className="text-center">
-            <h2 className="heading-text-2 text-6xl font-anton mb-8">LOADING</h2>
             <div className='flex justify-center items-center mt-10'>
               <Loader />
             </div>
