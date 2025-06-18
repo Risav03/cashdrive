@@ -207,15 +207,19 @@ export const getFileIcon = (mime?: string): IconType => {
 export async function purchaseListing(listingId: string, wallet:`0x${string}`, affiliateCode?: string): Promise<any> {
   try {
     const res = await purchaseFromMarketplace(wallet, listingId, affiliateCode);
+    if (!res || res.status !== 201) {
+      throw new Error('Purchase failed - Invalid response');
+    }
     return res;
   } catch (error: any) {
-    if (error.response && error.response.status === 401) {
+    console.error("Purchase error:", error);
+    if (error.response?.status === 401) {
       throw new Error('Unauthorized - Please log in');
     }
-    if (error.response && error.response.status === 400) {
+    if (error.response?.status === 400) {
       throw new Error(error.response.data.error || 'Cannot complete purchase');
     }
-    if (error.response && error.response.status === 404) {
+    if (error.response?.status === 404) {
       throw new Error('Listing not found');
     }
     throw new Error(error.message || 'Failed to complete purchase');
@@ -360,4 +364,4 @@ export function copyToClipboard(text: string, successMessage: string = 'Copied t
   }).catch(err => {
     console.error('Failed to copy text: ', err);
   });
-} 
+}
