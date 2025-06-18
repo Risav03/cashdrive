@@ -1,5 +1,5 @@
 import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Network, paymentMiddleware } from "x402-next";
 
 async function getListingDetails(listingId: string) {
@@ -49,7 +49,7 @@ async function getSharedLinkDetails(linkId: string) {
   }
 }
 
-export default async function middleware(request: NextRequestWithAuth) {
+export default async function middleware(request: NextRequest) {
   console.log("Middleware called for:", request.nextUrl.pathname);
   
   const isProtectedPaymentRoute = request.nextUrl.pathname.startsWith(
@@ -77,46 +77,30 @@ export default async function middleware(request: NextRequestWithAuth) {
     }
 
     if (isProtectedPaymentRoute) {
-      console.log(
-        "Payment protection middleware triggered for:",
-        request.nextUrl.pathname,
-      );
 
       // Extract listing ID from the URL path
       const pathParts = request.nextUrl.pathname.split('/');
       const listingId = pathParts[3]; // /api/listings/[id]/purchase
       
-      console.log("pathParts", pathParts, listingId);
       if (listingId && pathParts[4] == "purchase") {
-        console.log("Fetching listing details for:", listingId);
-        
-        // Fetch listing details via API endpoint
-        const listing = await getListingDetails(listingId);
-        
-        if (!listing) {
-          console.log("Listing not found:", listingId);
-          return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-        }
+        // Use request.nextUrl instead of creating new URL
+        const addressTo = request.nextUrl.searchParams.get('addressTo');
+        const amount = request.nextUrl.searchParams.get('amount');
 
-        if (!listing.sellerWallet) {
-          console.log("Seller wallet not found for listing:", listingId);
-          return NextResponse.json({ error: 'Seller wallet not found' }, { status: 400 });
-        }
+        console.log("Processing purchase for listing:", listingId, "with addressTo:", addressTo, "and amount:", amount);
 
-        console.log("Configuring payment middleware with:", {
-          wallet: listing.sellerWallet,
-          price: listing.price,
-          title: listing.title
-        });
+        if (!addressTo || !amount) {
+          return NextResponse.json({ error: 'Missing addressTo or amount in search params' }, { status: 400 });
+        }
 
         return await paymentMiddleware(
-          listing.sellerWallet,
+          addressTo as `0x${string}`,
           {
             "/api/listings/*/purchase": {
-              price: `$${listing.price}`,
+              price: `$${amount}`,
               network: "base-sepolia" as Network,
               config: {
-                description: `Purchase: ${listing.title}`,
+                description: `Purchase payment`,
               },
             },
           },
