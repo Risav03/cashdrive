@@ -1,4 +1,7 @@
+import { Transaction } from '@/app/lib/models';
+import { AIChunk } from '@/app/models/AIChunk';
 import { Item } from '@/app/models/Item';
+import { SharedLink } from '@/app/models/SharedLink';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { generateEmbedding, generateEmbeddings } from './openaiClient';
 import { processTextFile } from './textProcessor';
@@ -13,6 +16,7 @@ const s3Client = new S3Client({
 
 export async function processFileForAI(itemId: string): Promise<void> {
   try {
+    console.log('Processing file for AI:', itemId);
     const item = await Item.findById(itemId);
     if (!item) {
       throw new Error('Item not found');
@@ -51,19 +55,25 @@ export async function processFileForAI(itemId: string): Promise<void> {
     const fileBuffer = Buffer.from(await response.Body!.transformToByteArray());
 
     const processedText = await processTextFile(fileBuffer, item.mimeType);
-
     const embeddingResults = await generateEmbeddings(processedText.chunks);
+
+    const chunkDocuments = embeddingResults.map((result, index) => ({
+      item: itemId,
+      text: result.text,
+      embedding: result.embedding,
+      chunkIndex: index
+    }));
+
+    await AIChunk.deleteMany({ item: itemId });
+    
+    await AIChunk.insertMany(chunkDocuments);
 
     item.aiProcessing = {
       status: 'completed',
       textContent: processedText.content,
-      chunks: embeddingResults.map((result, index) => ({
-        text: result.text,
-        embedding: result.embedding,
-        chunkIndex: index
-      })),
       processedAt: new Date(),
-      topics: processedText.topics
+      topics: processedText.topics,
+      chunksCount: embeddingResults.length
     };
 
     await item.save();
@@ -93,44 +103,64 @@ export async function searchUserContent(query: string, userId: string, limit: nu
     // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(query);
 
-    // Find items with AI processing completed that the user has access to:
-    // 1. User's own files
-    // 2. Marketplace items they've purchased 
-    // 3. Items shared with them
+    // Get user's purchased items from transactions
+    const userTransactions = await Transaction.find({
+      buyer: userId,
+      status: 'completed'
+    }).select('item');
+    const purchasedItemIds = userTransactions.map(t => t.item);
+
+    // Get user's shared items from shared links they have access to
+    const accessibleSharedLinks = await SharedLink.find({
+      $or: [
+        { paidUsers: userId },
+        { type: 'public' }
+      ],
+      isActive: true
+    }).select('item');
+    const sharedItemIds = accessibleSharedLinks.map(sl => sl.item);
+
+    // Find items with AI processing completed that the user has access to
     const items = await Item.find({
       $or: [
         // User's own files
         { owner: userId },
         // Marketplace items purchased by user
         { 
-          contentSource: 'marketplace',
-          'purchaseInfo.purchasedBy': userId 
+          _id: { $in: purchasedItemIds },
+          contentSource: 'marketplace_purchase'
         },
         // Items shared with user
         {
-          contentSource: 'shared',
-          'sharedInfo.sharedWith': userId
+          _id: { $in: sharedItemIds },
+          contentSource: 'shared_link'
         }
       ],
       'aiProcessing.status': 'completed',
-      'aiProcessing.chunks.0': { $exists: true }
+      'aiProcessing.chunksCount': { $gt: 0 }
+    });
+
+    const itemIds = items.map(item => item._id);
+    
+    // Get all chunks for these items
+    const chunks = await AIChunk.find({
+      item: { $in: itemIds }
     });
 
     const results: SearchResult[] = [];
 
     // Calculate similarity for each chunk
-    for (const item of items) {
-      for (const chunk of item.aiProcessing.chunks) {
-        const similarity = cosineSimilarity(queryEmbedding, chunk.embedding);
-        if (similarity > 0.7) { // Threshold for relevance
+    for (const chunk of chunks) {
+      const similarity = cosineSimilarity(queryEmbedding, chunk.embedding);
+      if (similarity > 0.7) { // Threshold for relevance
+        const item = items.find(i => i._id.toString() === chunk.item.toString());
+        if (item) {
           results.push({
             item: {
               _id: item._id,
               name: item.name,
               mimeType: item.mimeType,
-              contentSource: item.contentSource || 'user',
-              purchaseInfo: item.purchaseInfo,
-              sharedInfo: item.sharedInfo
+              contentSource: item.contentSource || 'user_upload'
             },
             chunk: {
               text: chunk.text,
@@ -171,23 +201,40 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 export async function getProcessedFiles(userId: string) {
+  // Get user's purchased items from transactions
+  const userTransactions = await Transaction.find({
+    buyer: userId,
+    status: 'completed'
+  }).select('item');
+  const purchasedItemIds = userTransactions.map(t => t.item);
+
+  // Get user's shared items from shared links they have access to
+  const accessibleSharedLinks = await SharedLink.find({
+    $or: [
+      { paidUsers: userId },
+      { type: 'public' }
+    ],
+    isActive: true
+  }).select('item');
+  const sharedItemIds = accessibleSharedLinks.map(sl => sl.item);
+
   return await Item.find({
     $or: [
       // User's own files
       { owner: userId },
       // Marketplace items purchased by user
       { 
-        contentSource: 'marketplace',
-        'purchaseInfo.purchasedBy': userId 
+        _id: { $in: purchasedItemIds },
+        contentSource: 'marketplace_purchase'
       },
       // Items shared with user
       {
-        contentSource: 'shared',
-        'sharedInfo.sharedWith': userId
+        _id: { $in: sharedItemIds },
+        contentSource: 'shared_link'
       }
     ],
     'aiProcessing.status': 'completed'
-  }).select('name aiProcessing.topics aiProcessing.processedAt mimeType contentSource purchaseInfo sharedInfo');
+  }).select('name aiProcessing.topics aiProcessing.processedAt mimeType contentSource');
 }
 
 export async function ensureAIGeneratedFolder(userId: string) {
@@ -324,9 +371,12 @@ ${title ? `Suggested Title: ${title}` : ''}`;
     url: uploadResult.url,
     size: pdfBuffer.length,
     mimeType: 'application/pdf',
-    generatedBy: 'ai',
-    sourcePrompt: prompt,
-    sourceFiles: sourceFileIds
+    contentSource: 'ai_generated',
+    aiGeneration: {
+      sourcePrompt: prompt,
+      sourceFiles: sourceFileIds,
+      generatedAt: new Date()
+    }
   });
 
   const wordCount = content.split(/\s+/).length;

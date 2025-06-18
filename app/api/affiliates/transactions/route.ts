@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/backend/authConfig';
 import connectDB from '@/app/lib/mongodb';
-import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
+import { Affiliate } from '@/app/models/Affiliate';
+import { Commission } from '@/app/models/Commission';
+import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type'); // 'earned' or 'paid'
-    const status = searchParams.get('status'); // 'pending', 'paid', 'failed'
+    const type = searchParams.get('type');
+    const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
@@ -23,16 +24,19 @@ export async function GET(request: NextRequest) {
     let query: any = {};
     
     if (type === 'earned') {
-      query.affiliateUser = session.user.id;
+      const userAffiliates = await Affiliate.find({ affiliateUser: session.user.id }).select('_id');
+      query.affiliate = { $in: userAffiliates.map(a => a._id) };
     } else if (type === 'paid') {
-      query.owner = session.user.id;
+      const ownerAffiliates = await Affiliate.find({ owner: session.user.id }).select('_id');
+      query.affiliate = { $in: ownerAffiliates.map(a => a._id) };
     } else {
-      query = {
+      const userAffiliates = await Affiliate.find({
         $or: [
           { affiliateUser: session.user.id },
           { owner: session.user.id }
         ]
-      };
+      }).select('_id');
+      query.affiliate = { $in: userAffiliates.map(a => a._id) };
     }
 
     if (status) {
@@ -40,25 +44,31 @@ export async function GET(request: NextRequest) {
     }
 
     const [transactions, total] = await Promise.all([
-      AffiliateTransaction.find(query)
-        .populate('affiliate')
-        .populate('originalTransaction')
-        .populate('affiliateUser', 'name email')
-        .populate('owner', 'name email')
-        .populate('buyer', 'name email')
+      Commission.find(query)
+        .populate({
+          path: 'affiliate',
+          populate: [
+            { path: 'affiliateUser', select: 'name email' },
+            { path: 'owner', select: 'name email' }
+          ]
+        })
+        .populate({
+          path: 'originalTransaction',
+          populate: { path: 'buyer', select: 'name email' }
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      AffiliateTransaction.countDocuments(query)
+      Commission.countDocuments(query)
     ]);
 
     // Calculate summary stats
     const [pendingStats, paidStats] = await Promise.all([
-      AffiliateTransaction.aggregate([
+      Commission.aggregate([
         { $match: { ...query, status: 'pending' } },
         { $group: { _id: null, total: { $sum: '$commissionAmount' }, count: { $sum: 1 } } }
       ]),
-      AffiliateTransaction.aggregate([
+      Commission.aggregate([
         { $match: { ...query, status: 'paid' } },
         { $group: { _id: null, total: { $sum: '$commissionAmount' }, count: { $sum: 1 } } }
       ])

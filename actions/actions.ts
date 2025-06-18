@@ -49,27 +49,22 @@ export async function purchaseFromMarketplace(wallet: `0x${string}`, id: string,
       account as any as Wallet,
     );
 
-    const res = await api.post(`/api/listings/${id}/purchase`)
+    const res = await api.post(`/api/listings/${id}/purchase`, {}, {
+      headers: {
+        'x-user-id': session.user.id,
+        'x-user-email': session.user.email || ''
+      }
+    });
 
     return res.data;
-
   } catch (err: any) {
-    console.log("Error in purchaseFromMarketplace:", err);
-    
-    if (err.message === "Invalid wallet address") {
-      throw new Error("Invalid wallet address. Please check your wallet connection.");
+    if (err.response) {
+      throw new Error(`Purchase failed: ${err.response.data.error || err.message}`);
+    } else if (err.request) {
+      throw new Error('Purchase failed: No response from server');
+    } else {
+      throw new Error(`Purchase failed: ${err.message || 'Unknown error'}`);
     }
-    
-    if (err.message === "User not authenticated") {
-      throw new Error("User not authenticated. Please log in again.");
-    }
-    
-    // More specific CDP errors
-    if (err.message?.includes('account') || err.message?.includes('wallet')) {
-      throw new Error(`Wallet connection failed: ${err.message}`);
-    }
-    
-    throw new Error(`Purchase failed: ${err.message || 'Unknown error'}`);
   }
 }
 

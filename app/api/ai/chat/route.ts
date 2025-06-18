@@ -9,6 +9,8 @@ import {
   ChatTool,
 } from "@/app/lib/ai/openaiClient";
 import { authOptions } from "@/app/lib/backend/authConfig";
+import { Transaction } from "@/app/lib/models";
+import { SharedLink } from "@/app/models/SharedLink";
 import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -197,7 +199,7 @@ Guidelines:
 
 interface SourceFile {
   name: string;
-  source: "user" | "marketplace" | "shared" | "ai_generated";
+  source: "user_upload" | "marketplace_purchase" | "shared_link" | "ai_generated";
   originalSeller?: string;
   sharedBy?: string;
 }
@@ -219,11 +221,43 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
         sourceFiles = searchResults.map((result) => result.item.name);
 
         // Build detailed source information
-        sourcesUsed = searchResults.map((result) => ({
-          name: result.item.name,
-          source: result.item.contentSource || "user",
-          originalSeller: result.item.purchaseInfo?.sellerName,
-          sharedBy: result.item.sharedInfo?.sharedByName,
+        sourcesUsed = await Promise.all(searchResults.map(async (result) => {
+          const sourceInfo: SourceFile = {
+            name: result.item.name,
+            source: result.item.contentSource || "user_upload"
+          };
+
+          // Get seller info for marketplace items
+          if (result.item.contentSource === "marketplace_purchase") {
+            try {
+              const transaction = await Transaction.findOne({
+                item: result.item._id,
+                status: 'completed'
+              }).populate('seller', 'name');
+              if (transaction?.seller?.name) {
+                sourceInfo.originalSeller = transaction.seller.name;
+              }
+            } catch (error) {
+              console.error('Error fetching seller info:', error);
+            }
+          }
+
+          // Get sharer info for shared items
+          if (result.item.contentSource === "shared_link") {
+            try {
+              const sharedLink = await SharedLink.findOne({
+                item: result.item._id,
+                isActive: true
+              }).populate('owner', 'name');
+              if (sharedLink?.owner?.name) {
+                sourceInfo.sharedBy = sharedLink.owner.name;
+              }
+            } catch (error) {
+              console.error('Error fetching sharer info:', error);
+            }
+          }
+
+          return sourceInfo;
         }));
 
         if (searchResults.length > 0) {
@@ -231,9 +265,9 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             searchResults.length > 1 ? "s" : ""
           }:\n\n`;
           searchResults.slice(0, 5).forEach((result, index) => {
-            const sourceIcon = result.item.contentSource === "marketplace"
+            const sourceIcon = result.item.contentSource === "marketplace_purchase"
               ? "🛒"
-              : result.item.contentSource === "shared"
+              : result.item.contentSource === "shared_link"
               ? "🔗"
               : result.item.contentSource === "ai_generated"
               ? "🤖"
@@ -266,35 +300,64 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
         const processedFiles = await getProcessedFiles(userId);
 
         // Build detailed source information for listing
-        sourcesUsed = processedFiles.map((file) => ({
-          name: file.name,
-          source: file.contentSource || "user",
-          originalSeller: file.purchaseInfo?.sellerName,
-          sharedBy: file.sharedInfo?.sharedByName,
+        sourcesUsed = await Promise.all(processedFiles.map(async (file) => {
+          const sourceInfo: SourceFile = {
+            name: file.name,
+            source: file.contentSource || "user_upload"
+          };
+
+          // Get seller info for marketplace items
+          if (file.contentSource === "marketplace_purchase") {
+            try {
+              const transaction = await Transaction.findOne({
+                item: file._id,
+                status: 'completed'
+              }).populate('seller', 'name');
+              if (transaction?.seller?.name) {
+                sourceInfo.originalSeller = transaction.seller.name;
+              }
+            } catch (error) {
+              console.error('Error fetching seller info:', error);
+            }
+          }
+
+          // Get sharer info for shared items
+          if (file.contentSource === "shared_link") {
+            try {
+              const sharedLink = await SharedLink.findOne({
+                item: file._id,
+                isActive: true
+              }).populate('owner', 'name');
+              if (sharedLink?.owner?.name) {
+                sourceInfo.sharedBy = sharedLink.owner.name;
+              }
+            } catch (error) {
+              console.error('Error fetching sharer info:', error);
+            }
+          }
+
+          return sourceInfo;
         }));
 
         if (processedFiles.length > 0) {
           finalResponse += "Here are your AI-ready files:\n\n";
           processedFiles.forEach((file) => {
-            const sourceIcon = file.contentSource === "marketplace"
+            const sourceIcon = file.contentSource === "marketplace_purchase"
               ? "🛒"
-              : file.contentSource === "shared"
+              : file.contentSource === "shared_link"
               ? "🔗"
               : file.contentSource === "ai_generated"
               ? "🤖"
               : "📄";
             finalResponse += `${sourceIcon} **${file.name}**\n`;
-            if (
-              file.contentSource === "marketplace" &&
-              file.purchaseInfo?.sellerName
-            ) {
-              finalResponse +=
-                `Purchased from: ${file.purchaseInfo.sellerName}\n`;
+            
+            // Find source info for this file
+            const sourceInfo = sourcesUsed.find(s => s.name === file.name);
+            if (sourceInfo?.originalSeller) {
+              finalResponse += `Purchased from: ${sourceInfo.originalSeller}\n`;
             }
-            if (
-              file.contentSource === "shared" && file.sharedInfo?.sharedByName
-            ) {
-              finalResponse += `Shared by: ${file.sharedInfo.sharedByName}\n`;
+            if (sourceInfo?.sharedBy) {
+              finalResponse += `Shared by: ${sourceInfo.sharedBy}\n`;
             }
             if (file.aiProcessing?.topics?.length) {
               finalResponse += `Topics: ${

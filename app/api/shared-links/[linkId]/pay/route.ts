@@ -1,8 +1,8 @@
 import { authOptions } from '@/app/lib/backend/authConfig';
 import { SharedLink, Transaction } from '@/app/lib/models';
-import { Affiliate } from '@/app/models/Affiliate';
-import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
 import connectDB from '@/app/lib/mongodb';
+import { Affiliate } from '@/app/models/Affiliate';
+import { Commission } from '@/app/models/Commission';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
@@ -101,7 +101,7 @@ export async function POST(
     const receiptNumber = generateReceiptNumber();
     
     const transactionData: any = {
-      listing: null,
+      sharedLink: sharedLink._id,
       buyer: userId,
       seller: sharedLink.owner._id,
       item: sharedLink.item._id,
@@ -109,18 +109,11 @@ export async function POST(
       status: 'completed',
       transactionId,
       receiptNumber,
-      purchaseDate: new Date(),
-      metadata: {
-        type: 'shared_link',
-        linkId: linkId,
-        sharedLinkId: sharedLink._id,
-        sharedLinkTitle: sharedLink.title
-      }
+      purchaseDate: new Date()
     };
 
     if (paymentResponse) {
       transactionData.metadata = {
-        ...transactionData.metadata,
         blockchainTransaction: paymentResponse.transaction,
         network: paymentResponse.network,
         payer: paymentResponse.payer,
@@ -136,7 +129,7 @@ export async function POST(
     });
 
     // Handle affiliate commission if applicable
-    let affiliateTransaction = null;
+    let commission = null;
     if (affiliateCodeFromHeader) {
       try {
         const affiliate = await Affiliate.findOne({
@@ -148,16 +141,11 @@ export async function POST(
         if (affiliate && affiliate.affiliateUser.toString() !== userId) {
           const commissionAmount = (sharedLink.price * affiliate.commissionRate) / 100;
           
-          affiliateTransaction = await AffiliateTransaction.create({
+          commission = await Commission.create({
             affiliate: affiliate._id,
             originalTransaction: transaction._id,
-            affiliateUser: affiliate.affiliateUser,
-            owner: affiliate.owner,
-            buyer: userId,
-            saleAmount: sharedLink.price,
             commissionRate: affiliate.commissionRate,
             commissionAmount,
-            affiliateCode: affiliateCodeFromHeader,
             status: 'pending'
           });
 
@@ -182,9 +170,9 @@ export async function POST(
     return NextResponse.json({
       transaction,
       paymentDetails: paymentResponse,
-      affiliateCommission: affiliateTransaction ? {
-        amount: affiliateTransaction.commissionAmount,
-        rate: affiliateTransaction.commissionRate
+      affiliateCommission: commission ? {
+        amount: commission.commissionAmount,
+        rate: commission.commissionRate
       } : null,
       message: 'Payment successful! You can now access the content.',
       sharedLink: {

@@ -81,12 +81,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Mark as marketplace content
-        item.contentSource = 'marketplace';
-        item.purchaseInfo = {
-          transactionId: transactionId,
-          purchasedAt: new Date(),
-          originalName: item.name.replace(' (Purchased)', '')
-        };
+        item.contentSource = 'marketplace_purchase';
         await item.save();
 
         // Process for AI

@@ -1,15 +1,16 @@
 'use client';
 
 import MarketplaceSearch from '@/app/components/MarketplaceSearch';
-import { formatPrice, getAvailableTags, getFileIcon, getListings, getStatusColor } from '@/app/lib/frontend/marketplaceFunctions';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { formatListingPrice, getListings, getListingTags } from '@/app/lib/frontend/marketplaceFunctions';
 import { createHighlightedElement } from '@/app/lib/frontend/searchUtils';
 import { Listing, ListingsResponse } from '@/app/lib/types';
 import Link from 'next/link';
-import { DashboardCard } from '../components/ui/DashboardCard';
-
 import React, { useCallback, useEffect, useState } from 'react';
 import FooterPattern from '../components/global/FooterPattern';
 import Loader from '../components/global/Loader';
+import { DashboardCard } from '../components/ui/DashboardCard';
+import { FaFolder } from 'react-icons/fa';
 
 export default function MarketplacePage() {
   const [isClient, setIsClient] = useState(false);
@@ -55,7 +56,7 @@ export default function MarketplacePage() {
 
   const fetchAvailableTags = async () => {
     try {
-      const tags = await getAvailableTags();
+      const tags = await getListingTags();
       setAvailableTags(tags);
     } catch (err: any) {
       console.error('Failed to fetch available tags:', err);
@@ -270,7 +271,7 @@ export default function MarketplacePage() {
                   <div className="h-48 bg-white border-b-2 border-black flex items-center justify-center p-6">
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-7xl">
-                      {React.createElement(getFileIcon(listing.item.mimeType), {
+                      {React.createElement(listing.item.type === 'folder' ? FaFolder : getFileIcon(listing.item.mimeType), {
                         className: "w-20 h-20"
                       })}
                     </span>
@@ -296,7 +297,7 @@ export default function MarketplacePage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-freeman">
 
-                        {formatPrice(listing.price)}
+                        {formatListingPrice(listing.price)}
                       </span>
                       <span className="font-freeman text-sm">
                         by {listing.seller.name}

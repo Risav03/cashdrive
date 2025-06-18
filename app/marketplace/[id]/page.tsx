@@ -1,16 +1,18 @@
 'use client';
 
-import { formatFileSize } from '@/app/lib/frontend/explorerFunctions';
-import { deleteListing, formatPrice, getFileIcon, getListing, getStatusColor, hasUserPurchased, purchaseListing } from '@/app/lib/frontend/marketplaceFunctions';
+import AffiliateSetupModal from '@/app/components/Affiliates/AffiliateSetupModal';
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Loader from '@/app/components/global/Loader';
+import { formatFileSize, getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { deleteListing, formatListingPrice, getListing } from '@/app/lib/frontend/marketplaceFunctions';
+import { purchaseListing, hasUserPurchased as transactionHasUserPurchased } from '@/app/lib/frontend/transactionFunctions';
 import { Listing } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createElement, useEffect, useState } from 'react';
-import FooterPattern from '@/app/components/global/FooterPattern';
-import Loader from '@/app/components/global/Loader';
-import AffiliateSetupModal from '@/app/components/Affiliates/AffiliateSetupModal';
-import { FiCopy, FiShare2, FiUsers } from 'react-icons/fi';
+import { FaFolder } from 'react-icons/fa';
+import { FiUsers } from 'react-icons/fi';
 
 export default function ListingDetailPage() {
   const params = useParams();
@@ -37,8 +39,13 @@ export default function ListingDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getListing(listingId);
+      const data = await getListing(listingId, true);
       setListing(data);
+      
+      if (session?.user?.id === data.seller._id) {
+        const freshData = await getListing(listingId, false);
+        setListing(freshData);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch listing');
     } finally {
@@ -51,7 +58,7 @@ export default function ListingDetailPage() {
     
     try {
       setCheckingPurchase(true);
-      const purchased = await hasUserPurchased(listingId);
+      const purchased = await transactionHasUserPurchased(listingId);
       setAlreadyPurchased(purchased);
     } catch (err: any) {
       console.error('Error checking purchase status:', err);
@@ -87,7 +94,7 @@ export default function ListingDetailPage() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to purchase "${listing?.title}" for ${formatPrice(listing?.price || 0)}?`)) {
+    if (!confirm(`Are you sure you want to purchase "${listing?.title}" for ${formatListingPrice(listing?.price || 0)}?`)) {
       return;
     }
 
@@ -96,27 +103,42 @@ export default function ListingDetailPage() {
       console.log('Attempting purchase with wallet:', session.user.wallet);
       const result = await purchaseListing(listingId, session.user.wallet as `0x${string}`, affiliateCode || undefined);
       console.log("Purchase result:", result);
+      
+      if (!result?.transactionData) {
+        throw new Error('Invalid transaction data received');
+      }
+
+      const { transaction, copiedItem, paymentDetails } = result.transactionData;
+      
+      if (!transaction || !transaction.item) {
+        throw new Error('Invalid transaction data structure');
+      }
+
       setPurchaseSuccess(true);
 
       // Create detailed success message with blockchain info
       let successMessage = `🎉 Purchase Successful!\n\n`;
-      successMessage += `📄 Item: ${result.transactionData.transaction.item.name}\n`;
-      successMessage += `💰 Amount: ${formatPrice(result.transactionData.transaction.amount)}\n`;
-      successMessage += `📋 Receipt: ${result.transactionData.transaction.receiptNumber}\n`;
-      successMessage += `📁 File Location: ${result.transactionData.copiedItem.path}\n\n`;
+      successMessage += `📄 Item: ${transaction.item.name}\n`;
+      successMessage += `💰 Amount: ${formatListingPrice(transaction.amount)}\n`;
+      successMessage += `📋 Receipt: ${transaction.receiptNumber}\n`;
       
-      if (result.transactionData.paymentDetails) {
+      if (copiedItem?.path) {
+        successMessage += `📁 File Location: ${copiedItem.path}\n\n`;
+      }
+      
+      if (paymentDetails) {
         successMessage += `🔗 Blockchain Details:\n`;
-        successMessage += `• Network: ${result.transactionData.paymentDetails.network}\n`;
-        successMessage += `• Transaction: ${result.transactionData.paymentDetails.transaction.slice(0, 20)}...\n`;
-        successMessage += `• Status: ${result.transactionData.paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
+        successMessage += `• Network: ${paymentDetails.network}\n`;
+        successMessage += `• Transaction: ${paymentDetails.transaction.slice(0, 20)}...\n`;
+        successMessage += `• Status: ${paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
         successMessage += `View full details in your transaction history.`;
       }
 
       alert(successMessage);
     } catch (err: any) {
-      console.log('Purchase error:', err);
-      alert('Purchase failed: ' + err);
+      console.error('Purchase error:', err);
+      alert(err.message || 'Purchase failed. Please try again.');
+      setPurchaseSuccess(false);
     } finally {
       setPurchaseLoading(false);
     }
@@ -241,6 +263,8 @@ export default function ListingDetailPage() {
 
   const isOwner = session?.user?.id === listing.seller._id;
 
+  console.log(listing);
+
   return (
     <div className="min-h-screen bg-white relative">
       <main className="max-w-3xl mx-auto py-16 px-4 sm:px-6 lg:px-8 relative z-10">
@@ -261,7 +285,7 @@ export default function ListingDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               {/* Left side content */}
               <div className="flex items-start gap-3">
-                <span className="text-4xl shrink-0">{createElement(getFileIcon(listing.item.mimeType), { className: "w-6 h-6" })}</span>
+                <span className="text-4xl shrink-0">{createElement(listing.item.type === 'folder' ? FaFolder : getFileIcon(listing.item.mimeType), { className: "w-6 h-6" })}</span>
                 <div className="min-w-0"> {/* Prevent text overflow */}
                   <h1 className="text-xl font-freeman mb-1 break-words">{listing.title}</h1>
                   <div className="flex flex-wrap items-center gap-2 text-sm font-freeman text-gray-700">
@@ -280,7 +304,7 @@ export default function ListingDetailPage() {
                   {listing.status}
                 </span>
                 <span className="text-xl font-freeman">
-                  {formatPrice(listing.price)}
+                  {formatListingPrice(listing.price)}
                 </span>
               </div>
             </div>
@@ -309,7 +333,7 @@ export default function ListingDetailPage() {
                   <div>
                     <h2 className="text-lg font-freeman mb-2">Tags</h2>
                     <div className="flex flex-wrap gap-2">
-                      {listing.tags.map((tag, index) => (
+                      {listing.tags.map((tag: string, index: number) => (
                         <span
                           key={index}
                           className="px-2 py-0.5 bg-primary border-2 border-black font-freeman text-sm brutal-shadow-center"
@@ -377,7 +401,7 @@ export default function ListingDetailPage() {
                         disabled={purchaseLoading}
                         className="button-primary bg-primary w-full py-2 px-4 text-sm"
                       >
-                        {purchaseLoading ? 'Processing Purchase...' : `Purchase for ${formatPrice(listing.price)}`}
+                        {purchaseLoading ? 'Processing Purchase...' : `Purchase for ${formatListingPrice(listing.price)}`}
                       </button>
                       {/* <button className="button-primary bg-white w-full py-2 px-4 text-sm">
                         Contact Seller

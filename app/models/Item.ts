@@ -13,18 +13,18 @@ const itemSchema = new mongoose.Schema({
   },
   parentId: {
     type: String,
-    default: null,
-    index: true
+    default: null
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   size: {
     type: Number,
-    default: 0
+    required: function(this: any) {
+      return this.type === 'file';
+    }
   },
   mimeType: {
     type: String,
@@ -34,7 +34,6 @@ const itemSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-
   aiProcessing: {
     status: { 
       type: String, 
@@ -42,50 +41,38 @@ const itemSchema = new mongoose.Schema({
       default: 'none'
     },
     textContent: String,
-    chunks: [{
-      text: String,
-      embedding: [Number],
-      chunkIndex: Number
-    }],
     processedAt: Date,
-    topics: [String]
+    topics: [String],
+    chunksCount: {
+      type: Number,
+      default: 0
+    }
   },
-  
-  generatedBy: {
-    type: String,
-    enum: ['user', 'ai'],
-    default: 'user'
-  },
-  sourcePrompt: String,
-  sourceFiles: [mongoose.Schema.Types.ObjectId],
-  
-  // Content source tracking
   contentSource: {
     type: String,
-    enum: ['user', 'marketplace', 'shared', 'ai_generated'],
-    default: 'user'
+    enum: ['user_upload', 'ai_generated', 'marketplace_purchase', 'shared_link'],
+    default: 'user_upload'
   },
-  
-  // Purchase information for marketplace items
-  purchaseInfo: {
-    transactionId: String,
-    purchasedAt: Date,
-    originalName: String,
-    originalSeller: String
-  },
-  
-  // Shared link information
-  sharedInfo: {
-    linkId: String,
-    sharedAt: Date,
-    sharedBy: String
-  } 
+  aiGeneration: {
+    sourcePrompt: {
+      type: String,
+      required: function(this: any) {
+        return this.contentSource === 'ai_generated';
+      }
+    },
+    sourceFiles: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Item'
+    }],
+    generatedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }
 }, {
   timestamps: true
 });
 
 itemSchema.index({ parentId: 1, name: 1, owner: 1 }, { unique: true });
-
-itemSchema.index({ "aiProcessing.chunks.embedding": "2dsphere" });
 
 export const Item = mongoose.models.Item || mongoose.model('Item', itemSchema);

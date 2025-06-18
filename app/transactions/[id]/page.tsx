@@ -1,13 +1,25 @@
 'use client';
 
-import { copyToClipboard, formatBlockchainAddress, formatPrice, formatTransactionDate, getBlockExplorerUrl, getFileIcon, getNetworkDisplayName, getTransaction, getTransactionStatusColor, getTransactionTypeColor } from '@/app/lib/frontend/marketplaceFunctions';
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Loader from '@/app/components/global/Loader';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { formatListingPrice } from '@/app/lib/frontend/marketplaceFunctions';
+import { formatBlockchainAddress, formatTransactionDate, getBlockExplorerUrl, getNetworkDisplayName, getTransaction } from '@/app/lib/frontend/transactionFunctions';
 import { Transaction } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createElement, useEffect, useState } from 'react';
-import Loader from '@/app/components/global/Loader';
-import FooterPattern from '@/app/components/global/FooterPattern';
+
+// Utility function for copying text to clipboard
+const copyToClipboard = async (text: string, successMessage = 'Copied to clipboard!'): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    console.log(successMessage);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+  }
+};
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -177,36 +189,128 @@ export default function TransactionDetailPage() {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Transaction Details */}
-              <div className="bg-white border-2 border-black brutal-shadow-left p-4">
-                <h2 className="text-xl font-anton mb-4">Transaction Details</h2>
-                <div className="space-y-3 font-freeman">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Transaction ID:</span>
-                    <span className="text-gray-900 font-mono text-sm">{transaction.transactionId}</span>
+              <div className={`${transaction.metadata?.blockchainTransaction ? 'md:col-span-2' : ''} bg-white border-2 border-black brutal-shadow-left p-4`}>
+                <h2 className="text-xl font-anton mb-4">
+                  {transaction.transactionType === 'purchase' ? 'Purchase Details' : 
+                   transaction.transactionType === 'sale' ? 'Sale Details' : 
+                   'Commission Details'}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-freeman">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700">
+                      {transaction.transactionType === 'purchase' ? 'Seller' : 
+                       transaction.transactionType === 'sale' ? 'Buyer' :
+                       'From Sale'}
+                    </h3>
+                    <div className="mt-1">
+                      <p className="text-gray-900">
+                        {transaction.transactionType === 'purchase' ? transaction.seller.name : 
+                         transaction.transactionType === 'sale' ? transaction.buyer.name :
+                         `${transaction.buyer.name}'s Purchase`}
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono">
+                        {transaction.transactionType === 'purchase' 
+                          ? `${transaction.seller.wallet.slice(0, 8)}...${transaction.seller.wallet.slice(-8)}`
+                          : `${transaction.buyer.wallet.slice(0, 8)}...${transaction.buyer.wallet.slice(-8)}`
+                        }
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Date:</span>
-                    <span className="text-gray-900">{formatTransactionDate(transaction.purchaseDate)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Amount:</span>
-                    <span className="text-gray-900 font-semibold text-lg">{formatPrice(transaction.amount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Status:</span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionStatusColor(transaction.status)}`}>
-                      {transaction.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Source:</span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      transaction.listing ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
-                    }`}>
-                      {transaction.listing ? 'Marketplace Purchase' : 'Monetized Shared Link'}
-                    </span>
+                  
+                  {/* Amount Details */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700">Amount Details</h3>
+                    <div className="mt-1">
+                      {/* For seller view */}
+                      {transaction.paymentFlow === 'admin' && 
+                       transaction.affiliateInfo?.isAffiliateSale && 
+                       transaction.transactionType === 'sale' && 
+                       session?.user?.id === transaction.seller._id ? (
+                        <>
+                          <p className="text-gray-900">
+                            Net Amount: {formatListingPrice(transaction.affiliateInfo.netAmount)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Original Amount: {formatListingPrice(transaction.affiliateInfo.originalAmount)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Total Commission: {formatListingPrice(transaction.affiliateInfo.originalAmount - transaction.affiliateInfo.netAmount)}
+                          </p>
+                        </>
+                      ) : 
+                      /* For affiliate commission view */
+                      transaction.transactionType === 'commission' ? (
+                        <>
+                          <p className="text-gray-900">
+                            Commission: {formatListingPrice(transaction.amount)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            From Sale: {formatListingPrice(transaction.affiliateInfo?.originalAmount || 0)}
+                          </p>
+                        </>
+                      ) :
+                      /* For buyer or default view */
+                      (
+                        <p className="text-gray-900">
+                          {formatListingPrice(transaction.amount)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Affiliate Information - Only visible to seller */}
+                {transaction.paymentFlow === 'admin' && 
+                 transaction.affiliateInfo?.isAffiliateSale && 
+                 session?.user?.id === transaction.seller._id && (
+                  <div className="mt-4 p-3 bg-yellow-50 border-2 border-black">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Affiliate Distribution</h3>
+                    <div className="space-y-3">
+                      {transaction.affiliateInfo.commissionDistribution.map((commission, index) => (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-500">Affiliate:</span>
+                            <span className="ml-2">{commission.affiliate?.affiliateUser.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Commission:</span>
+                            <span className="ml-2">{formatListingPrice(commission.amount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Rate:</span>
+                            <span className="ml-2">{(commission.commissionRate * 100).toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Single Affiliate Commission Info - Only visible to the specific affiliate */}
+                {transaction.transactionType === 'commission' && 
+                 transaction.affiliateInfo?.commissionDistribution.some(c => 
+                   c.affiliate?.affiliateUser._id === session?.user?.id
+                 ) && (
+                  <div className="mt-4 p-3 bg-yellow-50 border-2 border-black">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Commission Details</h3>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-500">Original Sale Amount:</span>
+                          <span className="ml-2">{formatListingPrice(transaction.affiliateInfo.originalAmount)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Your Commission Rate:</span>
+                          <span className="ml-2">
+                            {(transaction.affiliateInfo.commissionDistribution.find(c => 
+                              c.affiliate?.affiliateUser._id === session?.user?.id
+                            )?.commissionRate || 0) * 100}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Blockchain Details */}
@@ -273,107 +377,65 @@ export default function TransactionDetailPage() {
                 </div>
               )}
 
-              {/* Parties */}
-              <div className={`${transaction.metadata?.blockchainTransaction ? 'md:col-span-2' : ''} bg-white border-2 border-black brutal-shadow-left p-4`}>
-                <h2 className="text-xl font-anton mb-4">
-                  {transaction.transactionType === 'purchase' ? 'Purchase Details' : 'Sale Details'}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-freeman">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700">
-                      {transaction.transactionType === 'purchase' ? 'Seller' : 'Buyer'}
-                    </h3>
-                    <div className="mt-1">
-                      <p className="text-gray-900">
-                        {transaction.transactionType === 'purchase' ? transaction.seller.name : transaction.buyer.name}
-                      </p>
-                      <p className="text-xs text-gray-500 font-mono">
-                        {transaction.transactionType === 'purchase' 
-                          ? `${transaction.seller.wallet.slice(0, 8)}...${transaction.seller.wallet.slice(-8)}`
-                          : `${transaction.buyer.wallet.slice(0, 8)}...${transaction.buyer.wallet.slice(-8)}`
-                        }
-                      </p>
+              {/* Item Details */}
+              <div className="mt-8 border-t-2 border-black pt-6">
+                <div className="bg-white border-2 border-black brutal-shadow-left p-4">
+                  <h2 className="text-xl font-anton mb-4">Item Details</h2>
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <span className="text-4xl">{createElement(getFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}</span>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700">
-                      {transaction.transactionType === 'purchase' ? 'Buyer' : 'Seller'}
-                    </h3>
-                    <div className="mt-1">
-                      <p className="text-gray-900">
-                        {transaction.transactionType === 'purchase' ? transaction.buyer.name : transaction.seller.name}
-                      </p>
-                      <p className="text-xs text-gray-500 font-mono">
-                        {transaction.transactionType === 'purchase' 
-                          ? `${transaction.buyer.wallet.slice(0, 8)}...${transaction.buyer.wallet.slice(-8)}`
-                          : `${transaction.seller.wallet.slice(0, 8)}...${transaction.seller.wallet.slice(-8)}`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Item Details */}
-            <div className="mt-8 border-t-2 border-black pt-6">
-              <div className="bg-white border-2 border-black brutal-shadow-left p-4">
-                <h2 className="text-xl font-anton mb-4">Item Details</h2>
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    <span className="text-4xl">{createElement(getFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">{transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}</h3>
-                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">File Name:</span>
-                        <span className="ml-2 text-gray-900">{transaction.item.name}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">File Type:</span>
-                        <span className="ml-2 text-gray-900">{transaction.item.type}</span>
-                      </div>
-                      {transaction.item.size && (
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-gray-900">{transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}</h3>
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-500">File Size:</span>
-                          <span className="ml-2 text-gray-900">{(transaction.item.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <span className="text-gray-500">File Name:</span>
+                          <span className="ml-2 text-gray-900">{transaction.item.name}</span>
                         </div>
-                      )}
-                      {transaction.item.mimeType && (
                         <div>
-                          <span className="text-gray-500">MIME Type:</span>
-                          <span className="ml-2 text-gray-900">{transaction.item.mimeType}</span>
+                          <span className="text-gray-500">File Type:</span>
+                          <span className="ml-2 text-gray-900">{transaction.item.type}</span>
                         </div>
-                      )}
+                        {transaction.item.size && (
+                          <div>
+                            <span className="text-gray-500">File Size:</span>
+                            <span className="ml-2 text-gray-900">{(transaction.item.size / 1024 / 1024).toFixed(2)} MB</span>
+                          </div>
+                        )}
+                        {transaction.item.mimeType && (
+                          <div>
+                            <span className="text-gray-500">MIME Type:</span>
+                            <span className="ml-2 text-gray-900">{transaction.item.mimeType}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Access Information */}
-            {transaction.transactionType === 'purchase' && transaction.status === 'completed' && (
-              <div className="mt-6 bg-primary border-2 border-black brutal-shadow-left p-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-anton mb-2">
-                      File Access Granted
-                    </h3>
-                    <p className="font-freeman">
-                      The purchased file has been copied to your marketplace folder in your file manager. 
-                      You now have unlimited access to this file.
-                    </p>
+              {/* Access Information */}
+              {transaction.transactionType === 'purchase' && transaction.status === 'completed' && (
+                <div className="mt-6 bg-primary border-2 border-black brutal-shadow-left p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-anton mb-2">
+                        File Access Granted
+                      </h3>
+                      <p className="font-freeman">
+                        The purchased file has been copied to your marketplace folder in your file manager. 
+                        You now have unlimited access to this file.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t-2 border-black text-center font-freeman">
-              <p>This is an official transaction receipt.</p>
-              <p className="mt-1">Transaction processed on {formatTransactionDate(transaction.createdAt)}</p>
+              {/* Footer */}
+              <div className="mt-8 pt-6 border-t-2 border-black text-center font-freeman">
+                <p>This is an official transaction receipt.</p>
+                <p className="mt-1">Transaction processed on {formatTransactionDate(transaction.createdAt)}</p>
+              </div>
             </div>
           </div>
         </div>

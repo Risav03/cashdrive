@@ -1,6 +1,8 @@
 import { generateAndSaveContent, searchUserContent } from '@/app/lib/ai/aiService';
 import { chatCompletion, ChatMessage } from '@/app/lib/ai/openaiClient';
 import { authOptions } from '@/app/lib/backend/authConfig';
+import { Transaction } from '@/app/lib/models';
+import { SharedLink } from '@/app/models/SharedLink';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -21,12 +23,43 @@ export async function POST(req: NextRequest) {
     let sourcesUsed: any[] = [];
     if (sourceQuery) {
       const searchResults = await searchUserContent(sourceQuery, session.user.id, 8);
-      sourcesUsed = searchResults.map(result => ({
-        name: result.item.name,
-        source: result.item.contentSource || 'user',
-        originalSeller: result.item.purchaseInfo?.sellerName,
-        sharedBy: result.item.sharedInfo?.sharedByName,
-        relevanceScore: Math.round(result.score * 100)
+      sourcesUsed = await Promise.all(searchResults.map(async result => {
+        const sourceInfo: any = {
+          name: result.item.name,
+          source: result.item.contentSource || 'user_upload',
+          relevanceScore: Math.round(result.score * 100)
+        };
+
+        if (result.item.contentSource === "marketplace_purchase") {
+          try {
+            const transaction = await Transaction.findOne({
+              item: result.item._id,
+              status: 'completed'
+            }).populate('seller', 'name');
+            if (transaction?.seller?.name) {
+              sourceInfo.originalSeller = transaction.seller.name;
+            }
+          } catch (error) {
+            console.error('Error fetching seller info:', error);
+          }
+        }
+
+        // Get sharer info for shared items
+        if (result.item.contentSource === "shared_link") {
+          try {
+            const sharedLink = await SharedLink.findOne({
+              item: result.item._id,
+              isActive: true
+            }).populate('owner', 'name');
+            if (sharedLink?.owner?.name) {
+              sourceInfo.sharedBy = sharedLink.owner.name;
+            }
+          } catch (error) {
+            console.error('Error fetching sharer info:', error);
+          }
+        }
+
+        return sourceInfo;
       }));
     }
 

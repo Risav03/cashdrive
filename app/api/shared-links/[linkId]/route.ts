@@ -14,7 +14,8 @@ async function copyItemRecursively(originalItem: any, newParentId: string, owner
     owner: ownerId,
     size: originalItem.size || 0,
     mimeType: originalItem.mimeType,
-    url: originalItem.url
+    url: originalItem.url,
+    contentSource: 'shared_link'
   });
 
   if (originalItem.type === 'folder') {

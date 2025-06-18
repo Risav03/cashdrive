@@ -2,16 +2,37 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ITransaction extends Document {
   _id: string;
-  listing?: mongoose.Types.ObjectId; // Optional for shared link transactions
+  listing?: mongoose.Types.ObjectId;
+  sharedLink?: mongoose.Types.ObjectId;
   buyer: mongoose.Types.ObjectId;
   seller: mongoose.Types.ObjectId;
   item: mongoose.Types.ObjectId;
   amount: number;
   status: 'completed' | 'pending' | 'failed' | 'refunded';
-  transactionId: string; // Unique transaction identifier
-  receiptNumber: string; // Human-readable receipt number
+  transactionId: string;
+  receiptNumber: string;
   purchaseDate: Date;
-  metadata?: any; // Additional data for different transaction types
+  transactionType: 'purchase' | 'sale' | 'commission';
+  paymentFlow: 'direct' | 'admin';
+  affiliateInfo?: {
+    isAffiliateSale: boolean;
+    originalAmount: number;
+    netAmount: number;
+    commissionDistribution: {
+      affiliateId: mongoose.Types.ObjectId;
+      amount: number;
+      commissionRate: number;
+    }[];
+  };
+  parentTransaction?: mongoose.Types.ObjectId;
+  metadata?: {
+    blockchainTransaction?: string;
+    network?: string;
+    payer?: string;
+    success?: boolean;
+    paymentResponseRaw?: string;
+    [key: string]: any;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,7 +41,12 @@ const transactionSchema = new Schema<ITransaction>({
   listing: {
     type: Schema.Types.ObjectId,
     ref: 'Listing',
-    required: false // Optional for shared link transactions
+    required: false
+  },
+  sharedLink: {
+    type: Schema.Types.ObjectId,
+    ref: 'SharedLink',
+    required: false
   },
   buyer: {
     type: Schema.Types.ObjectId,
@@ -49,15 +75,49 @@ const transactionSchema = new Schema<ITransaction>({
   },
   transactionId: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   receiptNumber: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   purchaseDate: {
     type: Date,
     default: Date.now
+  },
+  transactionType: {
+    type: String,
+    enum: ['purchase', 'sale', 'commission'],
+    required: true
+  },
+  paymentFlow: {
+    type: String,
+    enum: ['direct', 'admin'],
+    required: true,
+    default: 'direct'
+  },
+  affiliateInfo: {
+    type: {
+      isAffiliateSale: Boolean,
+      originalAmount: Number,
+      netAmount: Number,
+      commissionDistribution: [{
+        affiliateId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Affiliate'
+        },
+        amount: Number,
+        commissionRate: Number
+      }]
+    },
+    required: false
+  },
+  parentTransaction: {
+    type: Schema.Types.ObjectId,
+    ref: 'Transaction',
+    required: false
   },
   metadata: {
     type: Schema.Types.Mixed,
@@ -65,20 +125,13 @@ const transactionSchema = new Schema<ITransaction>({
   }
 }, {
   timestamps: true,
-  collection: 'transaction'
 });
 
-// Indexes for performance
+// Indexes
 transactionSchema.index({ buyer: 1, purchaseDate: -1 });
 transactionSchema.index({ seller: 1, purchaseDate: -1 });
-transactionSchema.index({ listing: 1 });
-transactionSchema.index({ transactionId: 1 }, { unique: true });
-transactionSchema.index({ receiptNumber: 1 }, { unique: true });
-
-// Note: No unique constraint on listing+buyer combination
-// This allows multiple buyers to purchase the same digital product
-
-// Removed pre-populate to avoid schema registration issues
-// Population will be handled explicitly in API routes when needed
+transactionSchema.index({ transactionType: 1, parentTransaction: 1 });
+transactionSchema.index({ 'affiliateInfo.commissionDistribution.affiliateId': 1 });
+transactionSchema.index({ paymentFlow: 1, transactionType: 1 });
 
 export const Transaction = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema); 

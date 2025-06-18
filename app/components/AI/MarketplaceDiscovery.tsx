@@ -1,6 +1,6 @@
 'use client';
 
-import { purchaseListing } from '@/app/lib/frontend/marketplaceFunctions';
+import { purchaseListing } from '@/app/lib/frontend/transactionFunctions';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { FaCheck, FaDollarSign, FaEye, FaShoppingCart, FaSpinner, FaTag, FaTimes, FaUser } from 'react-icons/fa';
