@@ -94,6 +94,11 @@ export const WalletComp = ({ compact = false }: WalletCompProps) => {
 
   // Compact mode for AI overlay
   if (compact) {
+    // Don't render anything if no session or on auth pages
+    if (!session?.user?.wallet || pathname.startsWith('/auth')) {
+      return null;
+    }
+    
     return (
       <>
         <button 
@@ -205,8 +210,8 @@ export const WalletComp = ({ compact = false }: WalletCompProps) => {
 
   return (
     <>
-      {/* Wallet Button - Only show if not on homepage */}
-      {!isHomePage && (
+      {/* Wallet Button - Only show if not on homepage or auth pages and has session */}
+      {!isHomePage && !pathname.startsWith('/auth') && session?.user?.wallet && (
         <button 
           onClick={() => setIsModalOpen(true)}
           className="fixed top-4 right-4 z-40 bg-amber-100 border-2 

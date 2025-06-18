@@ -22,7 +22,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white relative">
       {/* Wallet Component at the top */}
-      <WalletComp />
+      {!isAIOpen && <WalletComp />}
       
       <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center p-8 rounded-lg">

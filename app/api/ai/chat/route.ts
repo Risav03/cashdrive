@@ -9,132 +9,125 @@ import {
   ChatTool,
 } from "@/app/lib/ai/openaiClient";
 import { authOptions } from "@/app/lib/backend/authConfig";
-import { Transaction } from "@/app/lib/models";
-import { SharedLink } from "@/app/models/SharedLink";
+import { accessSharedLink } from "@/app/lib/frontend/sharedLinkFunctions";
+import { getTransaction } from "@/app/lib/frontend/transactionFunctions";
 import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+interface SourceFile {
+  name: string;
+  source:
+    | "user_upload"
+    | "marketplace_purchase"
+    | "shared_link"
+    | "ai_generated";
+  originalSeller?: string;
+  sharedBy?: string;
+}
 
-    const { message, chatHistory = [] } = await req.json();
+const SOURCE_ICONS = {
+  marketplace_purchase: "🛒",
+  shared_link: "🔗",
+  ai_generated: "🤖",
+  user_upload: "📄",
+} as const;
 
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, {
-        status: 400,
-      });
-    }
-
-    // Define available tools for the AI
-    const tools: ChatTool[] = [
-      {
-        type: "function",
-        function: {
-          name: "search_files",
-          description:
-            "Search through user's uploaded files for relevant content",
-          parameters: {
-            type: "object",
-            properties: {
-              query: {
-                type: "string",
-                description:
-                  "Search query to find relevant content in user files",
-              },
-            },
-            required: ["query"],
+const CHAT_TOOLS: ChatTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "search_files",
+      description: "Search through user's uploaded files for relevant content",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search query to find relevant content in user files",
           },
         },
+        required: ["query"],
       },
-      {
-        type: "function",
-        function: {
-          name: "list_processed_files",
-          description: "List all user files that are ready for AI processing",
-          parameters: {
-            type: "object",
-            properties: {},
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_processed_files",
+      description: "List all user files that are ready for AI processing",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "suggest_content_generation",
+      description:
+        "Suggest generating content based on found files and user request",
+      parameters: {
+        type: "object",
+        properties: {
+          contentType: {
+            type: "string",
+            enum: ["article", "report", "summary", "essay"],
+            description: "Type of content to generate",
+          },
+          title: {
+            type: "string",
+            description: "Suggested title for the content",
+          },
+          sourceFiles: {
+            type: "array",
+            items: { type: "string" },
+            description: "Names of source files to use",
+          },
+          sourceQuery: {
+            type: "string",
+            description: "Search query to find relevant content for generation",
           },
         },
+        required: ["contentType", "title", "sourceQuery"],
       },
-      {
-        type: "function",
-        function: {
-          name: "suggest_content_generation",
-          description:
-            "Suggest generating content based on found files and user request",
-          parameters: {
-            type: "object",
-            properties: {
-              contentType: {
-                type: "string",
-                enum: ["article", "report", "summary", "essay"],
-                description: "Type of content to generate",
-              },
-              title: {
-                type: "string",
-                description: "Suggested title for the content",
-              },
-              sourceFiles: {
-                type: "array",
-                items: { type: "string" },
-                description: "Names of source files to use",
-              },
-              sourceQuery: {
-                type: "string",
-                description:
-                  "Search query to find relevant content for generation",
-              },
-            },
-            required: ["contentType", "title", "sourceQuery"],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_content",
+      description:
+        "Actually generate and save content when user confirms they want to create it after seeing preview",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: {
+            type: "string",
+            description: "The content generation prompt based on user request",
+          },
+          contentType: {
+            type: "string",
+            enum: ["article", "report", "summary", "essay"],
+            description: "Type of content to generate",
+          },
+          title: {
+            type: "string",
+            description: "Title for the content",
+          },
+          sourceQuery: {
+            type: "string",
+            description: "Query to find relevant source files",
           },
         },
+        required: ["prompt", "contentType", "title"],
       },
+    },
+  },
+];
 
-      {
-        type: "function",
-        function: {
-          name: "generate_content",
-          description:
-            "Actually generate and save content when user confirms they want to create it after seeing preview",
-          parameters: {
-            type: "object",
-            properties: {
-              prompt: {
-                type: "string",
-                description:
-                  "The content generation prompt based on user request",
-              },
-              contentType: {
-                type: "string",
-                enum: ["article", "report", "summary", "essay"],
-                description: "Type of content to generate",
-              },
-              title: {
-                type: "string",
-                description: "Title for the content",
-              },
-              sourceQuery: {
-                type: "string",
-                description: "Query to find relevant source files",
-              },
-            },
-            required: ["prompt", "contentType", "title"],
-          },
-        },
-      },
-    ];
-
-    // Build conversation context
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        content:
-          `You are an AI content creation assistant. You help users create high-quality content using their uploaded files as context.
+const SYSTEM_PROMPT =
+  `You are an AI content creation assistant. You help users create high-quality content using their uploaded files as context.
 
 Available capabilities:
 - Search through user's files for relevant information
@@ -152,37 +145,86 @@ Guidelines:
 - Be conversational and friendly
 - When suggesting content generation, provide a clear title and content type
 - When generating content, create a detailed prompt that captures what the user wants
-- Remember: Chat is for conversation and suggestions, Preview tab automatically shows previews when you suggest content generation`,
-      },
-      // Include recent chat history for context (limit to last 6 messages)
+- Remember: Chat is for conversation and suggestions, Preview tab automatically shows previews when you suggest content generation`;
+
+async function getSourceInfo(file: any): Promise<SourceFile> {
+  const sourceInfo: SourceFile = {
+    name: file.name,
+    source: file.contentSource || "user_upload",
+  };
+
+  try {
+    if (file.contentSource === "marketplace_purchase" && file._id) {
+      const transaction = await getTransaction(file._id);
+      if (transaction?.seller?.name) {
+        sourceInfo.originalSeller = transaction.seller.name;
+      }
+    } else if (file.contentSource === "shared_link" && file._id) {
+      const { link } = await accessSharedLink(file._id);
+      if (link?.owner?.name) {
+        sourceInfo.sharedBy = link.owner.name;
+      }
+    }
+  } catch (error) {
+    console.error(`Error fetching source info for ${file.name}:`, error);
+  }
+
+  return sourceInfo;
+}
+
+function formatFileInfo(file: any, sourceInfo: SourceFile): string {
+  const source = sourceInfo.source as keyof typeof SOURCE_ICONS;
+  let info = `${SOURCE_ICONS[source]} **${file.name}**\n`;
+
+  if (sourceInfo.originalSeller) {
+    info += `Purchased from: ${sourceInfo.originalSeller}\n`;
+  }
+  if (sourceInfo.sharedBy) {
+    info += `Shared by: ${sourceInfo.sharedBy}\n`;
+  }
+  if (file.aiProcessing?.topics?.length) {
+    info += `Topics: ${file.aiProcessing.topics.join(", ")}\n`;
+  }
+  if (file.aiProcessing?.processedAt) {
+    info += `Processed: ${
+      new Date(file.aiProcessing.processedAt).toLocaleDateString()
+    }\n`;
+  }
+
+  return info;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { message, chatHistory = [] } = await req.json();
+    if (!message) {
+      return NextResponse.json({ error: "Message is required" }, {
+        status: 400,
+      });
+    }
+
+    const messages: ChatMessage[] = [
+      { role: "system", content: SYSTEM_PROMPT },
       ...chatHistory.slice(-6),
-      {
-        role: "user",
-        content: message,
-      },
+      { role: "user", content: message },
     ];
 
-    // Get AI response
-    const response = await chatCompletion(messages, tools);
+    const response = await chatCompletion(messages, CHAT_TOOLS);
     const aiMessage = response.choices[0].message;
 
-    // Handle tool calls if present
-    if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
+    if (aiMessage.tool_calls?.length) {
       const toolResults = await handleToolCalls(
         aiMessage.tool_calls,
         session.user.id,
       );
-
-      return NextResponse.json({
-        response: toolResults.content,
-        sourceFiles: toolResults.sourceFiles,
-        sourcesUsed: toolResults.sourcesUsed,
-        canGenerate: toolResults.canGenerate,
-        suggestedGeneration: toolResults.suggestedGeneration,
-      });
+      return NextResponse.json(toolResults);
     }
 
-    // Return regular chat response
     return NextResponse.json({
       response: aiMessage.content,
       sourceFiles: [],
@@ -197,17 +239,6 @@ Guidelines:
   }
 }
 
-interface SourceFile {
-  name: string;
-  source:
-    | "user_upload"
-    | "marketplace_purchase"
-    | "shared_link"
-    | "ai_generated";
-  originalSeller?: string;
-  sharedBy?: string;
-}
-
 async function handleToolCalls(toolCalls: any[], userId: string) {
   let finalResponse = "";
   let sourceFiles: string[] = [];
@@ -220,64 +251,24 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
     const parsedArgs = JSON.parse(args);
 
     switch (name) {
-      case "search_files":
+      case "search_files": {
         const searchResults = await searchUserContent(parsedArgs.query, userId);
         sourceFiles = searchResults.map((result) => result.item.name);
-
-        // Build detailed source information
-        sourcesUsed = await Promise.all(searchResults.map(async (result) => {
-          const sourceInfo: SourceFile = {
-            name: result.item.name,
-            source: result.item.contentSource || "user_upload",
-          };
-
-          // Get seller info for marketplace items
-          if (result.item.contentSource === "marketplace_purchase") {
-            try {
-              const transaction = await Transaction.findOne({
-                item: result.item._id,
-                status: "completed",
-              }).populate("seller", "name");
-              if (transaction?.seller?.name) {
-                sourceInfo.originalSeller = transaction.seller.name;
-              }
-            } catch (error) {
-              console.error("Error fetching seller info:", error);
-            }
-          }
-
-          // Get sharer info for shared items
-          if (result.item.contentSource === "shared_link") {
-            try {
-              const sharedLink = await SharedLink.findOne({
-                item: result.item._id,
-                isActive: true,
-              }).populate("owner", "name");
-              if (sharedLink?.owner?.name) {
-                sourceInfo.sharedBy = sharedLink.owner.name;
-              }
-            } catch (error) {
-              console.error("Error fetching sharer info:", error);
-            }
-          }
-
-          return sourceInfo;
-        }));
+        sourcesUsed = await Promise.all(
+          searchResults.map((result) => getSourceInfo(result.item)),
+        );
 
         if (searchResults.length > 0) {
           finalResponse += `I found ${searchResults.length} relevant file${
             searchResults.length > 1 ? "s" : ""
           }:\n\n`;
-          searchResults.slice(0, 5).forEach((result, index) => {
-            const sourceIcon =
-              result.item.contentSource === "marketplace_purchase"
-                ? "🛒"
-                : result.item.contentSource === "shared_link"
-                ? "🔗"
-                : result.item.contentSource === "ai_generated"
-                ? "🤖"
-                : "📄";
-            finalResponse += `${sourceIcon} **${result.item.name}** (${
+          searchResults.slice(0, 5).forEach((result) => {
+            const source =
+              (result.item.contentSource ||
+                "user_upload") as keyof typeof SOURCE_ICONS;
+            finalResponse += `${
+              SOURCE_ICONS[source]
+            } **${result.item.name}** (${
               Math.round(result.score * 100)
             }% match)\n`;
             finalResponse += `${result.chunk.text.substring(0, 200)}...\n\n`;
@@ -285,93 +276,29 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
           finalResponse +=
             "Would you like me to create content based on these files? I can generate articles, reports, summaries, or essays.";
           canGenerate = true;
-
-          // Store the search query for potential content generation
-          suggestedGeneration = {
-            sourceQuery: parsedArgs.query,
-            sourceFiles: sourceFiles,
-          };
+          suggestedGeneration = { sourceQuery: parsedArgs.query, sourceFiles };
         } else {
           finalResponse +=
-            `I couldn't find any relevant content for "${parsedArgs.query}". `;
-          finalResponse +=
-            "Make sure you have uploaded and processed some text files (PDF, Word, or plain text). ";
-          finalResponse +=
+            `I couldn't find any relevant content for "${parsedArgs.query}". ` +
+            "Make sure you have uploaded and processed some text files (PDF, Word, or plain text). " +
             "You can check which files are ready by asking me to list your processed files.";
         }
         break;
+      }
 
-      case "list_processed_files":
+      case "list_processed_files": {
         const processedFiles = await getProcessedFiles(userId);
-
-        // Build detailed source information for listing
-        sourcesUsed = await Promise.all(processedFiles.map(async (file) => {
-          const sourceInfo: SourceFile = {
-            name: file.name,
-            source: file.contentSource || "user_upload",
-          };
-
-          // Get seller info for marketplace items
-          if (file.contentSource === "marketplace_purchase") {
-            try {
-              const transaction = await Transaction.findOne({
-                item: file._id,
-                status: "completed",
-              }).populate("seller", "name");
-              if (transaction?.seller?.name) {
-                sourceInfo.originalSeller = transaction.seller.name;
-              }
-            } catch (error) {
-              console.error("Error fetching seller info:", error);
-            }
-          }
-
-          // Get sharer info for shared items
-          if (file.contentSource === "shared_link") {
-            try {
-              const sharedLink = await SharedLink.findOne({
-                item: file._id,
-                isActive: true,
-              }).populate("owner", "name");
-              if (sharedLink?.owner?.name) {
-                sourceInfo.sharedBy = sharedLink.owner.name;
-              }
-            } catch (error) {
-              console.error("Error fetching sharer info:", error);
-            }
-          }
-
-          return sourceInfo;
-        }));
+        sourcesUsed = await Promise.all(
+          processedFiles.map((file) => getSourceInfo(file)),
+        );
 
         if (processedFiles.length > 0) {
           finalResponse += "Here are your AI-ready files:\n\n";
           processedFiles.forEach((file) => {
-            const sourceIcon = file.contentSource === "marketplace_purchase"
-              ? "🛒"
-              : file.contentSource === "shared_link"
-              ? "🔗"
-              : file.contentSource === "ai_generated"
-              ? "🤖"
-              : "📄";
-            finalResponse += `${sourceIcon} **${file.name}**\n`;
-
-            // Find source info for this file
-            const sourceInfo = sourcesUsed.find((s) => s.name === file.name);
-            if (sourceInfo?.originalSeller) {
-              finalResponse += `Purchased from: ${sourceInfo.originalSeller}\n`;
-            }
-            if (sourceInfo?.sharedBy) {
-              finalResponse += `Shared by: ${sourceInfo.sharedBy}\n`;
-            }
-            if (file.aiProcessing?.topics?.length) {
-              finalResponse += `Topics: ${
-                file.aiProcessing.topics.join(", ")
-              }\n`;
-            }
-            finalResponse += `Processed: ${
-              new Date(file.aiProcessing.processedAt).toLocaleDateString()
-            }\n\n`;
+            finalResponse += formatFileInfo(
+              file,
+              sourcesUsed.find((s) => s.name === file.name)!,
+            ) + "\n";
           });
           finalResponse +=
             "You can ask me to search through these files or create content based on them!";
@@ -380,8 +307,9 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             "You don't have any AI-ready files yet. Upload some text files (PDF, Word, or plain text) and they'll be processed automatically for AI use.";
         }
         break;
+      }
 
-      case "suggest_content_generation":
+      case "suggest_content_generation": {
         suggestedGeneration = {
           contentType: parsedArgs.contentType,
           title: parsedArgs.title,
@@ -390,44 +318,40 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
         };
 
         finalResponse +=
-          `I suggest creating a **${parsedArgs.contentType}** titled "${parsedArgs.title}".`;
+          `I suggest creating a **${parsedArgs.contentType}** titled "${parsedArgs.title}".\n`;
         if (sourceFiles.length > 0) {
-          finalResponse += `\n\nI'll use content from: ${
-            sourceFiles.join(", ")
-          }`;
+          finalResponse += `\nI'll use content from: ${sourceFiles.join(", ")}`;
         }
         finalResponse +=
-          "\n\n✨ **Check the Preview tab** to see the content before generating!\n\n";
-        finalResponse +=
+          "\n\n✨ **Check the Preview tab** to see the content before generating!\n\n" +
           '✅ Say "**generate it**" when you\'re ready to create and save the content.';
         canGenerate = true;
         break;
+      }
 
-      case "generate_content":
+      case "generate_content": {
         try {
           const result = await generateAndSaveContent({
             prompt: parsedArgs.prompt,
             contentType: parsedArgs.contentType,
             title: parsedArgs.title,
             sourceQuery: parsedArgs.sourceQuery,
-            userId: userId,
+            userId,
             userDisplayName: undefined,
           });
 
-          finalResponse += `✅ **Content Generated Successfully!**\n\n`;
-          finalResponse += `📄 **${result.content.title}**\n`;
-          finalResponse += `📊 Word Count: ${result.content.wordCount}\n\n`;
-          finalResponse += `**Preview:**\n${
-            result.content.content.substring(0, 500)
-          }...\n\n`;
-          finalResponse +=
-            `Your content has been saved as a PDF in your "AI Generated" folder and is ready to be shared or sold on the marketplace!`;
+          finalResponse += "✅ **Content Generated Successfully!**\n\n" +
+            `📄 **${result.content.title}**\n` +
+            `📊 Word Count: ${result.content.wordCount}\n\n` +
+            `**Preview:**\n${result.content.content.substring(0, 500)}...\n\n` +
+            'Your content has been saved as a PDF in your "AI Generated" folder and is ready to be shared or sold on the marketplace!';
         } catch (error) {
           console.error("Content generation failed:", error);
           finalResponse +=
-            `❌ Sorry, I encountered an error while generating your content. Please try again.`;
+            "❌ Sorry, I encountered an error while generating your content. Please try again.";
         }
         break;
+      }
     }
   }
 
