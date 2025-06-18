@@ -1,16 +1,11 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { Item, User } from '../lib/types';
+import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { Item } from '../lib/types';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface AppContextType {
-  user: User | null;
-  isLoadingUser: boolean;
-  refreshUser: () => Promise<void>;
-  
   // Theme state
   isDarkMode: boolean;
   toggleDarkMode: () => void;
@@ -35,8 +30,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // All useState hooks first
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -65,27 +58,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [hideNotification]);
 
-  // All functions next
-  const refreshUser = useCallback(async () => {
-    if (isLoadingUser) return; // Prevent multiple simultaneous calls
-    
-    try {
-      setIsLoadingUser(true);
-      const response = await fetch('/api/user');
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      } else {
-        showNotification('Error refreshing user data', 'error');
-      }
-    } catch (err) {
-      console.error('Error refreshing user:', err);
-      showNotification('Error refreshing user data', 'error');
-    } finally {
-      setIsLoadingUser(false);
-    }
-  }, [isLoadingUser, showNotification]);
-
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
   // Add file viewer functions
@@ -99,19 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setViewerItem(null);
   };
 
-  const {data:session, status} = useSession()
-
-
-  useEffect(() => {
-    if (session?.user?.id && (!user || user._id !== session.user.id)) {
-      refreshUser();
-    }
-  }, [session, refreshUser, user]);
-
   const value = {
-    user,
-    isLoadingUser,
-    refreshUser,
     isDarkMode,
     toggleDarkMode,
     notification,

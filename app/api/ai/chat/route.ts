@@ -199,7 +199,11 @@ Guidelines:
 
 interface SourceFile {
   name: string;
-  source: "user_upload" | "marketplace_purchase" | "shared_link" | "ai_generated";
+  source:
+    | "user_upload"
+    | "marketplace_purchase"
+    | "shared_link"
+    | "ai_generated";
   originalSeller?: string;
   sharedBy?: string;
 }
@@ -224,7 +228,7 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
         sourcesUsed = await Promise.all(searchResults.map(async (result) => {
           const sourceInfo: SourceFile = {
             name: result.item.name,
-            source: result.item.contentSource || "user_upload"
+            source: result.item.contentSource || "user_upload",
           };
 
           // Get seller info for marketplace items
@@ -232,13 +236,13 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             try {
               const transaction = await Transaction.findOne({
                 item: result.item._id,
-                status: 'completed'
-              }).populate('seller', 'name');
+                status: "completed",
+              }).populate("seller", "name");
               if (transaction?.seller?.name) {
                 sourceInfo.originalSeller = transaction.seller.name;
               }
             } catch (error) {
-              console.error('Error fetching seller info:', error);
+              console.error("Error fetching seller info:", error);
             }
           }
 
@@ -247,13 +251,13 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             try {
               const sharedLink = await SharedLink.findOne({
                 item: result.item._id,
-                isActive: true
-              }).populate('owner', 'name');
+                isActive: true,
+              }).populate("owner", "name");
               if (sharedLink?.owner?.name) {
                 sourceInfo.sharedBy = sharedLink.owner.name;
               }
             } catch (error) {
-              console.error('Error fetching sharer info:', error);
+              console.error("Error fetching sharer info:", error);
             }
           }
 
@@ -265,13 +269,14 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             searchResults.length > 1 ? "s" : ""
           }:\n\n`;
           searchResults.slice(0, 5).forEach((result, index) => {
-            const sourceIcon = result.item.contentSource === "marketplace_purchase"
-              ? "🛒"
-              : result.item.contentSource === "shared_link"
-              ? "🔗"
-              : result.item.contentSource === "ai_generated"
-              ? "🤖"
-              : "📄";
+            const sourceIcon =
+              result.item.contentSource === "marketplace_purchase"
+                ? "🛒"
+                : result.item.contentSource === "shared_link"
+                ? "🔗"
+                : result.item.contentSource === "ai_generated"
+                ? "🤖"
+                : "📄";
             finalResponse += `${sourceIcon} **${result.item.name}** (${
               Math.round(result.score * 100)
             }% match)\n`;
@@ -303,7 +308,7 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
         sourcesUsed = await Promise.all(processedFiles.map(async (file) => {
           const sourceInfo: SourceFile = {
             name: file.name,
-            source: file.contentSource || "user_upload"
+            source: file.contentSource || "user_upload",
           };
 
           // Get seller info for marketplace items
@@ -311,13 +316,13 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             try {
               const transaction = await Transaction.findOne({
                 item: file._id,
-                status: 'completed'
-              }).populate('seller', 'name');
+                status: "completed",
+              }).populate("seller", "name");
               if (transaction?.seller?.name) {
                 sourceInfo.originalSeller = transaction.seller.name;
               }
             } catch (error) {
-              console.error('Error fetching seller info:', error);
+              console.error("Error fetching seller info:", error);
             }
           }
 
@@ -326,13 +331,13 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
             try {
               const sharedLink = await SharedLink.findOne({
                 item: file._id,
-                isActive: true
-              }).populate('owner', 'name');
+                isActive: true,
+              }).populate("owner", "name");
               if (sharedLink?.owner?.name) {
                 sourceInfo.sharedBy = sharedLink.owner.name;
               }
             } catch (error) {
-              console.error('Error fetching sharer info:', error);
+              console.error("Error fetching sharer info:", error);
             }
           }
 
@@ -350,9 +355,9 @@ async function handleToolCalls(toolCalls: any[], userId: string) {
               ? "🤖"
               : "📄";
             finalResponse += `${sourceIcon} **${file.name}**\n`;
-            
+
             // Find source info for this file
-            const sourceInfo = sourcesUsed.find(s => s.name === file.name);
+            const sourceInfo = sourcesUsed.find((s) => s.name === file.name);
             if (sourceInfo?.originalSeller) {
               finalResponse += `Purchased from: ${sourceInfo.originalSeller}\n`;
             }
