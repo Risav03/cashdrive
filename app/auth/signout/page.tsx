@@ -21,7 +21,12 @@ export default function SignOut() {
             SIGNING OUT
           </h2>
           <div className="mt-12 flex justify-center">
-            <Loader />
+          <div className="text-center">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">LOADING</h2>
+            <div className='flex justify-center items-center mt-10'>
+              <Loader />
+            </div>
+          </div>
           </div>
           <p className="font-freeman text-xl mt-8">
             Redirecting you to the homepage...

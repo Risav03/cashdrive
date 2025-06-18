@@ -95,5 +95,7 @@ sharedLinkSchema.pre(['find', 'findOne'], function() {
       .populate('owner', 'name email wallet');
 });
 
-export const SharedLink = mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', sharedLinkSchema);
-export default SharedLink; 
+const SharedLinkModel = mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', sharedLinkSchema);
+
+export { SharedLinkModel as SharedLink };
+export default SharedLinkModel; 

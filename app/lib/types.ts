@@ -29,6 +29,10 @@ export interface Item {
     sourceFiles?: string[];
     generatedAt?: Date;
   };
+
+  parent?: string;
+  path: string;
+  generatedBy?: 'ai' | 'user';
 }
 
 export interface AIChunk {

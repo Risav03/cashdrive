@@ -1,14 +1,12 @@
 import { SharedLink } from '@/app/lib/models';
-import connectDB from '@/app/lib/mongodb';
+import { withErrorHandler } from '@/app/lib/utils/controllerUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ linkId: string }> }
 ) {
-  try {
-    await connectDB();
-    
+  return withErrorHandler(async () => {
     const params = await context.params;
     const sharedLink = await SharedLink.findOne({ 
       linkId: params.linkId,
@@ -19,7 +17,7 @@ export async function GET(
       .select('price title owner');
 
     if (!sharedLink) {
-      return NextResponse.json({ error: 'Shared link not found' }, { status: 404 });
+      throw new Error('Shared link not found');
     }
 
     return NextResponse.json({
@@ -27,11 +25,5 @@ export async function GET(
       title: sharedLink.title,
       sellerWallet: sharedLink.owner?.wallet
     });
-
-  } catch (error: any) {
-    console.error('GET /api/shared-links/[linkId]/details error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to fetch shared link details' 
-    }, { status: 500 });
-  }
+  });
 } 

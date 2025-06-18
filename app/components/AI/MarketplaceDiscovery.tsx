@@ -2,7 +2,7 @@
 
 import { purchaseListing } from '@/app/lib/frontend/transactionFunctions';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FaCheck, FaDollarSign, FaEye, FaShoppingCart, FaSpinner, FaTag, FaTimes, FaUser } from 'react-icons/fa';
 
 interface RelevantListing {
@@ -54,7 +54,7 @@ export default function MarketplaceDiscovery({
   const [purchasingItems, setPurchasingItems] = useState<Set<string>>(new Set());
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set());
 
-  const discoverContent = async () => {
+  const discoverContent = useCallback(async () => {
     if (!query.trim()) return;
 
     setLoading(true);
@@ -84,7 +84,7 @@ export default function MarketplaceDiscovery({
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, contentType, suggestedTitle]);
 
   const handlePurchase = async (listingId: string) => {
     if (!session?.user?.wallet) {
@@ -137,7 +137,7 @@ export default function MarketplaceDiscovery({
     if (query) {
       discoverContent();
     }
-  }, [query, contentType, suggestedTitle]);
+  }, [query, contentType, suggestedTitle, discoverContent]);
 
   if (loading) {
     return (

@@ -5,7 +5,7 @@ import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Affiliate {
   _id: string;
@@ -48,6 +48,7 @@ interface Commission {
       name: string;
       email: string;
     };
+    amount: number;
   };
   commissionAmount: number;
   commissionRate: number;
@@ -70,19 +71,7 @@ export default function AffiliatesPage() {
     activeAffiliates: 0
   });
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, router]);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchData();
-    }
-  }, [session, activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'transactions') {
@@ -122,7 +111,19 @@ export default function AffiliatesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchData();
+    }
+  }, [session, fetchData]);
 
   const handleUpdateAffiliate = async (affiliateId: string, updates: any) => {
     try {
@@ -268,7 +269,7 @@ export default function AffiliatesPage() {
                             ${transaction.commissionAmount.toFixed(2)} commission
                           </p>
                           <p className="font-freeman text-sm">
-                            {transaction.commissionRate}% of ${transaction.saleAmount.toFixed(2)} sale
+                            {transaction.commissionRate}% of ${transaction.originalTransaction.amount.toFixed(2)} sale
                           </p>
                           <p className="font-freeman text-sm">
                             Code: {transaction.affiliate.affiliateCode}

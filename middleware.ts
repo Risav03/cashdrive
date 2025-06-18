@@ -140,7 +140,7 @@ export default async function middleware(request: NextRequestWithAuth) {
       const linkId = pathParts[3]; // /api/shared-links/[linkId]/pay
       
       console.log("pathParts", pathParts, linkId);
-      if (linkId && pathParts[4] == "pay") {
+      if (linkId && pathParts[4] == "purchase") {
         console.log("Fetching shared link details for:", linkId);
         
         // Fetch shared link details via API endpoint
@@ -165,7 +165,7 @@ export default async function middleware(request: NextRequestWithAuth) {
         return await paymentMiddleware(
           sharedLink.sellerWallet,
           {
-            "/api/shared-links/*/pay": {
+            "/api/shared-links/*/purchase": {
               price: `$${sharedLink.price}`,
               network: "base-sepolia" as Network,
               config: {

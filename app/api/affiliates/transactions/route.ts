@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         })
         .populate({
           path: 'originalTransaction',
-          populate: { path: 'buyer', select: 'name email' }
+          populate: { path: 'buyer amount', select: 'name email' }
         })
         .sort({ createdAt: -1 })
         .skip(skip)

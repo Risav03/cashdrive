@@ -1,9 +1,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { getCurrentUser } from '../lib/frontend/userFunctions';
-import { User, Item } from '../lib/types';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { Item, User } from '../lib/types';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -53,36 +52,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [viewerItem, setViewerItem] = useState<Item | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
+  const hideNotification = useCallback(() => {
+    setNotification(prev => ({ ...prev, show: false }));
+  }, []);
+
+  const showNotification = useCallback((message: string, type: NotificationType) => {
+    setNotification({ message, type, show: true });
+    // Auto hide after 5 seconds
+    const timer = setTimeout(() => {
+      hideNotification();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [hideNotification]);
+
   // All functions next
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (isLoadingUser) return; // Prevent multiple simultaneous calls
     
-    setIsLoadingUser(true);
     try {
-      const userData = await getCurrentUser();
-      setUser(userData);
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      setUser(null);
-      showNotification('Failed to fetch user data', 'error');
+      setIsLoadingUser(true);
+      const response = await fetch('/api/user');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        showNotification('Error refreshing user data', 'error');
+      }
+    } catch (err) {
+      console.error('Error refreshing user:', err);
+      showNotification('Error refreshing user data', 'error');
     } finally {
       setIsLoadingUser(false);
     }
-  };
+  }, [isLoadingUser, showNotification]);
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
-
-  const showNotification = (message: string, type: NotificationType) => {
-    setNotification({ message, type, show: true });
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-      hideNotification();
-    }, 5000);
-  };
-
-  const hideNotification = () => {
-    setNotification(prev => ({ ...prev, show: false }));
-  };
 
   // Add file viewer functions
   const openFileViewer = (item: Item) => {
@@ -99,10 +103,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    console.log("session", session);
-    if(session && !user)
-    refreshUser();
-  }, [session]);
+    if (session?.user?.id && (!user || user._id !== session.user.id)) {
+      refreshUser();
+    }
+  }, [session, refreshUser, user]);
 
   const value = {
     user,

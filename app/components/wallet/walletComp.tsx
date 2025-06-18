@@ -5,7 +5,7 @@ import abi from '@/app/utils/abi/erc20abi';
 import { ethers } from 'ethers';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BiMoney } from 'react-icons/bi';
 import { FaCheckCircle, FaWallet } from 'react-icons/fa';
 import { IoCopyOutline } from 'react-icons/io5';
@@ -24,7 +24,7 @@ export const WalletComp = ({ compact = false }: WalletCompProps) => {
 
   const isHomePage = pathname === '/';
 
-  async function fetchBalance() {
+  const fetchBalance = useCallback(async () => {
     try {
       const provider = new ethers.providers.JsonRpcProvider(
         'https://base-sepolia.g.alchemy.com/v2/CA4eh0FjTxMenSW3QxTpJ7D-vWMSHVjq'
@@ -41,7 +41,7 @@ export const WalletComp = ({ compact = false }: WalletCompProps) => {
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
     }
-  }
+  }, [session?.user.wallet]);
 
   async function fundAcc() {
     try {
@@ -72,7 +72,7 @@ export const WalletComp = ({ compact = false }: WalletCompProps) => {
     if (session) {
       fetchBalance();
     }
-  }, [session]);
+  }, [session, fetchBalance]);
 
   // Close modal when clicking outside
   useEffect(() => {

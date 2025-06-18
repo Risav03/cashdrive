@@ -99,7 +99,7 @@ export async function purchaseMonetizedLink(wallet: `0x${string}`, id: string) {
       account as any as Wallet,
     );
 
-    const res = await api.post(`/api/shared-links/${id}/pay`)
+    const res = await api.post(`/api/shared-links/${id}/purchase`)
 
     return res.data;
 

@@ -2,11 +2,11 @@
 
 import { getFileIcon as getExplorerFileIcon } from '@/app/lib/frontend/explorerFunctions';
 import { formatListingPrice } from '@/app/lib/frontend/marketplaceFunctions';
-import { formatTransactionDate, getNetworkDisplayName, getTransactionStatusColor, getTransactionTypeColor, getTransactions } from '@/app/lib/frontend/transactionFunctions';
-import { Transaction, TransactionsResponse } from '@/app/lib/types';
+import { formatTransactionDate, getNetworkDisplayName, getTransactionStatusColor, getTransactionTypeColor } from '@/app/lib/frontend/transactionFunctions';
+import { Transaction } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { createElement, useEffect, useState } from 'react';
+import { createElement, useCallback, useEffect, useState } from 'react';
 import FooterPattern from '../components/global/FooterPattern';
 import Loader from '../components/global/Loader';
 import { DashboardCard } from '../components/ui/DashboardCard';
@@ -29,30 +29,29 @@ export default function TransactionsPage() {
     limit: 20
   });
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response: TransactionsResponse = await getTransactions({
-        type: filters.type === 'all' ? undefined : filters.type,
-        status: filters.status || undefined,
-        page: filters.page,
-        limit: filters.limit
-      });
-      setTransactions(response.transactions);
-      setPagination(response.pagination);
+      const response = await fetch('/api/transactions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions');
+      }
+      const data = await response.json();
+      setTransactions(data.transactions);
+      setPagination(data.pagination);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch transactions');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (session) {
+    if (session?.user?.id) {
       fetchTransactions();
     }
-  }, [session, filters]);
+  }, [session, fetchTransactions]);
 
   const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));

@@ -1,9 +1,9 @@
 'use client';
 
 import { useApp } from '@/app/context/AppContext';
-import { createFolder, deleteItem, getBreadcrumbPath, getItem, getItemsByParentId, uploadItem } from '@/app/lib/frontend/explorerFunctions';
+import { createFolder, deleteItem, getBreadcrumbPath, getItem, uploadItem } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
 import Loader from '../global/Loader';
 import CreateSharedLinkModal from '../SharedLinks/CreateSharedLinkModal';
@@ -28,6 +28,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedItemForSharing, setSelectedItemForSharing] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [pagination, setPagination] = useState({
     current: 1,
@@ -42,81 +43,42 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  useEffect(() => {
-    async function loadRootFolder() {
-      if (!user || !user.rootFolder) return;
-      
-      setIsLoading(true);
-      try {
-        const root = await getItem(user.rootFolder);
-        setCurrentFolder(root);
-        const response = await getItemsByParentId(root._id, {
-          page: 1,
-          limit: itemsPerPage
-        });
-        
-        const sortedItems = response.items.sort((a, b) => {
-
-          if (a.type === 'folder' && b.type === 'file') return -1;
-          if (a.type === 'file' && b.type === 'folder') return 1;
-          
-          // Then sort by date (newest first)
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-
-        setItems(sortedItems);
-        setPagination(response.pagination);
-        setCurrentPage(1);
-        setBreadcrumbs([]);
-      } catch (error) {
-        console.error('Failed to load root folder:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadRootFolder();
-  }, [user, itemsPerPage]);
-
-  const loadFolderContents = async (page: number = 1) => {
-    if (!currentFolder || !user) return;
+  const loadFolderContents = useCallback(async (page: number = currentPage) => {
+    if (!currentFolder) return;
     
-    setIsLoading(true);
     try {
-      const response = await getItemsByParentId(currentFolder._id, {
-        page,
-        limit: itemsPerPage
-      });
-      
-      const sortedItems = response.items.sort((a, b) => {
-        // First, separate folders and files
-        if (a.type === 'folder' && b.type === 'file') return -1;
-        if (a.type === 'file' && b.type === 'folder') return 1;
-        
-        // Then sort by date (newest first)
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
-      setItems(sortedItems);
-      setPagination(response.pagination);
-      setCurrentPage(page);
-      
-      if (page === 1) {
-        const path = await getBreadcrumbPath(currentFolder._id);
-        setBreadcrumbs(path);
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`/api/items/path?path=${encodeURIComponent(currentFolder.path)}&page=${page}&limit=${itemsPerPage}`);
+      if (!response.ok) {
+        throw new Error('Failed to load folder contents');
       }
-    } catch (error) {
-      console.error('Failed to load folder contents:', error);
+      const data = await response.json();
+      setItems(data.items);
+      const breadcrumbsPath = await getBreadcrumbPath(currentFolder.path);
+      setBreadcrumbs(breadcrumbsPath);
+      setPagination(prev => ({
+        ...prev,
+        current: page,
+        total: Math.ceil(data.totalItems / itemsPerPage),
+        count: data.items.length,
+        totalItems: data.totalItems,
+        hasNextPage: page * itemsPerPage < data.totalItems,
+        hasPreviousPage: page > 1,
+        nextCursor: data.nextCursor
+      }));
+      setCurrentPage(page);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load folder contents');
+      console.error('Error loading folder contents:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentFolder, currentPage, itemsPerPage]);
 
   useEffect(() => {
-    if (currentFolder) {
-      loadFolderContents(1);
-    }
-  }, [currentFolder, user]);
+    loadFolderContents(currentPage);
+  }, [loadFolderContents, currentPage]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.total) {

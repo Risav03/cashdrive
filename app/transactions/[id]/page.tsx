@@ -4,12 +4,12 @@ import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
 import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
 import { formatListingPrice } from '@/app/lib/frontend/marketplaceFunctions';
-import { formatBlockchainAddress, formatTransactionDate, getBlockExplorerUrl, getNetworkDisplayName, getTransaction } from '@/app/lib/frontend/transactionFunctions';
+import { formatBlockchainAddress, formatTransactionDate, getBlockExplorerUrl, getNetworkDisplayName } from '@/app/lib/frontend/transactionFunctions';
 import { Transaction } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { createElement, useEffect, useState } from 'react';
+import { createElement, useCallback, useEffect, useState } from 'react';
 
 // Utility function for copying text to clipboard
 const copyToClipboard = async (text: string, successMessage = 'Copied to clipboard!'): Promise<void> => {
@@ -30,28 +30,32 @@ export default function TransactionDetailPage() {
 
   const transactionId = params.id as string;
 
-  const fetchTransaction = async () => {
+  const fetchTransaction = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getTransaction(transactionId);
-      setTransaction(data);
+      const response = await fetch(`/api/transactions/${transactionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch transaction');
+      }
+      const data = await response.json();
+      setTransaction(data.transaction);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch transaction');
     } finally {
       setLoading(false);
     }
-  };
+  }, [transactionId]);
 
   const handlePrint = () => {
     window.print();
   };
 
   useEffect(() => {
-    if (transactionId && session) {
+    if (transactionId) {
       fetchTransaction();
     }
-  }, [transactionId, session]);
+  }, [transactionId, fetchTransaction]);
 
   if (!session) {
     return (
