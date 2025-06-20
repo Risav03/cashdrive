@@ -1,53 +1,8 @@
 import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import { Network, paymentMiddleware } from "x402-next";
+import { getListingDetails, getSharedLinkDetails } from "./app/utils/listingDetailFetcher";
 
-async function getListingDetails(listingId: string) {
-  try {
-    const url = `${process.env.NEXTAUTH_URL}/api/listings/${listingId}/details`;
-    console.log("Fetching listing details from URL:", url);
-    
-    // Use the internal API endpoint instead of direct database access
-    const response = await fetch(url);
-    
-    console.log("Fetch response status:", response.status);
-    
-    if (!response.ok) {
-      console.log("Fetch response not ok:", response.status, response.statusText);
-      return null;
-    }
-    
-    const data = await response.json();
-    console.log("Listing details fetched successfully:", data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching listing details:', error);
-    return null;
-  }
-}
-
-async function getSharedLinkDetails(linkId: string) {
-  try {
-    const url = `${process.env.NEXTAUTH_URL}/api/shared-links/${linkId}/details`;
-    console.log("Fetching shared link details from URL:", url);
-    
-    const response = await fetch(url);
-    
-    console.log("Fetch response status:", response.status);
-    
-    if (!response.ok) {
-      console.log("Fetch response not ok:", response.status, response.statusText);
-      return null;
-    }
-    
-    const data = await response.json();
-    console.log("Shared link details fetched successfully:", data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching shared link details:', error);
-    return null;
-  }
-}
 
 export default async function middleware(request: NextRequestWithAuth) {
   console.log("Middleware called for:", request.nextUrl.pathname);
@@ -103,14 +58,23 @@ export default async function middleware(request: NextRequestWithAuth) {
           return NextResponse.json({ error: 'Seller wallet not found' }, { status: 400 });
         }
 
+        // Check if affiliate provided
+        const searchParams = request.nextUrl.searchParams;
+        const isAffiliateProvided = searchParams.get('affiliateProvided') === 'true';
+        
+        // Use affiliate wallet if affiliate provided, otherwise use seller wallet
+        const targetWallet = isAffiliateProvided 
+          ? "0x4FA2D62E28f46b3321366a6D5497acEd5a7E12FD" 
+          : listing.sellerWallet;
+
         console.log("Configuring payment middleware with:", {
-          wallet: listing.sellerWallet,
+          wallet: targetWallet,
           price: listing.price,
           title: listing.title
         });
 
         return await paymentMiddleware(
-          listing.sellerWallet,
+          targetWallet,
           {
             "/api/listings/*/purchase": {
               price: `$${listing.price}`,
