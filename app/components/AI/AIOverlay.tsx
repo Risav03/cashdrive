@@ -115,7 +115,7 @@ export default function AIOverlay({ isOpen, onClose }: AIOverlayProps) {
             <h2 className="font-anton text-xl">Your Files</h2>
             {/* Wallet Component positioned in header */}
             <div className="flex-shrink-0">
-              <WalletComp compact={true} />
+              {isOpen && <WalletComp compact={true} />}
             </div>
           </div>
         </div>

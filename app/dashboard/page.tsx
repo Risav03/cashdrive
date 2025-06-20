@@ -6,7 +6,6 @@ import FloatingAIBot from '../components/AI/FloatingAIBot';
 import { FileExplorer } from '../components/FileExplorer/FileExplorer';
 import FooterPattern from '../components/global/FooterPattern';
 import { DashboardCard } from '../components/ui/DashboardCard';
-import { WalletComp } from '../components/wallet/walletComp';
 
 export default function Dashboard() {
   const [isAIOpen, setIsAIOpen] = useState(false);
@@ -21,8 +20,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-white relative">
-      {/* Wallet Component at the top */}
-      <WalletComp />
       
       <main className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center p-8 rounded-lg">

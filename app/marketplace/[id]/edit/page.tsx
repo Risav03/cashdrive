@@ -1,11 +1,15 @@
 'use client';
 
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Loader from '@/app/components/global/Loader';
 import { getListing, updateListing } from '@/app/lib/frontend/marketplaceFunctions';
 import { Listing, UpdateListingOptions } from '@/app/lib/types';
+import loadericon from '@/assets/loader_2.svg';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 export default function EditListingPage() {
   const params = useParams();
@@ -25,7 +29,7 @@ export default function EditListingPage() {
 
   const listingId = params.id as string;
 
-  const fetchListing = async () => {
+  const fetchListing = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,7 +49,7 @@ export default function EditListingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [listingId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +95,7 @@ export default function EditListingPage() {
     if (listingId) {
       fetchListing();
     }
-  }, [listingId]);
+  }, [listingId, fetchListing]);
 
   // Check if user is owner
   useEffect(() => {
@@ -102,33 +106,38 @@ export default function EditListingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white relative">
+        <main className="max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <h2 className="heading-text-2 text-6xl font-anton mb-8">LOADING</h2>
+            <div className='flex justify-center items-center mt-10'>
+              <Loader />
+            </div>
           </div>
         </main>
+        <FooterPattern design={1} className=' w-[80vw] bottom-0 right-0 ' />
+      <FooterPattern design={1} className=' w-[80vw] top-0 left-0 -scale-100 ' />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="bg-red-100 border-2 border-black rounded-md p-4">
             <div className="flex">
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-freeman text-black">
                   Error loading listing
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-sm font-freeman text-black">
                   <p>{error}</p>
                 </div>
                 <div className="mt-4">
                   <Link
                     href={`/marketplace/${listingId}`}
-                    className="bg-gray-100 px-3 py-2 rounded-md text-sm font-medium text-gray-800 hover:bg-gray-200"
+                    className="button-primary bg-primary px-3 py-2"
                   >
                     Back to Listing
                   </Link>
@@ -143,13 +152,13 @@ export default function EditListingPage() {
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Listing not found</h1>
+            <h1 className="heading-text-2 text-5xl font-anton">Listing not found</h1>
             <Link
               href="/marketplace"
-              className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="mt-4 inline-block button-primary bg-primary px-4 py-2"
             >
               Back to Marketplace
             </Link>
@@ -160,36 +169,36 @@ export default function EditListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
-      <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white relative">
+      <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Navigation */}
         <nav className="mb-8">
           <Link
             href={`/marketplace/${listingId}`}
-            className="text-blue-600 hover:text-blue-800 flex items-center"
+            className="button-primary bg-primary px-4 py-2 inline-flex items-center"
           >
             ← Back to Listing
           </Link>
         </nav>
 
-        <div className="bg-white rounded-lg shadow-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Edit Listing</h1>
-            <p className="mt-1 text-sm text-gray-600">
+        <div className="bg-amber-100 border-2 border-black brutal-shadow-left p-8">
+          <div className="border-b-2 border-black pb-4">
+            <h1 className="heading-text-2 text-5xl font-anton text-center">EDIT LISTING</h1>
+            <p className="mt-1 text-center font-freeman">
               File: {listing.item.name}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-6 py-6">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             {error && (
-              <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="bg-red-100 border-2 border-black p-4" role="alert">
+                <span className="block font-freeman">{error}</span>
               </div>
             )}
 
-            <div className="space-y-6 text-black">
+            <div className="space-y-6">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="title" className="font-freeman block mb-2">
                   Title *
                 </label>
                 <input
@@ -200,12 +209,12 @@ export default function EditListingPage() {
                   onChange={handleInputChange}
                   required
                   maxLength={100}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 />
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="description" className="font-freeman block mb-2">
                   Description *
                 </label>
                 <textarea
@@ -216,20 +225,20 @@ export default function EditListingPage() {
                   required
                   maxLength={1000}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center resize-vertical"
                 />
-                <p className="text-xs text-black mt-1">
+                <p className="text-xs font-freeman mt-1">
                   {formData.description.length}/1000 characters
                 </p>
               </div>
 
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="price" className="font-freeman block mb-2">
                   Price (USD) *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-black sm:text-sm">$</span>
+                    <span className="font-freeman">$</span>
                   </div>
                   <input
                     type="number"
@@ -240,13 +249,13 @@ export default function EditListingPage() {
                     required
                     min="0.01"
                     step="0.01"
-                    className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-7 pr-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="status" className="font-freeman block mb-2">
                   Status
                 </label>
                 <select
@@ -254,7 +263,7 @@ export default function EditListingPage() {
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -262,8 +271,8 @@ export default function EditListingPage() {
               </div>
 
               <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags <span className="text-black">(optional)</span>
+                <label htmlFor="tags" className="font-freeman block mb-2">
+                  Tags <span className="font-freeman">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -271,10 +280,10 @@ export default function EditListingPage() {
                   name="tags"
                   value={formData.tags}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border-2 border-black font-freeman focus:outline-none focus:border-primary brutal-shadow-center"
                   placeholder="e.g., design, template, pdf (comma-separated)"
                 />
-                <p className="text-xs text-black mt-1">
+                <p className="text-xs font-freeman mt-1">
                   Separate multiple tags with commas
                 </p>
               </div>
@@ -283,21 +292,30 @@ export default function EditListingPage() {
             <div className="mt-8 flex justify-end space-x-3">
               <Link
                 href={`/marketplace/${listingId}`}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="button-primary bg-white px-4 py-2"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
                 disabled={saving || !formData.title.trim() || !formData.description.trim() || !formData.price.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="button-primary bg-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? (
+                  <span className='flex gap-2 items-center justify-center'>
+                    <Image src={loadericon} alt="loader" className='w-6 h-6 animate-spin' />
+                    Saving...
+                  </span>
+                ) : (
+                  'Save Changes'
+                )}
               </button>
             </div>
           </form>
         </div>
       </main>
+      <FooterPattern design={1} className='w-[80vw] bottom-0 right-0' />
+      <FooterPattern design={1} className='w-[80vw] top-0 left-0 -scale-100' />
     </div>
   );
 } 

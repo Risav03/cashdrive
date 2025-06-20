@@ -23,88 +23,74 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const dbSession = await mongoose.startSession();
+    let query: any = parentId 
+      ? { parentId, owner: session.user.id } 
+      : { _id: session.user.rootFolder };
 
-    try {
-      return await dbSession.withTransaction(async () => {
-      let query: any = parentId 
-        ? { parentId, owner: session.user.id } 
-        : { _id: session.user.rootFolder };
-
-      if (!parentId) {
-        const items = await Item.find(query).session(dbSession);
-        return NextResponse.json({
-          items,
-          pagination: {
-            current: 1,
-            total: 1,
-            count: items.length,
-            totalItems: items.length,
-            hasNextPage: false,
-            hasPreviousPage: false,
-            nextCursor: null,
-            limit: items.length
-          }
-        });
-      }
-
-      if (parentId) {
-        const parentFolder = await Item.findOne({ 
-          _id: parentId, 
-          owner: session.user.id,
-          type: 'folder'
-        }).session(dbSession);
-        
-        if (!parentFolder) {
-          throw new Error('Parent folder not found or unauthorized');
-        }
-      }
-
-      if (cursor) {
-        query._id = { $lt: cursor };
-      }
-
-      const totalItems = await Item.countDocuments({
-        parentId,
-        owner: session.user.id
-      }).session(dbSession);
-
-      const items = await Item.find(query)
-        .sort({ createdAt: -1, _id: -1 })
-        .limit(limit)
-        .session(dbSession)
-        .lean();
-
-      const totalPages = Math.ceil(totalItems / limit);
-      const hasNextPage = items.length === limit;
-      const hasPreviousPage = page > 1;
-      const nextCursor = hasNextPage ? items[items.length - 1]._id : null;
-
+    if (!parentId) {
+      const items = await Item.find(query);
       return NextResponse.json({
         items,
         pagination: {
-          current: page,
-          total: totalPages,
+          current: 1,
+          total: 1,
           count: items.length,
-          totalItems,
-          hasNextPage,
-          hasPreviousPage,
-          nextCursor,
-          limit
+          totalItems: items.length,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          nextCursor: null,
+          limit: items.length
         }
       });
-      });
-    } finally {
-      await dbSession.endSession();
     }
+
+    if (parentId) {
+      const parentFolder = await Item.findOne({ 
+        _id: parentId, 
+        owner: session.user.id,
+        type: 'folder'
+      });
+      
+      if (!parentFolder) {
+        return NextResponse.json({ error: 'Parent folder not found or unauthorized' }, { status: 404 });
+      }
+    }
+
+    if (cursor) {
+      query._id = { $lt: cursor };
+    }
+
+    const totalItems = await Item.countDocuments({
+      parentId,
+      owner: session.user.id
+    });
+
+    const items = await Item.find(query)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
+      .lean();
+
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNextPage = items.length === limit;
+    const hasPreviousPage = page > 1;
+    const nextCursor = hasNextPage ? items[items.length - 1]._id : null;
+
+    return NextResponse.json({
+      items,
+      pagination: {
+        current: page,
+        total: totalPages,
+        count: items.length,
+        totalItems,
+        hasNextPage,
+        hasPreviousPage,
+        nextCursor,
+        limit
+      }
+    });
 
   } catch (error: any) {
     console.error('Items GET API error:', error);
-    
-    if (error.message === 'Unauthorized' || error.message === 'Parent folder not found or unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
@@ -203,15 +189,21 @@ export async function POST(request: NextRequest) {
             );
           }
 
+          const itemId = item._id.toString();
+          
+          const response = NextResponse.json(item, { status: 201 });
+
           if (shouldProcessAI) {
-            setImmediate(() => {
-              processFileForAI(item._id.toString()).catch(error => {
+            setTimeout(async () => {
+              try {
+                await processFileForAI(itemId);
+              } catch (error) {
                 console.error('AI processing failed for file:', item.name, error);
-              });
-            });
+              }
+            }, 1000); // 1 second delay
           }
 
-          return NextResponse.json(item, { status: 201 });
+          return response;
 
         } catch (dbError) {
           if (uploadResult && validateS3Config()) {

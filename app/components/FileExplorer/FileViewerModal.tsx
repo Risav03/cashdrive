@@ -3,6 +3,7 @@
 import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
 import { formatFileSize } from '@/app/lib/frontend/sharedLinkFunctions';
 import { Item } from '@/app/lib/types';
+import Image from 'next/image';
 import { useState } from 'react';
 import { MdClose, MdFullscreen, MdFullscreenExit } from 'react-icons/md';
 
@@ -89,13 +90,16 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
-    if (item.mimeType?.startsWith('image/')) {
+    if (item.type === 'file' && item.mimeType?.startsWith('image/')) {
       return (
-        <div className="h-full flex items-center justify-center p-4">
-          <img 
-            src={item.url} 
+        <div className="relative w-full h-full">
+          <Image
+            src={`/api/items/${item._id}/content`}
             alt={item.name}
-            className="max-w-full max-h-full object-contain"
+            className="object-contain w-full h-full"
+            width={800}
+            height={600}
+            priority
           />
         </div>
       );

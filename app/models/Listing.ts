@@ -31,7 +31,7 @@ const listingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive'],
+    enum: ['active', 'inactive', 'suspended'],
     default: 'active'
   },
   tags: {
@@ -45,12 +45,6 @@ const listingSchema = new mongoose.Schema({
   affiliateEnabled: {
     type: Boolean,
     default: false
-  },
-  defaultCommissionRate: {
-    type: Number,
-    min: 0,
-    max: 100,
-    default: 0
   }
 }, {
   timestamps: true,
@@ -59,8 +53,6 @@ const listingSchema = new mongoose.Schema({
 listingSchema.index({ status: 1, createdAt: -1 });
 listingSchema.index({ seller: 1, status: 1 });
 listingSchema.index({ price: 1 });
-
-// Removed pre-populate to avoid schema registration issues
-// Population will be handled explicitly in API routes when needed
+listingSchema.index({ affiliateEnabled: 1, status: 1 });
 
 export const Listing = mongoose.models.Listing || mongoose.model('Listing', listingSchema); 

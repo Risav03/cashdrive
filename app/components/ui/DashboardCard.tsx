@@ -1,10 +1,10 @@
 'use client'
-import { useApp } from '@/app/context/AppContext'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export const DashboardCard = () => {
-  const {user} = useApp()
+  const { data: session } = useSession()
   const pathname = usePathname()
   
   return (
@@ -16,7 +16,7 @@ export const DashboardCard = () => {
               Welcome back,
             </p>
             <h1 className="font-anton text-3xl">
-              {user?.name}!
+              {session?.user?.name}!
             </h1>
           </div>
           <Link 

@@ -1,15 +1,15 @@
 'use client';
 
 import MarketplaceSearch from '@/app/components/MarketplaceSearch';
-import { formatPrice, getAvailableTags, getFileIcon, getListings, getStatusColor } from '@/app/lib/frontend/marketplaceFunctions';
-import { createHighlightedElement } from '@/app/lib/frontend/searchUtils';
+import MonetizedContentCard from '@/app/components/shared/MonetizedContentCard';
+import { getListings, getListingTags } from '@/app/lib/frontend/marketplaceFunctions';
+import { PaginationControls } from '@/app/lib/frontend/monetizedContentUtils';
 import { Listing, ListingsResponse } from '@/app/lib/types';
 import Link from 'next/link';
-import { DashboardCard } from '../components/ui/DashboardCard';
-
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import FooterPattern from '../components/global/FooterPattern';
 import Loader from '../components/global/Loader';
+import { DashboardCard } from '../components/ui/DashboardCard';
 
 export default function MarketplacePage() {
   const [isClient, setIsClient] = useState(false);
@@ -55,7 +55,7 @@ export default function MarketplacePage() {
 
   const fetchAvailableTags = async () => {
     try {
-      const tags = await getAvailableTags();
+      const tags = await getListingTags();
       setAvailableTags(tags);
     } catch (err: any) {
       console.error('Failed to fetch available tags:', err);
@@ -163,15 +163,15 @@ export default function MarketplacePage() {
             </h2>
             <div className="mt-12 bg-red-100 border-2 border-black p-8 brutal-shadow-left">
               <h3 className="text-xl font-freeman mb-4">
-                    Error loading listings
-                  </h3>
+                Error loading listings
+              </h3>
               <p className="font-freeman mb-6">{error}</p>
-                    <button
-                      onClick={fetchListings}
+              <button
+                onClick={fetchListings}
                 className="button-primary bg-primary px-8 py-2"
-                    >
-                      Try again
-                    </button>
+              >
+                Try again
+              </button>
             </div>
           </div>
         </main>
@@ -260,88 +260,39 @@ export default function MarketplacePage() {
         ) : (
           <>
             {/* Listings Grid */}
-            <div className="mt-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
               {listings.map((listing) => (
-                <Link
-                  key={listing._id}
-                  href={`/marketplace/${listing._id}`}
-                  className="bg-amber-100 border-2 border-black  button-primary hover:brutal-shadow-center transition-all duration-100 flex flex-col"
+                <Link 
+                  key={listing._id} 
+                  href={`/marketplace/${listing._id}`} 
+                  className="block h-full transform transition-transform duration-200 hover:scale-[1.02]"
                 >
-                  <div className="h-48 bg-white border-b-2 border-black flex items-center justify-center p-6">
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-7xl">
-                      {React.createElement(getFileIcon(listing.item.mimeType), {
-                        className: "w-20 h-20"
-                      })}
-                    </span>
-                    </div>
-                  </div>
-                  <div className="p-6 flex-1">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="px-4 py-1 bg-primary border-2 border-black font-freeman text-sm">
-                        {listing.status}
-                      </span>
-                      <span className="font-freeman text-sm">
-                        {listing.views} {listing.views === 1 ? 'view' : 'views'}
-                      </span>
-                    </div>
-                    <h3 
-                      className="text-xl font-freeman mb-2 line-clamp-2"
-                      dangerouslySetInnerHTML={createHighlightedElement(listing.title, filters.search)}
-                    />
-                    <p 
-                      className="font-freeman text-sm mb-4 line-clamp-2"
-                      dangerouslySetInnerHTML={createHighlightedElement(listing.description, filters.search)}
-                    />
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-freeman">
-
-                        {formatPrice(listing.price)}
-                      </span>
-                      <span className="font-freeman text-sm">
-                        by {listing.seller.name}
-                      </span>
-                    </div>
-                    <div className="mt-2 font-freeman text-sm">
-                      File: {listing.item.name}
-                    </div>
-                  </div>
+                  <MonetizedContentCard
+                    content={{
+                      _id: listing._id,
+                      title: listing.title,
+                      description: listing.description,
+                      type: 'monetized',
+                      price: listing.price,
+                      item: listing.item,
+                      accessCount: listing.views,
+                      createdAt: new Date(listing.createdAt)
+                    }}
+                    showStats={true}
+                    className="h-full transition-all duration-200 hover:brutal-shadow-center"
+                  />
                 </Link>
               ))}
             </div>
 
             {/* Pagination */}
             {pagination.total > 1 && (
-              <div className="mt-8 flex items-center justify-center space-x-2">
-                  <button
-                    onClick={() => handlePageChange(pagination.current - 1)}
-                    disabled={pagination.current === 1}
-                  className="button-primary bg-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  
-                  {Array.from({ length: pagination.total }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                    className={`button-primary px-4 py-2 ${
-                        page === pagination.current
-                        ? 'bg-primary'
-                        : 'bg-white'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  
-                  <button
-                    onClick={() => handlePageChange(pagination.current + 1)}
-                    disabled={pagination.current === pagination.total}
-                  className="button-primary bg-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+              <div className="mt-8">
+                <PaginationControls
+                  currentPage={pagination.current}
+                  totalPages={pagination.total}
+                  onPageChange={handlePageChange}
+                />
               </div>
             )}
           </>

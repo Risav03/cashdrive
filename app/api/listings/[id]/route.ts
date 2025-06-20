@@ -1,132 +1,162 @@
-import { authOptions } from '@/app/lib/backend/authConfig';
 import { Listing } from '@/app/lib/models';
-import connectDB from '@/app/lib/mongodb';
-import { getServerSession } from 'next-auth/next';
+import {
+  validateMonetizedContent,
+  withAuthCheck,
+  withErrorHandler,
+  withTransaction
+} from '@/app/lib/utils/controllerUtils';
+import { Types } from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
+
+interface ListingDocument {
+  _id: Types.ObjectId;
+  seller: {
+    _id: Types.ObjectId;
+    name: string;
+    wallet: string;
+  };
+  item: {
+    name: string;
+    type: string;
+    size: number;
+    mimeType: string;
+    url: string;
+  };
+  views: number;
+}
+
+type ListingUpdateData = {
+  title?: string;
+  description?: string;
+  price?: number;
+  status?: 'active' | 'inactive';
+  tags?: string[];
+};
+
+const isValidObjectId = (id: string): boolean => {
+  return Types.ObjectId.isValid(id);
+};
+
+const validateStatus = (status: string): status is 'active' | 'inactive' => {
+  return ['active', 'inactive'].includes(status);
+};
+
+async function getListingWithAuth(
+  listingId: string,
+  userId?: string,
+  requireAuth = false
+): Promise<ListingDocument> {
+  if (!isValidObjectId(listingId)) {
+    throw new Error('Invalid listing ID format');
+  }
+
+  const listing = await Listing.findById(listingId)
+    .populate('item', 'name type size mimeType url')
+    .populate('seller', 'name wallet')
+    .lean<ListingDocument>();
+
+  if (!listing) {
+    throw new Error('Listing not found');
+  }
+
+  if (requireAuth) {
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+    if (listing.seller._id.toString() !== userId) {
+      throw new Error('Forbidden');
+    }
+  }
+
+  return listing;
+}
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    await connectDB();
-    
+  return withErrorHandler(async () => {
     const params = await context.params;
     const { searchParams } = new URL(request.url);
     const incrementView = searchParams.get('incrementView') === 'true';
     
-    const listing = await Listing.findById(params.id)
-      .populate('item', 'name type size mimeType url')
-      .populate('seller', 'name wallet');
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    }
+    const listing = await getListingWithAuth(params.id);
     
     if (incrementView) {
-      await Listing.findByIdAndUpdate(params.id, { $inc: { views: 1 } });
-      return NextResponse.json({ ...listing.toObject(), views: listing.views + 1 });
+      const updatedListing = await Listing.findOneAndUpdate(
+        { _id: params.id },
+        { $inc: { views: 1 } },
+        { new: true }
+      ).lean<ListingDocument>();
+      
+      return NextResponse.json({
+        ...listing,
+        views: (updatedListing?.views ?? listing.views + 1)
+      });
     }
     
     return NextResponse.json(listing);
-  } catch (error: any) {
-    console.error('GET /api/listings/[id] error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  });
 }
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    await connectDB();
-    
+  return withErrorHandler(async () => {
+    const userId = await withAuthCheck(request);
     const params = await context.params;
-    const listing = await Listing.findById(params.id)
-      .populate('item', 'name type size mimeType url')
-      .populate('seller', 'name wallet');
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    }
-    
-    if (listing.seller._id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
     const body = await request.json();
-    const { title, description, price, status, tags } = body;
+    const { title, description, price, status, tags } = body as ListingUpdateData;
     
-    if (price !== undefined && (typeof price !== 'number' || price <= 0)) {
-      return NextResponse.json(
-        { error: 'Price must be a positive number' },
-        { status: 400 }
-      );
+    if (price !== undefined) {
+      validateMonetizedContent({
+        type: 'monetized',
+        price,
+        paidUsers: []
+      });
     }
     
-    if (status !== undefined && !['active', 'inactive'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status. Must be active or inactive' },
-        { status: 400 }
-      );
+    if (status !== undefined && !validateStatus(status)) {
+      throw new Error('Invalid status. Must be active or inactive');
     }
     
-    const updateData: any = {};
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (price !== undefined) updateData.price = price;
-    if (status !== undefined) updateData.status = status;
-    if (tags !== undefined) updateData.tags = Array.isArray(tags) ? tags : [];
-    
-    const updatedListing = await Listing.findByIdAndUpdate(
-      params.id,
-      updateData,
-      { new: true }
-    )
-      .populate('item', 'name type size mimeType url')
-      .populate('seller', 'name wallet');
-    
-    return NextResponse.json(updatedListing);
-  } catch (error: any) {
-    console.error('PUT /api/listings/[id] error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    return await withTransaction(async (session) => {
+      await getListingWithAuth(params.id, userId, true);
+      
+      const updateData: ListingUpdateData = {};
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (price !== undefined) updateData.price = price;
+      if (status !== undefined) updateData.status = status;
+      if (tags !== undefined) updateData.tags = Array.isArray(tags) ? tags : [];
+      
+      const updatedListing = await Listing.findOneAndUpdate(
+        { _id: params.id },
+        updateData,
+        { new: true, session }
+      )
+        .populate('item', 'name type size mimeType url')
+        .populate('seller', 'name wallet')
+        .lean<ListingDocument>();
+      
+      return NextResponse.json(updatedListing);
+    });
+  });
 }
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    await connectDB();
-    
+  return withErrorHandler(async () => {
+    const userId = await withAuthCheck(request);
     const params = await context.params;
-    const listing = await Listing.findById(params.id)
-      .populate('item', 'name type size mimeType url')
-      .populate('seller', 'name wallet');
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    }
     
-    if (listing.seller._id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    
-    await Listing.findByIdAndDelete(params.id);
-    
-    return NextResponse.json({ message: 'Listing deleted successfully' });
-  } catch (error: any) {
-    console.error('DELETE /api/listings/[id] error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    return await withTransaction(async (session) => {
+      await getListingWithAuth(params.id, userId, true);
+      await Listing.findOneAndDelete({ _id: params.id }).session(session);
+      return NextResponse.json({ message: 'Listing deleted successfully' });
+    });
+  });
 } 

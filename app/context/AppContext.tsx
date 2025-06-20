@@ -1,17 +1,11 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { getCurrentUser } from '../lib/frontend/userFunctions';
-import { User, Item } from '../lib/types';
+import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { Item } from '../lib/types';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface AppContextType {
-  user: User | null;
-  isLoadingUser: boolean;
-  refreshUser: () => Promise<void>;
-  
   // Theme state
   isDarkMode: boolean;
   toggleDarkMode: () => void;
@@ -36,8 +30,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // All useState hooks first
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
@@ -53,36 +45,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [viewerItem, setViewerItem] = useState<Item | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  // All functions next
-  const refreshUser = async () => {
-    if (isLoadingUser) return; // Prevent multiple simultaneous calls
-    
-    setIsLoadingUser(true);
-    try {
-      const userData = await getCurrentUser();
-      setUser(userData);
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      setUser(null);
-      showNotification('Failed to fetch user data', 'error');
-    } finally {
-      setIsLoadingUser(false);
-    }
-  };
+  const hideNotification = useCallback(() => {
+    setNotification(prev => ({ ...prev, show: false }));
+  }, []);
 
-  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
-
-  const showNotification = (message: string, type: NotificationType) => {
+  const showNotification = useCallback((message: string, type: NotificationType) => {
     setNotification({ message, type, show: true });
     // Auto hide after 5 seconds
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       hideNotification();
     }, 5000);
-  };
+    return () => clearTimeout(timer);
+  }, [hideNotification]);
 
-  const hideNotification = () => {
-    setNotification(prev => ({ ...prev, show: false }));
-  };
+  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
   // Add file viewer functions
   const openFileViewer = (item: Item) => {
@@ -95,19 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setViewerItem(null);
   };
 
-  const {data:session, status} = useSession()
-
-
-  useEffect(() => {
-    console.log("session", session);
-    if(session && !user)
-    refreshUser();
-  }, [session]);
-
   const value = {
-    user,
-    isLoadingUser,
-    refreshUser,
     isDarkMode,
     toggleDarkMode,
     notification,

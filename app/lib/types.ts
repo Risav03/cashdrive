@@ -14,38 +14,35 @@ export interface Item {
   createdAt: Date;
   updatedAt: Date;
   // AI processing fields
-  generatedBy?: 'ai';
-  sourcePrompt?: string;
-  sourceFiles?: string[];
   aiProcessing?: {
-    status: 'processing' | 'completed' | 'failed';
+    status: 'none' | 'pending' | 'processing' | 'completed' | 'failed';
     textContent?: string;
-    chunks?: Array<{
-      text: string;
-      embedding: number[];
-      chunkIndex: number;
-    }>;
     processedAt?: Date;
     topics?: string[];
+    chunksCount?: number;
   };
   
-  // Content source tracking
-  contentSource?: 'user' | 'marketplace' | 'shared' | 'ai_generated';
-  
-  // Purchase information for marketplace items
-  purchaseInfo?: {
-    transactionId?: string;
-    purchasedAt?: Date;
-    originalName?: string;
-    originalSeller?: string;
+  contentSource?: 'user_upload' | 'ai_generated' | 'marketplace_purchase' | 'shared_link';
+
+  aiGeneration?: {
+    sourcePrompt: string;
+    sourceFiles?: string[];
+    generatedAt?: Date;
   };
-  
-  // Shared link information
-  sharedInfo?: {
-    linkId?: string;
-    sharedAt?: Date;
-    sharedBy?: string;
-  };
+
+  parent?: string;
+  path: string;
+  generatedBy?: 'ai' | 'user';
+}
+
+export interface AIChunk {
+  _id: string;
+  item: string;
+  text: string;
+  embedding: number[];
+  chunkIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface User {
@@ -132,9 +129,25 @@ export interface ListingsResponse {
   };
 }
 
+export interface Affiliate {
+  _id: string;
+  listing?: Listing;
+  sharedLink?: SharedLink;
+  owner: User;
+  affiliateUser: User;
+  commissionRate: number;
+  affiliateCode: string;
+  status: 'active' | 'inactive' | 'suspended';
+  totalEarnings: number;
+  totalSales: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Transaction {
   _id: string;
-  listing?: Listing; // Optional for shared link transactions
+  listing?: Listing;
+  sharedLink?: SharedLink;
   buyer: User;
   seller: User;
   item: Item;
@@ -143,18 +156,44 @@ export interface Transaction {
   transactionId: string;
   receiptNumber: string;
   purchaseDate: Date;
+  transactionType: 'purchase' | 'sale' | 'commission';
+  paymentFlow: 'direct' | 'admin';
+  affiliateInfo?: {
+    isAffiliateSale: boolean;
+    originalAmount: number;
+    netAmount: number;
+    commissionDistribution: {
+      affiliateId: string;
+      affiliate?: Affiliate;
+      amount: number;
+      commissionRate: number;
+    }[];
+  };
+  parentTransaction?: string;
   metadata?: {
     blockchainTransaction?: string;
     network?: string;
     payer?: string;
     success?: boolean;
     paymentResponseRaw?: string;
-    sharedLinkTitle?: string; // For shared link transactions
-    [key: string]: any; // Allow additional metadata
+    [key: string]: any;
   };
   createdAt: Date;
   updatedAt: Date;
-  transactionType?: 'purchase' | 'sale';
+}
+
+export interface Commission {
+  _id: string;
+  affiliate: Affiliate;
+  originalTransaction: Transaction;
+  commissionTransaction?: Transaction;
+  commissionAmount: number;
+  commissionRate: number;
+  status: 'pending' | 'paid' | 'failed';
+  paymentFlow: 'direct' | 'admin';
+  paidAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Shared Link types

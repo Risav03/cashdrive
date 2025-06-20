@@ -24,6 +24,8 @@ declare module 'next-auth' {
   }
   interface JWT {
     id?: string;
+    wallet?: string | null;
+    rootFolder?: string | null;
   }
 }
 
@@ -142,14 +144,20 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }: { token: JWT, user?: CustomUser }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
         token.wallet = user.wallet;
+        token.rootFolder = user.rootFolder;
       }
       return token;
     },
     async session({ session, token }: { session: any, token: JWT }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name;
+        session.user.email = token.email;
         session.user.wallet = token.wallet as string | null;
+        session.user.rootFolder = token.rootFolder as string | null;
       }
       return session;
     },

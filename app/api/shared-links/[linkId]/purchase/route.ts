@@ -1,6 +1,5 @@
-import { Item, Listing, Transaction, User } from '@/app/lib/models';
+import { SharedLink, Transaction } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
-import { copyItemWithBFS } from '@/app/lib/utils/itemUtils';
 import { Affiliate } from '@/app/models/Affiliate';
 import { Commission } from '@/app/models/Commission';
 import { Types } from 'mongoose';
@@ -14,41 +13,28 @@ interface PaymentResponse {
   success: boolean;
 }
 
-interface QueueItem {
-  originalId: string;
-  newParentId: string;
-  name: string;
-}
-
-interface CopiedItemResult {
+interface SharedLinkDocument {
   _id: Types.ObjectId;
-  name: string;
-  path: string;
-}
-
-interface ItemDocument {
-  _id: Types.ObjectId;
-  name: string;
-  type: string;
-  parentId: string;
-  size?: number;
-  mimeType?: string;
-  url?: string;
-  owner: string;
-  contentSource?: string;
-}
-
-interface ListingDocument {
-  _id: Types.ObjectId;
-  status: string;
-  price: number;
+  linkId: string;
   title: string;
-  affiliateEnabled?: boolean;
-  seller: {
+  price: number;
+  type: 'public' | 'monetized';
+  isActive: boolean;
+  expiresAt?: Date;
+  paidUsers: Types.ObjectId[];
+  affiliateEnabled: boolean;
+  owner: {
     _id: Types.ObjectId;
+    name: string;
+    email: string;
+    wallet: string;
   };
   item: {
     _id: Types.ObjectId;
+    name: string;
+    type: string;
+    size: number;
+    mimeType: string;
   };
 }
 
@@ -69,42 +55,45 @@ const parsePaymentResponse = (paymentResponseHeader: string | null): PaymentResp
   }
 };
 
-async function getOrCreateMarketplaceFolder(buyerId: string): Promise<Types.ObjectId> {
-  const buyer = await User.findById(buyerId);
-  if (!buyer?.rootFolder) {
-    throw new Error('Buyer root folder not found');
+async function getSharedLinkWithAuth(
+  linkId: string,
+  userId?: string
+): Promise<SharedLinkDocument> {
+  const sharedLink = await SharedLink.findOne({ 
+    linkId, 
+    isActive: true,
+    type: 'monetized'
+  })
+  .populate('owner', 'name email wallet')
+  .populate('item', 'name type size mimeType')
+  .lean<SharedLinkDocument>();
+
+  if (!sharedLink) {
+    throw new Error('Monetized link not found or expired');
   }
 
-  const marketplaceFolder = await Item.findOneAndUpdate(
-    {
-      name: 'marketplace',
-      type: 'folder',
-      parentId: buyer.rootFolder.toString(),
-      owner: buyerId
-    },
-    {},
-    {
-      upsert: true,
-      new: true,
-      setDefaultsOnInsert: true
-    }
+  if (sharedLink.expiresAt && new Date() > sharedLink.expiresAt) {
+    throw new Error('Link has expired');
+  }
+
+  if (sharedLink.owner._id.toString() === userId) {
+    throw new Error('You cannot purchase your own content');
+  }
+
+  const hasPaid = sharedLink.paidUsers.some(
+    (paidUserId: Types.ObjectId) => paidUserId.toString() === userId
   );
 
-  return marketplaceFolder._id;
-}
+  if (hasPaid) {
+    throw new Error('You have already paid for this content');
+  }
 
-async function copyPurchasedItem(originalItemId: string, newParentId: string, buyerId: string): Promise<CopiedItemResult> {
-  const copiedItem = await copyItemWithBFS(originalItemId, newParentId, buyerId, '(Purchased)');
-  return {
-    _id: copiedItem._id,
-    name: copiedItem.name,
-    path: `/marketplace/${copiedItem.name}`
-  };
+  return sharedLink;
 }
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
     const userIdFromHeader = request.headers.get('x-user-id');
@@ -117,55 +106,22 @@ export async function POST(
 
     await connectDB();
     
-    const params = await context.params;
-    const { id } = params;
-    if (!id) {
-      return NextResponse.json({ error: 'Listing ID is required' }, { status: 400 });
+    const { linkId } = await params;
+    if (!linkId) {
+      return NextResponse.json({ error: 'Link ID is required' }, { status: 400 });
     }
 
-    const listing = await Listing.findById(id)
-      .populate('item')
-      .populate('seller')
-      .lean<ListingDocument>();
-
-    if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
-    }
-
-    if (listing.status !== 'active') {
-      return NextResponse.json({ 
-        error: 'This listing is no longer available for purchase' 
-      }, { status: 400 });
-    }
-
-    if (listing.seller._id.toString() === userIdFromHeader) {
-      return NextResponse.json({ 
-        error: 'You cannot purchase your own listing' 
-      }, { status: 400 });
-    }
-
-    const existingTransaction = await Transaction.exists({
-      listing: id,
-      buyer: userIdFromHeader,
-      status: 'completed'
-    });
-
-    if (existingTransaction) {
-      return NextResponse.json({ 
-        error: 'You have already purchased this item' 
-      }, { status: 400 });
-    }
-
+    const sharedLink = await getSharedLinkWithAuth(linkId, userIdFromHeader);
     const paymentResponse = parsePaymentResponse(
       request.headers.get('x-payment-response')
     );
     
     const transaction = await Transaction.create({
-      listing: listing._id,
+      sharedLink: sharedLink._id,
       buyer: userIdFromHeader,
-      seller: listing.seller._id,
-      item: listing.item._id,
-      amount: listing.price,
+      seller: sharedLink.owner._id,
+      item: sharedLink.item._id,
+      amount: sharedLink.price,
       status: 'completed',
       transactionId: uuidv4(),
       receiptNumber: generateReceiptNumber(),
@@ -181,20 +137,20 @@ export async function POST(
       } : undefined
     });
 
-    const marketplaceFolderId = await getOrCreateMarketplaceFolder(userIdFromHeader);
-    const copiedItem = await copyPurchasedItem(listing.item._id.toString(), marketplaceFolderId.toString(), userIdFromHeader);
+    await SharedLink.findByIdAndUpdate(sharedLink._id, {
+      $addToSet: { paidUsers: userIdFromHeader }
+    });
 
     let commission = null;
-    if (affiliateCodeFromHeader && listing.affiliateEnabled) {
+    if (affiliateCodeFromHeader && sharedLink.affiliateEnabled) {
       try {
         const [affiliate] = await Promise.all([
           Affiliate.findOne({
             affiliateCode: affiliateCodeFromHeader,
-            listing: id,
+            sharedLink: sharedLink._id,
             status: 'active'
           }),
           transaction.populate([
-            { path: 'listing', select: 'title price' },
             { path: 'buyer', select: 'name email' },
             { path: 'seller', select: 'name email' },
             { path: 'item', select: 'name type size mimeType' }
@@ -202,7 +158,7 @@ export async function POST(
         ]);
 
         if (affiliate && affiliate.affiliateUser.toString() !== userIdFromHeader) {
-          const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
+          const commissionAmount = (sharedLink.price * affiliate.commissionRate) / 100;
           
           [commission] = await Promise.all([
             Commission.create({
@@ -225,33 +181,35 @@ export async function POST(
       }
     } else {
       await transaction.populate([
-        { path: 'listing', select: 'title price' },
         { path: 'buyer', select: 'name email' },
         { path: 'seller', select: 'name email' },
         { path: 'item', select: 'name type size mimeType' }
       ]);
     }
-
+    
     return NextResponse.json({
       transactionData: {
         transaction,
-        copiedItem,
         paymentDetails: paymentResponse,
         message: 'Purchase completed successfully',
+        sharedLink: {
+          linkId: sharedLink.linkId,
+          title: sharedLink.title
+        },
         affiliateCommission: commission ? {
           amount: commission.commissionAmount,
           rate: commission.commissionRate
         } : null
       }
     }, { status: 201 });
-
+      
   } catch (error: any) {
-    console.error('POST /api/listings/[id]/purchase error:', error);
+    console.error('POST /api/shared-links/[linkId]/purchase error:', error);
     
     const status = 
       error.code === 11000 ? 400 :
-      error.message === 'Buyer root folder not found' ? 404 :
-      error.message === 'Original item not found' ? 404 : 500;
+      error.message === 'Link has expired' ? 410 :
+      error.message === 'Monetized link not found or expired' ? 404 : 500;
     
     const message = 
       error.code === 11000 ? 'Transaction already exists' :
