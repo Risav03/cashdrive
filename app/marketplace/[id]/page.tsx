@@ -452,6 +452,7 @@ export default function ListingDetailPage() {
           contentId={listing._id}
           contentType="listing"
           contentTitle={listing.title}
+          mode="become"
           onSuccess={() => {
             // Refresh listing to show updated affiliate status
             fetchListing();

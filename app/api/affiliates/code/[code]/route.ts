@@ -14,8 +14,8 @@ export async function GET(
       affiliateCode: code,
       status: 'active'
     })
-      .populate('owner', 'name email')
-      .populate('affiliateUser', 'name email')
+      .populate('owner')
+      .populate('affiliateUser')
       .populate('listing', 'title price status description')
       .populate('sharedLink', 'title price type description');
 

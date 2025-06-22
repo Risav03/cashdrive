@@ -38,7 +38,7 @@ const commissionSchema = new Schema<ICommission>({
     type: Number,
     required: true,
     min: 0,
-    max: 1
+    max: 100
   },
   status: {
     type: String,

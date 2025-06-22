@@ -45,4 +45,55 @@ export async function GET(
     console.error('GET /api/transactions/[id] error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userIdFromHeader = request.headers.get('x-user-id');
+    
+    if (!userIdFromHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+    
+    const params = await context.params;
+    const { id } = params;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Transaction ID is required' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { status, metadata } = body;
+
+    // Find and update the transaction
+    const updatedTransaction = await Transaction.findByIdAndUpdate(
+      id,
+      {
+        ...(status && { status }),
+        ...(metadata && { metadata }),
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedTransaction) {
+      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      message: 'Transaction updated successfully',
+      transaction: updatedTransaction
+    });
+
+  } catch (error: any) {
+    console.error('PATCH /api/transactions/[id] error:', error);
+    return NextResponse.json({ 
+      error: error.message || 'Failed to update transaction' 
+    }, { status: 500 });
+  }
 } 
