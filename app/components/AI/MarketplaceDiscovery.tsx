@@ -14,6 +14,7 @@ interface RelevantListing {
     tags: string[];
     views: number;
     seller: {
+      _id: string;
       name: string;
     };
     item: {
@@ -106,19 +107,7 @@ export default function MarketplaceDiscovery({
       
       setPurchasedItems(prev => new Set(prev).add(listingId));
       
-      // Process the purchased content for AI use
-      try {
-        await fetch('/api/ai/process-purchased', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            transactionId: result.transactionData.transaction._id
-          })
-        });
-      } catch (processError) {
-        console.error('Error processing purchased content:', processError);
-      }
-
+      // Note: File processing for AI happens automatically after purchase
       onPurchaseComplete(result);
 
     } catch (err: any) {
@@ -167,7 +156,7 @@ export default function MarketplaceDiscovery({
     );
   }
 
-  if (!discoveryResults || discoveryResults.results.length === 0) {
+  if (!discoveryResults || !discoveryResults.results || discoveryResults.results.length === 0) {
     return (
       <div className="bg-gray-50 border-2 border-gray-300 p-4">
         <div className="text-center">
@@ -202,10 +191,11 @@ export default function MarketplaceDiscovery({
       </div>
 
       <div className="space-y-3">
-        {discoveryResults.results.map((result) => {
+        {discoveryResults.results?.map((result) => {
           const { listing, relevanceScore, matchReason } = result;
           const isPurchasing = purchasingItems.has(listing._id);
           const isPurchased = purchasedItems.has(listing._id);
+          const isOwnListing = session?.user?.id === listing.seller._id;
 
           return (
             <div key={listing._id} className="bg-white border-2 border-black p-4 brutal-shadow-left">
@@ -214,7 +204,7 @@ export default function MarketplaceDiscovery({
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="font-freeman font-bold text-lg">{listing.title}</h4>
                     <div className="flex items-center gap-1">
-                      {listing.tags.slice(0, 2).map((tag, index) => (
+                      {listing.tags?.slice(0, 2).map((tag, index) => (
                         <span
                           key={index}
                           className="bg-purple-100 border border-purple-300 px-2 py-1 text-xs font-freeman"
@@ -256,7 +246,12 @@ export default function MarketplaceDiscovery({
                     </div>
                   </div>
 
-                  {isPurchased ? (
+                  {isOwnListing ? (
+                    <div className="bg-blue-100 border border-blue-400 px-3 py-2 text-sm font-freeman text-blue-800">
+                      <FaUser className="inline mr-1" />
+                      Your Listing
+                    </div>
+                  ) : isPurchased ? (
                     <div className="bg-green-100 border border-green-400 px-3 py-2 text-sm font-freeman text-green-800">
                       <FaCheck className="inline mr-1" />
                       Purchased
@@ -290,7 +285,7 @@ export default function MarketplaceDiscovery({
       <div className="mt-4 p-3 bg-purple-100 border border-purple-300 rounded">
         <p className="font-freeman text-sm text-purple-800">
           💡 <strong>How it works:</strong> Purchase relevant content to add it to your knowledge base. 
-          Once purchased, the content will be processed and made available for AI content generation.
+          Files are automatically processed and made AI-ready immediately after purchase.
         </p>
       </div>
     </div>
