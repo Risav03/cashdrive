@@ -200,6 +200,9 @@ export async function POST(
     }
 
     let commission = null;
+    let commissionTransaction = null;
+    let sellerTransaction = null;
+    
     if (affiliateCodeFromHeader && listing.affiliateEnabled) {
       try {
         const [affiliate] = await Promise.all([
@@ -218,11 +221,72 @@ export async function POST(
 
         if (affiliate && affiliate.affiliateUser.toString() !== userIdFromHeader) {
           const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
+          const sellerAmount = listing.price - commissionAmount;
           
+          // Create commission transaction record (platform pays affiliate)
+          commissionTransaction = await Transaction.create({
+            listing: listing._id,
+            buyer: listing.seller._id, // platform/original seller pays
+            seller: affiliate.affiliateUser, // affiliate receives
+            item: listing.item._id,
+            amount: commissionAmount,
+            status: 'pending',
+            transactionId: uuidv4(),
+            receiptNumber: generateReceiptNumber(),
+            purchaseDate: new Date(),
+            transactionType: 'commission',
+            paymentFlow: 'admin',
+            parentTransaction: transaction._id,
+            metadata: {
+              affiliateCode: affiliateCodeFromHeader,
+              commissionRate: affiliate.commissionRate,
+              originalPurchaseAmount: listing.price,
+              originalBuyer: userIdFromHeader
+            }
+          });
+
+          // Create seller transaction record (platform pays seller)
+          sellerTransaction = await Transaction.create({
+            listing: listing._id,
+            buyer: listing.seller._id, // platform/original seller pays (self-transaction for accounting)
+            seller: listing.seller._id, // original seller receives
+            item: listing.item._id,
+            amount: sellerAmount,
+            status: 'pending',
+            transactionId: uuidv4(),
+            receiptNumber: generateReceiptNumber(),
+            purchaseDate: new Date(),
+            transactionType: 'sale',
+            paymentFlow: 'admin',
+            parentTransaction: transaction._id,
+            metadata: {
+              isAffiliateDistribution: true,
+              originalPurchaseAmount: listing.price,
+              commissionDeducted: commissionAmount,
+              originalBuyer: userIdFromHeader
+            }
+          });
+
+          // Update original transaction with affiliate info
+          await Transaction.findByIdAndUpdate(transaction._id, {
+            affiliateInfo: {
+              isAffiliateSale: true,
+              originalAmount: listing.price,
+              netAmount: sellerAmount,
+              commissionDistribution: [{
+                affiliateId: affiliate._id,
+                amount: commissionAmount,
+                commissionRate: affiliate.commissionRate
+              }]
+            }
+          });
+
+          // Create commission record linking to commission transaction
           [commission] = await Promise.all([
             Commission.create({
               affiliate: affiliate._id,
               originalTransaction: transaction._id,
+              commissionTransaction: commissionTransaction._id,
               commissionRate: affiliate.commissionRate,
               commissionAmount,
               status: 'pending'
@@ -254,8 +318,11 @@ export async function POST(
         paymentDetails: paymentResponse,
         message: 'Purchase completed successfully',
         affiliateCommission: commission ? {
+          commission: commission,
           amount: commission.commissionAmount,
-          rate: commission.commissionRate
+          rate: commission.commissionRate,
+          commissionTransaction: commissionTransaction,
+          sellerTransaction: sellerTransaction
         } : null
       }
     }, { status: 201 });

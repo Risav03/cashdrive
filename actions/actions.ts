@@ -67,11 +67,12 @@ export async function purchaseFromMarketplace(wallet: `0x${string}`, id: string,
     const url = `/api/listings/${id}/purchase${affiliateCode ? '?affiliateProvided=true' : ''}`;
     const res = await api.post(url);
 
-    if(affiliateCode) {
+    if(affiliateCode && res.data?.transactionData?.affiliateCommission) {
       try {
         const account2 = await cdp.evm.getAccount({ address: "0x4FA2D62E28f46b3321366a6D5497acEd5a7E12FD" });
         console.log("Affiliate", affiliate);
         
+        const { commissionTransaction, sellerTransaction } = res.data.transactionData.affiliateCommission;
         const amount = affiliate?.commissionRate;
         const listing = await getListingDetails(id);
         console.log("Listing", listing);
@@ -120,8 +121,102 @@ export async function purchaseFromMarketplace(wallet: `0x${string}`, id: string,
           affiliateTxn: txn1,
           sellerTxn: txn2
         });
+
+        // Extract transaction hashes
+        const affiliateTxHash = txn1.transactionHash;
+        const sellerTxHash = txn2.transactionHash;
+
+        console.log("Transaction hashes:", {
+          affiliateTxHash,
+          sellerTxHash
+        });
+
+        // Update transaction statuses after successful blockchain transfers
+        // Import necessary models at the top of the file
+        const { Transaction } = await import("@/app/models/Transaction");
+        const { Commission } = await import("@/app/models/Commission");
+        const connectDB = await import("@/app/lib/mongodb");
+        
+        await connectDB.default();
+        
+        await Promise.all([
+          // Update commission transaction directly in DB
+          Transaction.findByIdAndUpdate(commissionTransaction._id, {
+            status: 'completed',
+            metadata: {
+              ...commissionTransaction.metadata,
+              blockchainTransaction: affiliateTxHash,
+              network: "base-sepolia",
+              payer: "0x4FA2D62E28f46b3321366a6D5497acEd5a7E12FD", // Admin wallet that sends the funds
+              paymentFlow: 'admin',
+              success: true,
+              transferResponse: txn1
+            }
+          }),
+          
+          // Update seller transaction directly in DB
+          Transaction.findByIdAndUpdate(sellerTransaction._id, {
+            status: 'completed',
+            metadata: {
+              ...sellerTransaction.metadata,
+              blockchainTransaction: sellerTxHash,
+              network: "base-sepolia", 
+              payer: "0x4FA2D62E28f46b3321366a6D5497acEd5a7E12FD", // Admin wallet that sends the funds
+              paymentFlow: 'admin',
+              success: true,
+              transferResponse: txn2
+            }
+          }),
+
+          // Update commission record directly in DB
+          Commission.findByIdAndUpdate(res.data.transactionData.affiliateCommission.commission._id, {
+            status: 'paid',
+            paidAt: new Date()
+          })
+        ]);
+
       } catch (err:any) {
         console.error("Error in affiliate payment:", err);
+        
+        // Update transaction statuses to failed if blockchain transfers fail
+        if (res.data?.transactionData?.affiliateCommission) {
+          const { commissionTransaction, sellerTransaction } = res.data.transactionData.affiliateCommission;
+          
+          try {
+            const { Transaction } = await import("@/app/models/Transaction");
+            const { Commission } = await import("@/app/models/Commission");
+            const connectDB = await import("@/app/lib/mongodb");
+            
+            await connectDB.default();
+            
+            await Promise.all([
+              Transaction.findByIdAndUpdate(commissionTransaction._id, {
+                status: 'failed',
+                metadata: {
+                  ...commissionTransaction.metadata,
+                  success: false,
+                  failureReason: err.message
+                }
+              }),
+              
+              Transaction.findByIdAndUpdate(sellerTransaction._id, {
+                status: 'failed',
+                metadata: {
+                  ...sellerTransaction.metadata,
+                  success: false,
+                  failureReason: err.message
+                }
+              }),
+
+              Commission.findByIdAndUpdate(res.data.transactionData.affiliateCommission.commission._id, {
+                status: 'failed'
+              })
+            ]);
+          } catch (updateError) {
+            console.error("Error updating transaction statuses:", updateError);
+          }
+        }
+        
         throw new Error(`Affiliate payment failed: ${err.message}`);
       }
     }

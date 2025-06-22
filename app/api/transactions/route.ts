@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'all';
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
-    const status = searchParams.get('status'); 
+    const status = searchParams.get('status');
+    const transactionType = searchParams.get('transactionType'); // 'purchase', 'sale', 'commission'
+    const paymentFlow = searchParams.get('paymentFlow'); // 'direct', 'admin'
 
     return await dbSession.withTransaction(async () => {
       let query: any = {};
@@ -40,14 +42,24 @@ export async function GET(request: NextRequest) {
         query.status = status;
       }
 
+      if (transactionType) {
+        query.transactionType = transactionType;
+      }
+
+      if (paymentFlow) {
+        query.paymentFlow = paymentFlow;
+      }
+
       const skip = (page - 1) * limit;
       
       const [transactions, total] = await Promise.all([
         Transaction.find(query)
           .populate('listing', 'title price status')
+          .populate('sharedLink', 'title price')
           .populate('buyer', 'name email wallet')
           .populate('seller', 'name email wallet')
           .populate('item', 'name type size mimeType url')
+          .populate('parentTransaction', 'transactionId transactionType amount')
           .sort({ purchaseDate: -1 })
           .skip(skip)
           .limit(limit)
@@ -57,7 +69,8 @@ export async function GET(request: NextRequest) {
       
       const transactionsWithType = transactions.map(transaction => ({
         ...transaction.toObject(),
-        transactionType: transaction.buyer._id.toString() === session.user.id ? 'purchase' : 'sale'
+        // Use the actual transactionType from the database, fall back to inferred type for legacy records
+        userRole: transaction.buyer._id.toString() === session.user.id ? 'buyer' : 'seller'
       }));
 
       return NextResponse.json({

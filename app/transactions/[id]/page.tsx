@@ -39,7 +39,7 @@ export default function TransactionDetailPage() {
         throw new Error('Failed to fetch transaction');
       }
       const data = await response.json();
-      setTransaction(data.transaction);
+      setTransaction(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch transaction');
     } finally {
