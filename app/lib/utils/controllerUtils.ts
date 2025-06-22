@@ -107,26 +107,45 @@ export async function withTransaction<T>(
   handler: (session: mongoose.ClientSession) => Promise<T>
 ): Promise<T> {
   await connectDB();
-  const session = await mongoose.startSession();
   
-  try {
-    await session.startTransaction({
-      readConcern: { level: 'snapshot' },
-      writeConcern: { w: 'majority' }
-    });
+  // Retry logic for transaction conflicts
+  const maxRetries = 3;
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const session = await mongoose.startSession();
     
-    const result = await handler(session);
-    
-    await session.commitTransaction();
-    return result;
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
+    try {
+      return await session.withTransaction(async () => {
+        return await handler(session);
+      }, {
+        readConcern: { level: 'majority' },
+        writeConcern: { w: 'majority' },
+        maxCommitTimeMS: 1000
+      });
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a transaction conflict that we can retry
+      const isRetryableError = error.code === 251 || // NoSuchTransaction
+                              error.code === 112 || // WriteConflict
+                              error.code === 244 || // TransactionTooOld
+                              error.errorLabels?.includes('TransientTransactionError');
+      
+      if (isRetryableError && attempt < maxRetries) {
+        console.log(`Transaction attempt ${attempt} failed, retrying...`, error.message);
+        // Wait a bit before retrying with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+        continue;
+      }
+      
+      throw error;
+    } finally {
+      await session.endSession();
     }
-    throw error;
-  } finally {
-    await session.endSession();
   }
+  
+  throw lastError;
 }
 
 export interface MonetizedContent {

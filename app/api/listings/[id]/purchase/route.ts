@@ -1,3 +1,4 @@
+import { processFileForAI } from '@/app/lib/ai/aiService';
 import { Item, Listing, Transaction, User } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
 import { copyItemWithBFS } from '@/app/lib/utils/itemUtils';
@@ -183,6 +184,20 @@ export async function POST(
 
     const marketplaceFolderId = await getOrCreateMarketplaceFolder(userIdFromHeader);
     const copiedItem = await copyPurchasedItem(listing.item._id.toString(), marketplaceFolderId.toString(), userIdFromHeader);
+
+    // Automatically process the purchased file for AI use
+    try {
+      // Mark the file as marketplace content
+      await Item.findByIdAndUpdate(copiedItem._id, {
+        contentSource: 'marketplace_purchase'
+      });
+      
+      // Process the file for AI
+      await processFileForAI(copiedItem._id.toString());
+    } catch (processError) {
+      console.error('Error auto-processing purchased content for AI:', processError);
+      // Don't fail the purchase if AI processing fails
+    }
 
     let commission = null;
     if (affiliateCodeFromHeader && listing.affiliateEnabled) {
