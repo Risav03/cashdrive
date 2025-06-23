@@ -42,7 +42,7 @@ function ReferralUrlModal({ isOpen, onClose, affiliateCode, contentId, contentTy
       <div className="bg-white border-2 border-black brutal-shadow-left max-w-lg w-full">
         <div className="bg-green-100 border-b-2 border-black p-4">
           <div className="flex justify-between items-center">
-            <h2 className="font-anton text-xl">🎉 YOU'RE NOW AN AFFILIATE!</h2>
+            <h2 className="font-anton text-xl">🎉 YOU&apos;RE NOW AN AFFILIATE!</h2>
             <button
               onClick={onClose}
               className="text-2xl hover:scale-110 transition-transform"
@@ -257,7 +257,7 @@ export default function AffiliateSetupModal({
                 </div>
                 <div className="bg-green-50 border-2 border-green-300 p-3">
                   <p className="font-freeman text-sm">
-                    You'll earn commission when people purchase through your referral link.
+                    You&apos;ll earn commission when people purchase through your referral link.
                   </p>
                 </div>
               </>

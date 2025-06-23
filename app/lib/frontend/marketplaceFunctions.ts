@@ -3,8 +3,13 @@ import {
   CreateListingOptions,
   Listing,
   ListingFilters,
-  ListingsResponse
+  ListingsResponse,
+  TransactionFilters,
+  TransactionsResponse
 } from '../types';
+import { IconType } from 'react-icons';
+import { FaFile, FaFileArchive, FaFileCode, FaFileCsv, FaFileExcel, FaFilePdf, FaFileWord, FaImage, FaMusic, FaVideo } from 'react-icons/fa';
+import { purchaseFromMarketplace } from '@/actions/actions';
 
 const API_ENDPOINTS = {
   listings: '/api/listings',
@@ -196,7 +201,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   }
 }
 
-export async function getTransaction(transactionId: string): Promise<Transaction> {
+export async function getTransaction(transactionId: string): Promise<any> {
   try {
     const response = await axios.get(`/api/transactions/${transactionId}`);
     console.log("res from purchase", response)
