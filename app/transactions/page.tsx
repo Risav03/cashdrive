@@ -196,12 +196,12 @@ export default function TransactionsPage() {
         ) : (
           <>
             {/* Transactions List */}
-            <div className="bg-white border-2 border-black brutal-shadow-left overflow-hidden">
-              <ul className="divide-y-2 divide-black">
+            <div className="">
+              <ul className="">
                 {transactions.map((transaction) => (
                   <li key={transaction._id} className="relative">
                     <Link href={`/transactions/${transaction._id}`} className="block">
-                      <div className="bg-white border-2 border-black brutal-shadow-left p-4 hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all">
+                      <div className="bg-white border-2 border-black button-primary p-4 ">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center gap-3">

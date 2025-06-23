@@ -94,7 +94,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       return (
         <div className="relative w-full h-full">
           <Image
-            src={`/api/items/${item._id}/content`}
+            src={item.url}
             alt={item.name}
             className="object-contain w-full h-full"
             width={800}
@@ -107,7 +107,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
 
     if (item.mimeType?.startsWith('video/')) {
       return (
-        <div className="h-full flex items-center justify-center p-4">
+        <div className="h-full flex items-center justify-center">
           <video 
             src={item.url} 
             controls

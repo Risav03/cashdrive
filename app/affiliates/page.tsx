@@ -3,6 +3,7 @@
 import AffiliateCard from '@/app/components/Affiliates/AffiliateCard';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
+import { DashboardCard } from '@/app/components/ui/DashboardCard';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -185,6 +186,8 @@ export default function AffiliatesPage() {
             Manage your affiliate partnerships and track your earnings
           </p>
         </div>
+
+        <DashboardCard />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
