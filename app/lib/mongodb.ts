@@ -28,10 +28,7 @@ async function connectDB() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: true, // Changed to true to allow buffering
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45s
-      maxPoolSize: 10, // Maintain up to 10 socket connections
+      bufferCommands: false
     };
 
     cached.promise = mongoose.connect(secrets.MONGODB_URI, opts);

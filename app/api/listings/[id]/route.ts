@@ -1,4 +1,5 @@
 import { Listing } from '@/app/lib/models';
+import connectDB from '@/app/lib/mongodb';
 import {
   validateMonetizedContent,
   withAuthCheck,
@@ -49,6 +50,7 @@ async function getListingWithAuth(
   if (!isValidObjectId(listingId)) {
     throw new Error('Invalid listing ID format');
   }
+  await connectDB()
 
   const listing = await Listing.findById(listingId)
     .populate('item', 'name type size mimeType url')

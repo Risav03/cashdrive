@@ -32,6 +32,8 @@ export async function handlePaginatedRequest<T>(
   const limit = parseInt(String(params.limit || '20'));
   const skip = (page - 1) * limit;
 
+  await connectDB()
+
   let findQuery = model.find(query);
   
   if (params.populate) {
