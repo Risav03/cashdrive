@@ -28,16 +28,30 @@ async function connectDB() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false,
+      bufferCommands: true, // Changed to true to allow buffering
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45s
+      maxPoolSize: 10, // Maintain up to 10 socket connections
     };
 
-    cached.promise = mongoose.connect(secrets.MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    cached.promise = mongoose.connect(secrets.MONGODB_URI, opts);
   }
 
   try {
     cached.conn = await cached.promise;
+    
+    // Add connection error handler
+    cached.conn.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+      cached.promise = null;
+    });
+
+    // Add disconnection handler
+    cached.conn.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected. Clearing cache...');
+      cached.promise = null;
+    });
+
   } catch (e) {
     cached.promise = null;
     throw e;
@@ -46,4 +60,4 @@ async function connectDB() {
   return cached.conn;
 }
 
-export default connectDB; 
+export default connectDB;
