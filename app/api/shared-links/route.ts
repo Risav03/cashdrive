@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     };
     
     if (type && ['public', 'monetized'].includes(type)) {
-      query?.type = type;
+      query.type = type;
     }
     
     const { items: links, pagination } = await handlePaginatedRequest(

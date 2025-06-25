@@ -195,10 +195,10 @@ export default function SharedLinkPage() {
           <div className="bg-primary border-b-2 border-black p-6">
             <div className="flex items-center gap-4">
               <span className="text-4xl">
-                {link.item??.type === 'folder' ? (
+                {link.item?.type === 'folder' ? (
                   <FaFolder className="w-10 h-10" />
                 ) : (
-                  React.createElement(getFileIcon(link.item??.mimeType), {
+                  React.createElement(getFileIcon(link.item?.mimeType), {
                     className: "w-10 h-10"
                   })
                 )}
@@ -206,7 +206,7 @@ export default function SharedLinkPage() {
               <div>
                 <h1 className="text-2xl font-anton mb-1">{link.title}</h1>
                 <p className="font-freeman">
-                  {link.item?.name} • {link.item??.type}
+                  {link.item?.name} • {link.item?.type}
                   {link.item?.size && ` • ${formatFileSize(link.item.size)}`}
                 </p>
               </div>
