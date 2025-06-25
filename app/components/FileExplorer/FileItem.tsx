@@ -19,10 +19,10 @@ interface FileItemProps {
 export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem, onDeleteItem }: FileItemProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { openFileViewer } = useApp();
-  const IconComponent = item.type === 'folder' ? FaFolder : getFileIcon(item.mimeType);
+  const IconComponent = item?.type === 'folder' ? FaFolder : getFileIcon(item?.mimeType);
 
   const handleItemClick = () => {
-    if (item.type === 'folder') {
+    if (item?.type === 'folder') {
       onItemClick(item);
     } else {
       openFileViewer(item);
@@ -69,7 +69,7 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem, 
             <div className="mb-2">
               <div className="flex items-center gap-2">
                 <span className="font-freeman text-xs px-2 py-0.5 bg-white border-2 border-black brutal-shadow-center">
-                  {item.type}
+                  {item?.type}
                 </span>
                 {isAIReady && (
                   <span className="font-freeman text-xs px-2 py-0.5 bg-green-100 border-2 border-black brutal-shadow-center flex items-center gap-1">
@@ -93,9 +93,9 @@ export const FileItem = ({ item, onItemClick, onListToMarketplace, onShareItem, 
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-freeman truncate text-sm">{item.name}</div>
-                {item.type === 'file' && item.mimeType && (
+                {item?.type === 'file' && item?.mimeType && (
                   <div className="font-freeman text-xs truncate text-gray-700">
-                    {item.mimeType}
+                    {item?.mimeType}
                   </div>
                 )}
               </div>

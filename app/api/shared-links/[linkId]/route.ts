@@ -21,7 +21,7 @@ async function getAndValidateLink(linkId: string, session?: any) {
     throw new Error('Link has expired');
   }
 
-  if (!['public', 'monetized'].includes(sharedLink.type)) {
+  if (!['public', 'monetized'].includes(sharedLink?.type)) {
     throw new Error('Invalid link type');
   }
   
@@ -45,7 +45,7 @@ export async function GET(
     }
     
     return NextResponse.json(
-      createAccessResponse(sharedLink, sharedLink.type === 'monetized', userId)
+      createAccessResponse(sharedLink, sharedLink?.type === 'monetized', userId)
     );
   }, {
     'expired': 410,
@@ -65,7 +65,7 @@ export async function POST(
     return await withTransaction(async (session) => {
       const sharedLink = await getAndValidateLink(linkId);
       
-      if (sharedLink.type === 'monetized' && 
+      if (sharedLink?.type === 'monetized' && 
           !sharedLink.paidUsers.some((paidUserId: any) => paidUserId.toString() === userId)) {
         throw new Error('Payment required to access this content');
       }

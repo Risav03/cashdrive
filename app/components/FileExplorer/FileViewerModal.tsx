@@ -15,7 +15,7 @@ interface FileViewerModalProps {
 
 export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const IconComponent = getFileIcon(item.mimeType);
+  const IconComponent = getFileIcon(item?.mimeType);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -33,8 +33,8 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
     console.log('Rendering content:', {
       url: item.url,
       mime: item.mime,
-      mimeType: item.mimeType,
-      type: item.type
+      mimeType: item?.mimeType,
+      type: item?.type
     });
 
     if (!item.url) {
@@ -49,7 +49,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
     }
 
     const isAudio = item.mime?.startsWith('audio/') || 
-                   item.mimeType?.startsWith('audio/') ||
+                   item?.mimeType?.startsWith('audio/') ||
                    item.url.match(/\.(mp3|wav|ogg|m4a)$/i);
 
     if (isAudio) {
@@ -68,7 +68,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
               className="w-full"
               preload="metadata"
             >
-              <source src={item.url} type={item.mime || item.mimeType || 'audio/mpeg'} />
+              <source src={item.url} type={item.mime || item?.mimeType || 'audio/mpeg'} />
               <a href={item.url} download={item.name} className="text-blue-500 hover:underline">
                 Download Audio
               </a>
@@ -90,7 +90,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
-    if (item.type === 'file' && item.mimeType?.startsWith('image/')) {
+    if (item?.type === 'file' && item?.mimeType?.startsWith('image/')) {
       return (
         <div className="relative w-full h-full">
           <Image
@@ -105,7 +105,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
-    if (item.mimeType?.startsWith('video/')) {
+    if (item?.mimeType?.startsWith('video/')) {
       return (
         <div className="h-full flex items-center justify-center">
           <video 
@@ -119,7 +119,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
-    if (item.mimeType === 'application/pdf') {
+    if (item?.mimeType === 'application/pdf') {
       return (
         <iframe
           src={item.url}
@@ -129,11 +129,11 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
       );
     }
 
-    if (item.mimeType?.startsWith('text/') || 
-        item.mimeType?.includes('javascript') || 
-        item.mimeType?.includes('json') || 
-        item.mimeType?.includes('xml') || 
-        item.mimeType?.includes('css')) {
+    if (item?.mimeType?.startsWith('text/') || 
+        item?.mimeType?.includes('javascript') || 
+        item?.mimeType?.includes('json') || 
+        item?.mimeType?.includes('xml') || 
+        item?.mimeType?.includes('css')) {
       return (
         <iframe
           src={item.url}
@@ -177,7 +177,7 @@ export const FileViewerModal = ({ isOpen, onClose, item }: FileViewerModalProps)
             <div>
               <h2 className="font-freeman text-lg">{item.name}</h2>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{item.mime || item.mimeType}</span>
+                <span>{item.mime || item?.mimeType}</span>
                 {item.size && (
                   <>
                     <span>•</span>

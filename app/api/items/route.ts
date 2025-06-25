@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
         if (parentId) {
           const parentFolder = await Item.findById(parentId).session(dbSession);
-          if (!parentFolder || parentFolder.type !== 'folder') {
+          if (!parentFolder || parentFolder?.type !== 'folder') {
             throw new Error('Invalid parent folder');
           }
           
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
         if (file) {
           fileSize = file.size;
-          mimeType = file.type;
+          mimeType = file?.type;
 
           if (validateS3Config()) {
             try {
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
         if (parentId) {
           const parentFolder = await Item.findById(parentId).session(dbSession);
-          if (!parentFolder || parentFolder.type !== 'folder') {
+          if (!parentFolder || parentFolder?.type !== 'folder') {
             throw new Error('Invalid parent folder');
           }
           

@@ -157,11 +157,11 @@ export interface MonetizedContent {
 }
 
 export function validateMonetizedContent(content: MonetizedContent) {
-  if (!['public', 'monetized'].includes(content.type)) {
+  if (!['public', 'monetized'].includes(content?.type)) {
     throw new Error('Type must be either "public" or "monetized"');
   }
 
-  if (content.type === 'monetized' && (!content.price || typeof content.price !== 'number' || content.price <= 0)) {
+  if (content?.type === 'monetized' && (!content.price || typeof content.price !== 'number' || content.price <= 0)) {
     throw new Error('Price is required for monetized content and must be greater than 0');
   }
 }
@@ -189,12 +189,12 @@ export function createAccessResponse(
     _id: content._id,
     title: content.title,
     description: content.description,
-    type: content.type,
+    type: content?.type,
     price: content.price,
     owner: content.owner,
     item: content.item ? {
       name: content.item.name,
-      type: content.item.type,
+      type: content.item?.type,
       size: content.item.size
     } : undefined
   };

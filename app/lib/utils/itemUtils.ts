@@ -64,16 +64,16 @@ export async function copyItemWithBFS(originalItemId: string, newParentId: strin
 
   const rootCopy = await Item.create({
     name: newName,
-    type: originalItem.type,
+    type: originalItem?.type,
     parentId: newParentId,
     size: originalItem.size || 0,
-    mimeType: originalItem.mimeType,
+    mimeType: originalItem?.mimeType,
     url: originalItem.url,
     owner: ownerId,
     contentSource: 'shared_link'
   });
 
-  if (originalItem.type === 'folder') {
+  if (originalItem?.type === 'folder') {
     queue.push({
       originalId: originalItem._id.toString(),
       newParentId: rootCopy._id.toString(),
@@ -106,16 +106,16 @@ export async function copyItemWithBFS(originalItemId: string, newParentId: strin
         
         const copy = await Item.create({
           name: childName,
-          type: child.type,
+          type: child?.type,
           parentId: newParentId,
           size: child.size || 0,
-          mimeType: child.mimeType,
+          mimeType: child?.mimeType,
           url: child.url,
           owner: ownerId,
           contentSource: 'shared_link'
         });
 
-        if (child.type === 'folder') {
+        if (child?.type === 'folder') {
           queue.push({
             originalId: child._id.toString(),
             newParentId: copy._id.toString(),
@@ -190,11 +190,11 @@ export function createLinkAccessResponse(link: any, isMonetized: boolean, userId
     _id: link._id,
     title: link.title,
     description: link.description,
-    type: link.type,
+    type: link?.type,
     price: link.price,
     item: {
       name: link.item.name,
-      type: link.item.type,
+      type: link.item?.type,
       size: link.item.size
     }
   };

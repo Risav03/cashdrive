@@ -195,10 +195,10 @@ export default function SharedLinkPage() {
           <div className="bg-primary border-b-2 border-black p-6">
             <div className="flex items-center gap-4">
               <span className="text-4xl">
-                {link.item?.type === 'folder' ? (
+                {link.item??.type === 'folder' ? (
                   <FaFolder className="w-10 h-10" />
                 ) : (
-                  React.createElement(getFileIcon(link.item?.mimeType), {
+                  React.createElement(getFileIcon(link.item??.mimeType), {
                     className: "w-10 h-10"
                   })
                 )}
@@ -206,7 +206,7 @@ export default function SharedLinkPage() {
               <div>
                 <h1 className="text-2xl font-anton mb-1">{link.title}</h1>
                 <p className="font-freeman">
-                  {link.item?.name} • {link.item?.type}
+                  {link.item?.name} • {link.item??.type}
                   {link.item?.size && ` • ${formatFileSize(link.item.size)}`}
                 </p>
               </div>
@@ -226,8 +226,8 @@ export default function SharedLinkPage() {
             {/* Link Type Badge */}
             <div className="mb-6">
               <span className="px-3 py-1 bg-primary border-2 border-black brutal-shadow-center font-freeman inline-block">
-                {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
-                {link.type === 'monetized' && link.price && ` - ${formatPrice(link.price)}`}
+                {link?.type === 'public' ? '🌐 Public' : '💰 Monetized'}
+                {link?.type === 'monetized' && link.price && ` - ${formatPrice(link.price)}`}
               </span>
               {isOwner && (
                 <span className="ml-2 px-3 py-1 bg-amber-200 border-2 border-black brutal-shadow-center font-freeman inline-block">
@@ -268,7 +268,7 @@ export default function SharedLinkPage() {
               )}
 
               {/* Public Link - Can Access */}
-              {!isOwner && canAccess && link.type === 'public' && (
+              {!isOwner && canAccess && link?.type === 'public' && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6">
                   <p className="font-freeman mb-4">
                     This content is freely available. Click below to add it to your drive.
@@ -300,7 +300,7 @@ export default function SharedLinkPage() {
               )}
 
               {/* Monetized Link - Already Paid */}
-              {!isOwner && canAccess && link.type === 'monetized' && alreadyPaid && (
+              {!isOwner && canAccess && link?.type === 'monetized' && alreadyPaid && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6">
                   <div className="font-freeman mb-4">
                     ✅ You have already purchased this content

@@ -387,7 +387,7 @@ export default function TransactionDetailPage() {
                   <h2 className="text-xl font-anton mb-4">Item Details</h2>
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      <span className="text-4xl">{createElement(getFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}</span>
+                      <span className="text-4xl">{createElement(getFileIcon(transaction.item?.mimeType), { className: "w-6 h-6" })}</span>
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-medium text-gray-900">{transaction.listing?.title || transaction.metadata?.sharedLinkTitle || transaction.item.name}</h3>
@@ -398,7 +398,7 @@ export default function TransactionDetailPage() {
                         </div>
                         <div>
                           <span className="text-gray-500">File Type:</span>
-                          <span className="ml-2 text-gray-900">{transaction.item.type}</span>
+                          <span className="ml-2 text-gray-900">{transaction.item?.type}</span>
                         </div>
                         {transaction.item.size && (
                           <div>
@@ -406,10 +406,10 @@ export default function TransactionDetailPage() {
                             <span className="ml-2 text-gray-900">{(transaction.item.size / 1024 / 1024).toFixed(2)} MB</span>
                           </div>
                         )}
-                        {transaction.item.mimeType && (
+                        {transaction.item?.mimeType && (
                           <div>
                             <span className="text-gray-500">MIME Type:</span>
-                            <span className="ml-2 text-gray-900">{transaction.item.mimeType}</span>
+                            <span className="ml-2 text-gray-900">{transaction.item?.mimeType}</span>
                           </div>
                         )}
                       </div>

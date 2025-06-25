@@ -23,7 +23,7 @@ const itemSchema = new mongoose.Schema({
   size: {
     type: Number,
     required: function(this: any) {
-      return this.type === 'file';
+      return this?.type === 'file';
     }
   },
   mimeType: {

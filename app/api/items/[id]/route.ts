@@ -87,11 +87,11 @@ export async function PUT(request: NextRequest) {
             owner: session.user.id 
           }).session(dbSession);
           
-          if (!parentFolder || parentFolder.type !== 'folder') {
+          if (!parentFolder || parentFolder?.type !== 'folder') {
             throw new Error('Invalid parent folder');
           }
           
-          if (item.type === 'folder') {
+          if (item?.type === 'folder') {
             const isDescendant = await checkIfDescendantWithSession(item._id, parentId, dbSession);
             if (isDescendant) {
               throw new Error('Cannot move folder into itself or its children');
@@ -157,7 +157,7 @@ export async function DELETE(request: NextRequest) {
       const s3DeletionPromises = [];
       if (validateS3Config()) {
         for (const itemToDelete of itemsToDelete) {
-          if (itemToDelete.type === 'file' && itemToDelete.url && itemToDelete.url.startsWith('https://')) {
+          if (itemToDelete?.type === 'file' && itemToDelete.url && itemToDelete.url.startsWith('https://')) {
             s3DeletionPromises.push(
               deleteFileFromS3ByUrl(itemToDelete.url)
                 .then(() => console.log(`Deleted S3 object: ${itemToDelete.url}`))
@@ -206,7 +206,7 @@ async function collectItemsToDeleteWithSession(
   const itemsToDelete = [item];
   console.log('itemsToDelete', itemsToDelete);
 
-  if (item.type === 'folder') {
+  if (item?.type === 'folder') {
     const children = await Item.find({ parentId: itemId }).session(session);
     for (const child of children) {
       const childItems = await collectItemsToDeleteWithSession(child._id, ownerId, session);

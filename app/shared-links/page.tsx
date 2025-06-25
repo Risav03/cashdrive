@@ -148,7 +148,7 @@ export default function SharedLinksPage() {
                     _id: link._id,
                     title: link.title,
                     description: link.description,
-                    type: link.type,
+                    type: link?.type,
                     price: link.price,
                     item: link.item,
                     accessCount: link.accessCount,

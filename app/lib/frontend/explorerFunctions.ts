@@ -76,7 +76,7 @@ export async function getBreadcrumbPath(folderId: string): Promise<BreadcrumbIte
   try {
     const response = await axios.get(`/api/items/path?itemId=${encodeURIComponent(folderId)}`);
     if (Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({ id: item.id, name: item.name, type: item.type }));
+      return response.data.map((item: any) => ({ id: item.id, name: item.name, type: item?.type }));
     } else {
       throw new Error('Invalid response format');
     }
@@ -94,9 +94,9 @@ export async function uploadItem(options: UploadOptions): Promise<Item> {
     formData.append('name', options.name);
     formData.append('parentId', options.parentId);
     
-    if (options.type === 'file' && options.file) {
+    if (options?.type === 'file' && options.file) {
       formData.append('file', options.file);
-    } else if (options.type === 'url' && options.url) {
+    } else if (options?.type === 'url' && options.url) {
       formData.append('url', options.url);
     } else {
       throw new Error('Invalid upload options: must provide either file or URL');
@@ -180,7 +180,7 @@ export async function updateItem(itemId: string, updates: UpdateItemOptions): Pr
     
     let response;
     
-    if (item.type === 'file') {
+    if (item?.type === 'file') {
       const formData = new FormData();
       if (updates.name) {
         formData.append('name', updates.name);

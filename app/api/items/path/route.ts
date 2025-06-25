@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       path.unshift({
         id: item._id,
         name: item.name,
-        type: item.type
+        type: item?.type
       });
 
       if (item._id.toString() === userSession.user.rootFolder?.toString()) break;

@@ -35,7 +35,7 @@ export async function uploadFileToS3(
       Bucket: BUCKET_NAME,
       Key: key,
       Body: buffer,
-      ContentType: file.type,
+      ContentType: file?.type,
       ContentLength: file.size,
     };
 

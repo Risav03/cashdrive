@@ -123,7 +123,7 @@ export default function CreateListingModal({
             <div className="bg-white border-2 border-black p-4 brutal-shadow-center">
               <p className="font-freeman">Selected file:</p>
               <p className="font-freeman text-lg">{selectedItem.name}</p>
-              <p className="font-freeman text-sm">Type: {selectedItem.type}</p>
+              <p className="font-freeman text-sm">Type: {selectedItem?.type}</p>
             </div>
           )}
 

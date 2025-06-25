@@ -294,7 +294,7 @@ async function calculateSimilarityScores(
           item: {
             _id: item._id,
             name: item.name,
-            mimeType: item.mimeType,
+            mimeType: item?.mimeType,
             contentSource: item.contentSource || CONTENT_SOURCES.USER_UPLOAD
           },
           chunk: {
@@ -370,12 +370,12 @@ export async function processFileForAI(itemId: string): Promise<void> {
       throw new Error(ERROR_MESSAGES.ITEM_NOT_FOUND);
     }
 
-    if (!isProcessableFile(item.mimeType)) {
-      console.log(`${LOG_MESSAGES.SKIPPING_NON_PROCESSABLE} ${item.mimeType}`);
+    if (!isProcessableFile(item?.mimeType)) {
+      console.log(`${LOG_MESSAGES.SKIPPING_NON_PROCESSABLE} ${item?.mimeType}`);
       return;
     }
 
-    if (isPdfFile(item.mimeType)) {
+    if (isPdfFile(item?.mimeType)) {
       console.log(`${LOG_MESSAGES.PROCESSING_PDF} ${item.name} ${LOG_MESSAGES.PDF_LIMITED_EXTRACTION}`);
     }
 
@@ -386,7 +386,7 @@ export async function processFileForAI(itemId: string): Promise<void> {
 
     // Download and process file using S3 service
     const fileBuffer = await downloadFileFromS3(item.url);
-    const processingResult = await processAndStoreChunks(itemId, fileBuffer, item.mimeType);
+    const processingResult = await processAndStoreChunks(itemId, fileBuffer, item?.mimeType);
     
     // Update item with results
     await updateItemProcessingStatus(itemId, processingResult);
@@ -428,7 +428,7 @@ export async function getProcessedFiles(userId: string) {
     // Only include necessary fields
     name: item.name,
     aiProcessing: item.aiProcessing,
-    mimeType: item.mimeType,
+    mimeType: item?.mimeType,
     contentSource: item.contentSource
   }));
 }

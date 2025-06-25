@@ -109,8 +109,8 @@ const formatListing = (listing: any): FormattedListing => ({
   seller: listing.seller,
   item: {
     name: listing.item.name,
-    type: listing.item.type,
-    mimeType: listing.item.mimeType,
+    type: listing.item?.type,
+    mimeType: listing.item?.mimeType,
   },
 });
 
@@ -197,7 +197,7 @@ function calculateContentTypeScore(listing: any, context: ScoringContext): Scori
   }
 
   const relevantTypes = CONTENT_TYPE_MAP[context.contentType.toLowerCase()] || [];
-  const itemType = listing.item.mimeType || '';
+  const itemType = listing.item?.mimeType || '';
   const titleAndTags = normalizeText(`${listing.title} ${listing.tags.join(' ')}`);
 
   const hasTypeMatch = relevantTypes.some(type =>

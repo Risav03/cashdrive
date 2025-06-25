@@ -269,9 +269,9 @@ class CashDriveMCPServer {
     if (data.item) {
       response += `\nItem Details:\n`;
       response += `  Name: ${data.item.name}\n`;
-      response += `  Type: ${data.item.type}\n`;
+      response += `  Type: ${data.item?.type}\n`;
       if (data.item.size) response += `  Size: ${this.formatFileSize(data.item.size)}\n`;
-      if (data.item.mimeType) response += `  MIME Type: ${data.item.mimeType}\n`;
+      if (data.item?.mimeType) response += `  MIME Type: ${data.item?.mimeType}\n`;
     }
 
     return {

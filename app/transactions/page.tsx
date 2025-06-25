@@ -141,7 +141,7 @@ export default function TransactionsPage() {
                 Transaction Type
               </label>
               <select
-                value={filters.type}
+                value={filters?.type}
                 onChange={(e) => handleFilterChange({ type: e.target.value as any })}
                 className="w-full bg-amber-100 border-2 border-black p-2 font-freeman brutal-shadow-left focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -180,9 +180,9 @@ export default function TransactionsPage() {
           <div className="text-center py-12 bg-white border-2 border-black brutal-shadow-right">
             <h3 className="text-2xl font-anton mb-4">No transactions found</h3>
             <p className="text-lg font-freeman mb-6">
-              {filters.type === 'purchases' 
+              {filters?.type === 'purchases' 
                 ? "You haven't made any purchases yet." 
-                : filters.type === 'sales'
+                : filters?.type === 'sales'
                 ? "You haven't made any sales yet."
                 : "You don't have any transactions yet."}
             </p>
@@ -206,7 +206,7 @@ export default function TransactionsPage() {
                           <div>
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">
-                                {createElement(getExplorerFileIcon(transaction.item.mimeType), { className: "w-6 h-6" })}
+                                {createElement(getExplorerFileIcon(transaction.item?.mimeType), { className: "w-6 h-6" })}
                               </span>
                               <div>
                                 <p className="text-lg font-freeman">

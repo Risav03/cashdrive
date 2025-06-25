@@ -132,7 +132,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   }
 
   const handleItemClick = (item: Item) => {
-    if (item.type === 'folder') {
+    if (item?.type === 'folder') {
       setCurrentFolder(item);
     } else {
       console.log('File clicked:', item);

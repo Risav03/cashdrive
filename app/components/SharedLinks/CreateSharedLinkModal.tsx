@@ -37,12 +37,12 @@ export default function CreateSharedLinkModal({
     try {
       const linkData: any = {
         itemId: item._id,
-        type: formData.type,
+        type: formData?.type,
         title: formData.title,
         description: formData.description
       };
 
-      if (formData.type === 'monetized') {
+      if (formData?.type === 'monetized') {
         linkData.price = formData.price;
       }
 
@@ -146,16 +146,16 @@ export default function CreateSharedLinkModal({
               <div className="p-4 bg-white border-2 border-black brutal-shadow-left">
                 <div className="flex items-center gap-3">
                   <div className="text-3xl flex-shrink-0">
-                    {item.type === 'folder' 
+                    {item?.type === 'folder' 
                       ? <FaFolder className="w-6 h-6" />
-                      : createElement(getFileIcon(item.mimeType), { className: "w-6 h-6" })
+                      : createElement(getFileIcon(item?.mimeType), { className: "w-6 h-6" })
                     }
                   </div>
                   <div className="min-w-0"> {/* prevent text overflow */}
                     <div className="font-freeman truncate">{item.name}</div>
                     <div className="font-freeman text-xs">
                       <span className="px-2 py-0.5 bg-primary border-2 border-black brutal-shadow-center inline-block">
-                        {item.type}
+                        {item?.type}
                       </span>
                     </div>
                   </div>
@@ -169,7 +169,7 @@ export default function CreateSharedLinkModal({
                 <label 
                   className={`
                     flex-1 border-2 border-black p-4 cursor-pointer transition-all
-                    ${formData.type === 'public' 
+                    ${formData?.type === 'public' 
                       ? 'bg-primary button-primary-pressed' 
                       : 'bg-white button-primary duration-100'
                     }
@@ -179,7 +179,7 @@ export default function CreateSharedLinkModal({
                     type="radio"
                     name="type"
                     value="public"
-                    checked={formData.type === 'public'}
+                    checked={formData?.type === 'public'}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as 'public' })}
                     className="sr-only" // Hide the default radio button
                   />
@@ -194,7 +194,7 @@ export default function CreateSharedLinkModal({
                 <label 
                   className={`
                     flex-1 border-2 border-black p-4 cursor-pointer transition-all
-                    ${formData.type === 'monetized' 
+                    ${formData?.type === 'monetized' 
                       ? 'bg-primary button-primary-pressed' 
                       : 'bg-white button-primary duration-100'
                     }
@@ -204,7 +204,7 @@ export default function CreateSharedLinkModal({
                     type="radio"
                     name="type"
                     value="monetized"
-                    checked={formData.type === 'monetized'}
+                    checked={formData?.type === 'monetized'}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as 'monetized' })}
                     className="sr-only" // Hide the default radio button
                   />
@@ -242,7 +242,7 @@ export default function CreateSharedLinkModal({
               />
             </div>
 
-            {formData.type === 'monetized' && (
+            {formData?.type === 'monetized' && (
               <div>
                 <label className="font-freeman block mb-2">Price (USD) *</label>
                 <div className="relative">

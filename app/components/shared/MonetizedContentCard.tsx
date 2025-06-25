@@ -35,7 +35,7 @@ export default function MonetizedContentCard({
   showStats = false,
   className = ''
 }: MonetizedContentCardProps) {
-  const FileIcon = content.item.type === 'folder' ? FaFolder : getFileIcon(content.item.mimeType || '');
+  const FileIcon = content?.item?.type === 'folder' ? FaFolder : getFileIcon(content.item?.mimeType || '');
 
   return (
     <div className={`bg-white border-2 border-black brutal-shadow-left p-6 h-full ${className}`}>
@@ -46,30 +46,30 @@ export default function MonetizedContentCard({
             <FileIcon />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-freeman font-semibold mb-1 truncate">{content.title}</h3>
+            <h3 className="text-lg font-freeman font-semibold mb-1 truncate">{content?.title}</h3>
             <p className="text-sm font-freeman truncate">
-              {content.item.name}
-              {content.item.size && ` • ${formatFileSize(content.item.size)}`}
+              {content?.item?.name}
+              {content?.item?.size && ` • ${formatFileSize(content?.item?.size)}`}
             </p>
           </div>
         </div>
 
         {/* Type and Price */}
         <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 border-2 border-black font-freeman inline-block ${getContentTypeColor(content.type)}`}>
-            {getContentTypeLabel(content.type)}
-          </span>
-          {content.type === 'monetized' && content.price && (
-            <span className="font-freeman">
-              {formatPrice(content.price)}
+          {/* <span className={`px-3 py-1 border-2 border-black font-freeman inline-block ${getContentTypeColor(content?.type)}`}>
+            {getContentTypeLabel(content?.type)}
+          </span> */}
+          {content?.type === 'monetized' && content?.price && (
+            <span className="font-freeman bg-green-200 text-green-600 border-2 border-green-600 px-3 py-1">
+              {formatPrice(content?.price)}
             </span>
           )}
         </div>
 
         {/* Description */}
-        {content.description && (
+        {content?.description && (
           <div className="font-freeman">
-            <p className="text-sm line-clamp-2">{content.description}</p>
+            <p className="text-sm line-clamp-2">{content?.description}</p>
           </div>
         )}
 
@@ -77,19 +77,19 @@ export default function MonetizedContentCard({
           {/* Stats */}
           {showStats && (
             <div className="font-freeman flex gap-4">
-              <p className="text-sm">{content.accessCount || 0} views</p>
-              {content.type === 'monetized' && (
+              <p className="text-sm">{content?.accessCount || 0} views</p>
+              {/* {content?.type === 'monetized' && (
                 <p className="text-sm">
                   {content.paidUsers?.length || 0} paid
                 </p>
-              )}
+              )} */}
             </div>
           )}
 
           {/* Date */}
           <div className="font-freeman ml-auto">
             <p className="text-sm">
-              Created {formatDate(content.createdAt)}
+              Created {formatDate(content?.createdAt)}
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function MonetizedContentCard({
                 View
               </button>
             )}
-            {onPurchase && content.type === 'monetized' && (
+            {onPurchase && content?.type === 'monetized' && (
               <button
                 onClick={onPurchase}
                 className="px-4 py-2 border-2 border-black font-freeman bg-primary button-primary ml-auto"

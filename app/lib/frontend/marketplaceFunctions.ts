@@ -186,7 +186,7 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
   try {
     const params = new URLSearchParams();
     
-    if (filters.type) params.append('type', filters.type);
+    if (filters?.type) params.append('type', filters?.type);
     if (filters.status) params.append('status', filters.status);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.page) params.append('page', filters.page.toString());

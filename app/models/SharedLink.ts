@@ -44,7 +44,7 @@ const sharedLinkSchema = new Schema<ISharedLink>({
     type: Number,
     min: 0,
     required: function(this: ISharedLink) {
-      return this.type === 'monetized';
+      return this?.type === 'monetized';
     }
   },
   title: {

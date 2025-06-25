@@ -26,7 +26,7 @@ export async function GET(
 
     // Determine access conditions
     const isOwner = session?.user?.id === sharedLink.owner?._id?.toString();
-    const requiresPayment = sharedLink.type === 'monetized';
+    const requiresPayment = sharedLink?.type === 'monetized';
     const requiresAuth = requiresPayment && !session;
     const alreadyPaid = false; // TODO: Check transaction history
     const canAccess = isOwner || !requiresPayment || alreadyPaid;
@@ -35,7 +35,7 @@ export async function GET(
     const link = {
       title: sharedLink.title || '',
       description: sharedLink.description || '',
-      type: sharedLink.type || 'public',
+      type: sharedLink?.type || 'public',
       price: sharedLink.price || 0,
       item: sharedLink.item || null,
       owner: sharedLink.owner || null,

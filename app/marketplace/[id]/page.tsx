@@ -267,7 +267,7 @@ export default function ListingDetailPage() {
               {/* Left side content */}
               <div className="flex items-start gap-4">
                 <span className="text-5xl shrink-0">
-                  {createElement(listing.item.type === 'folder' ? FaFolder : getFileIcon(listing.item.mimeType), { className: "w-12 h-12" })}
+                  {createElement(listing.item?.type === 'folder' ? FaFolder : getFileIcon(listing.item?.mimeType), { className: "w-12 h-12" })}
                 </span>
                 <div className="min-w-0">
                   <h1 className="text-2xl font-freeman mb-2 break-words">{listing.title}</h1>
@@ -343,7 +343,7 @@ export default function ListingDetailPage() {
                     </div>
                     <div className="flex justify-between">
                       <span>Type:</span>
-                      <span>{listing.item.type}</span>
+                      <span>{listing.item?.type}</span>
                     </div>
                     {listing.item.size && (
                       <div className="flex justify-between">
@@ -351,10 +351,10 @@ export default function ListingDetailPage() {
                         <span>{formatFileSize(listing.item.size)}</span>
                       </div>
                     )}
-                    {listing.item.mimeType && (
+                    {listing.item?.mimeType && (
                       <div className="flex justify-between">
                         <span>Format:</span>
-                        <span>{listing.item.mimeType}</span>
+                        <span>{listing.item?.mimeType}</span>
                       </div>
                     )}
                   </div>
