@@ -1,9 +1,12 @@
-import { authOptions } from '@/app/lib/backend/authConfig';
-import connectDB from '@/app/lib/mongodb';
+import {
+  handlePaginatedRequest,
+  validateMonetizedContent,
+  withAuthCheck,
+  withErrorHandler,
+  withTransaction
+} from '@/app/lib/utils/controllerUtils';
 import { Item } from '@/app/models/Item';
-import SharedLink from '@/app/models/SharedLink';
-import mongoose from 'mongoose';
-import { getServerSession } from 'next-auth/next';
+import { SharedLink } from '@/app/models/SharedLink';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,101 +15,59 @@ function generateLinkId(): string {
 }
 
 export async function GET(request: NextRequest) {
-  const dbSession = await mongoose.startSession();
-  
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await connectDB();
-    
+  return withErrorHandler(async () => {
+    const userId = await withAuthCheck(request);
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
     
-    return await dbSession.withTransaction(async () => {
-      const query: any = { 
-        owner: session.user.id,
-        isActive: true
-      };
-      
-      if (type && ['public', 'monetized'].includes(type)) {
-        query.type = type;
+    const query: any = { 
+      owner: userId,
+      isActive: true
+    };
+    
+    if (type && ['public', 'monetized'].includes(type)) {
+      query.type = type;
+    }
+    
+    const { items: links, pagination } = await handlePaginatedRequest(
+      query,
+      SharedLink,
+      {
+        page: parseInt(searchParams.get('page') || '1'),
+        limit: parseInt(searchParams.get('limit') || '20'),
+        populate: [
+          { path: 'item', select: 'name type size mimeType url' },
+          { path: 'owner', select: 'name email wallet' }
+        ],
+        sort: { createdAt: -1 }
       }
-      
-      const skip = (page - 1) * limit;
-      const [links, total] = await Promise.all([
-        SharedLink.find(query)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .session(dbSession),
-        SharedLink.countDocuments(query).session(dbSession)
-      ]);
-      
-      return NextResponse.json({
-        links,
-        pagination: {
-          current: page,
-          total: Math.ceil(total / limit),
-          count: links.length,
-          totalItems: total
-        }
-      });
-    });
+    );
     
-  } catch (error: any) {
-    console.error('GET /api/shared-links error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
-  } finally {
-    await dbSession.endSession();
-  }
+    return NextResponse.json({ links, pagination });
+  });
 }
 
 export async function POST(request: NextRequest) {
-  const dbSession = await mongoose.startSession();
-  
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    await connectDB();
-    
-    const body = await request.json();
-    const { itemId, type, price, title, description, expiresAt } = body;
+  return withErrorHandler(async () => {
+    const userId = await withAuthCheck(request);
+    const { itemId, type, price, title, description, expiresAt } = await request.json();
     
     if (!itemId || !type || !title) {
-      return NextResponse.json(
-        { error: 'Item ID, type, and title are required' },
-        { status: 400 }
-      );
+      throw new Error('Item ID, type, and title are required');
     }
     
-    if (!['public', 'monetized'].includes(type)) {
-      return NextResponse.json(
-        { error: 'Type must be either "public" or "monetized"' },
-        { status: 400 }
-      );
-    }
-    
-    if (type === 'monetized' && (!price || typeof price !== 'number' || price <= 0)) {
-      return NextResponse.json(
-        { error: 'Price is required for monetized links and must be greater than 0' },
-        { status: 400 }
-      );
-    }
+    validateMonetizedContent({
+      type,
+      price,
+      paidUsers: []
+    });
 
-    return await dbSession.withTransaction(async () => {
+    return await withTransaction(async (session) => {
       // Verify the item exists and belongs to the user
       const item = await Item.findOne({ 
         _id: itemId, 
-        owner: session.user.id 
-      }).session(dbSession);
+        owner: userId 
+      }).session(session);
       
       if (!item) {
         throw new Error('Item not found or you do not have permission to share it');
@@ -115,49 +76,31 @@ export async function POST(request: NextRequest) {
       // Check for existing active shared link for this item
       const existingLink = await SharedLink.findOne({
         item: itemId,
-        owner: session.user.id,
+        owner: userId,
         isActive: true
-      }).session(dbSession);
+      }).session(session);
       
       if (existingLink) {
         throw new Error('An active shared link already exists for this item');
       }
       
-      const linkData: any = {
+      const linkData = {
         item: itemId,
-        owner: session.user.id,
+        owner: userId,
         linkId: generateLinkId(),
         type,
         title,
         description,
-        paidUsers: []
+        paidUsers: [],
+        ...(type === 'monetized' && { price }),
+        ...(expiresAt && { expiresAt: new Date(expiresAt) })
       };
       
-      if (type === 'monetized') {
-        linkData.price = price;
-      }
-      
-      if (expiresAt) {
-        linkData.expiresAt = new Date(expiresAt);
-      }
-      
-      const [sharedLink] = await SharedLink.create([linkData], { session: dbSession });
+      const [sharedLink] = await SharedLink.create([linkData], { session });
       await sharedLink.populate('item', 'name type size mimeType url');
       await sharedLink.populate('owner', 'name email wallet');
       
       return NextResponse.json(sharedLink, { status: 201 });
     });
-    
-  } catch (error: any) {
-    console.error('POST /api/shared-links error:', error);
-    
-    if (error.message === 'Item not found or you do not have permission to share it' ||
-        error.message === 'An active shared link already exists for this item') {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-    
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
-  } finally {
-    await dbSession.endSession();
-  }
+  });
 } 

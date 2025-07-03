@@ -2,6 +2,7 @@ import { authOptions } from '@/app/lib/backend/authConfig';
 import { validateS3Config } from '@/app/lib/config';
 import connectDB from '@/app/lib/mongodb';
 import { deleteFileFromS3ByUrl } from '@/app/lib/s3';
+import { AIChunk } from '@/app/models/AIChunk';
 import { Item } from '@/app/models/Item';
 import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth/next';
@@ -11,8 +12,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(
   request: NextRequest,
 ){
-  const dbSession = await mongoose.startSession();
-  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -23,29 +22,20 @@ export async function GET(
 
     await connectDB();
 
-    return await dbSession.withTransaction(async () => {
-      const item = await Item.findOne({ 
-        _id: id, 
-        owner: session.user.id 
-      }).session(dbSession);
-      
-      if (!item) {
-        throw new Error('Item not found');
-      }
-
-      return NextResponse.json(item);
+    const item = await Item.findOne({ 
+      _id: id, 
+      owner: session.user.id 
     });
+    
+    if (!item) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(item);
 
   } catch (error: any) {
     console.error('GET /api/items/[id] error:', error);
-    
-    if (error.message === 'Unauthorized' || error.message === 'Item not found') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
-  } finally {
-    await dbSession.endSession();
   }
 }
 
@@ -161,6 +151,9 @@ export async function DELETE(request: NextRequest) {
 
       const itemsToDelete = await collectItemsToDeleteWithSession(id, session.user.id, dbSession);
       
+      const itemIds = itemsToDelete.map(item => item._id);
+      await AIChunk.deleteMany({ item: { $in: itemIds } }).session(dbSession);
+      
       const s3DeletionPromises = [];
       if (validateS3Config()) {
         for (const itemToDelete of itemsToDelete) {
@@ -174,7 +167,6 @@ export async function DELETE(request: NextRequest) {
         }
       }
 
-      const itemIds = itemsToDelete.map(item => item._id);
       await Item.deleteMany({ _id: { $in: itemIds } }).session(dbSession);
 
       if (s3DeletionPromises.length > 0) {

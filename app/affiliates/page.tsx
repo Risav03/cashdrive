@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import AffiliateCard from '@/app/components/Affiliates/AffiliateCard';
 import FooterPattern from '@/app/components/global/FooterPattern';
 import Loader from '@/app/components/global/Loader';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Affiliate {
   _id: string;
@@ -39,20 +39,21 @@ interface Affiliate {
   createdAt: string;
 }
 
-interface AffiliateTransaction {
+interface Commission {
   _id: string;
+  affiliate: Affiliate;
+  originalTransaction: {
+    _id: string;
+    buyer: {
+      name: string;
+      email: string;
+    };
+    amount: number;
+  };
   commissionAmount: number;
   commissionRate: number;
-  saleAmount: number;
   status: 'pending' | 'paid' | 'failed';
   createdAt: string;
-  buyer: {
-    name: string;
-    email: string;
-  };
-  affiliate: {
-    affiliateCode: string;
-  };
 }
 
 export default function AffiliatesPage() {
@@ -60,7 +61,7 @@ export default function AffiliatesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'owned' | 'affiliate' | 'transactions'>('owned');
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
-  const [transactions, setTransactions] = useState<AffiliateTransaction[]>([]);
+  const [transactions, setTransactions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -70,19 +71,7 @@ export default function AffiliatesPage() {
     activeAffiliates: 0
   });
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, router]);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchData();
-    }
-  }, [session, activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'transactions') {
@@ -122,7 +111,19 @@ export default function AffiliatesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchData();
+    }
+  }, [session, fetchData]);
 
   const handleUpdateAffiliate = async (affiliateId: string, updates: any) => {
     try {
@@ -268,7 +269,7 @@ export default function AffiliatesPage() {
                             ${transaction.commissionAmount.toFixed(2)} commission
                           </p>
                           <p className="font-freeman text-sm">
-                            {transaction.commissionRate}% of ${transaction.saleAmount.toFixed(2)} sale
+                            {transaction.commissionRate}% of ${transaction.originalTransaction.amount.toFixed(2)} sale
                           </p>
                           <p className="font-freeman text-sm">
                             Code: {transaction.affiliate.affiliateCode}

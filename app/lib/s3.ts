@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { secrets } from './config';
 
@@ -134,6 +134,31 @@ export async function generatePresignedUrl(key: string, expiresIn: number = 3600
   } catch (error) {
     console.error('Error generating presigned URL:', error);
     throw new Error('Failed to generate presigned URL');
+  }
+}
+
+export async function downloadFileFromS3(url: string): Promise<Buffer> {
+  try {
+    const key = extractKeyFromS3Url(url);
+    if (!key) {
+      throw new Error('Invalid S3 URL format');
+    }
+
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const response = await s3Client.send(getObjectCommand);
+    
+    if (!response.Body) {
+      throw new Error('No body in S3 response');
+    }
+
+    return Buffer.from(await response.Body.transformToByteArray());
+  } catch (error) {
+    console.error('Error downloading file from S3:', error);
+    throw new Error(`Failed to download file from S3: ${url}`);
   }
 }
 

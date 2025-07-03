@@ -1,20 +1,66 @@
+import { processFileForAI } from '@/app/lib/ai/aiService';
 import { Item, Listing, Transaction, User } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
+import { copyItemWithBFS } from '@/app/lib/utils/itemUtils';
 import { Affiliate } from '@/app/models/Affiliate';
-import { AffiliateTransaction } from '@/app/models/AffiliateTransaction';
+import { Commission } from '@/app/models/Commission';
+import { Types } from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-function generateReceiptNumber(): string {
+interface PaymentResponse {
+  transaction: string;
+  network: string;
+  payer: string;
+  success: boolean;
+}
+
+interface QueueItem {
+  originalId: string;
+  newParentId: string;
+  name: string;
+}
+
+interface CopiedItemResult {
+  _id: Types.ObjectId;
+  name: string;
+  path: string;
+}
+
+interface ItemDocument {
+  _id: Types.ObjectId;
+  name: string;
+  type: string;
+  parentId: string;
+  size?: number;
+  mimeType?: string;
+  url?: string;
+  owner: string;
+  contentSource?: string;
+}
+
+interface ListingDocument {
+  _id: Types.ObjectId;
+  status: string;
+  price: number;
+  title: string;
+  affiliateEnabled?: boolean;
+  seller: {
+    _id: Types.ObjectId;
+  };
+  item: {
+    _id: Types.ObjectId;
+  };
+}
+
+const generateReceiptNumber = (): string => {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `RCP-${timestamp}-${random}`;
-}
+};
 
-function parsePaymentResponse(paymentResponseHeader: string | null) {
-  if (!paymentResponseHeader) {
-    return null;
-  }
+const parsePaymentResponse = (paymentResponseHeader: string | null): PaymentResponse | null => {
+  if (!paymentResponseHeader) return null;
   
   try {
     return JSON.parse(paymentResponseHeader);
@@ -22,58 +68,39 @@ function parsePaymentResponse(paymentResponseHeader: string | null) {
     console.error('Error parsing x-payment-response:', error);
     return null;
   }
-}
+};
 
-async function copyItemToMarketplaceFolder(buyerId: string, item: any): Promise<any> {
-  try {
-    const buyer = await User.findById(buyerId);
-    if (!buyer) {
-      throw new Error('Buyer not found');
-    }
+async function getOrCreateMarketplaceFolder(buyerId: string): Promise<Types.ObjectId> {
+  const buyer = await User.findById(buyerId);
+  if (!buyer?.rootFolder) {
+    throw new Error('Buyer root folder not found');
+  }
 
-    let marketplaceFolder = await Item.findOne({
+  const marketplaceFolder = await Item.findOneAndUpdate(
+    {
       name: 'marketplace',
       type: 'folder',
-      parentId: buyer.rootFolder.toString()
-    });
-
-    if (!marketplaceFolder) {
-      marketplaceFolder = await Item.create({
-        name: 'marketplace',
-        type: 'folder',
-        parentId: buyer.rootFolder.toString(),
-        owner: buyerId
-      });
+      parentId: buyer.rootFolder.toString(),
+      owner: buyerId
+    },
+    {},
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true
     }
+  );
 
-    const copiedItem = await copyItemRecursively(item, marketplaceFolder._id.toString(), buyerId);
-    return copiedItem;
-  } catch (error) {
-    console.error('Error copying item to marketplace folder:', error);
-    throw error;
-  }
+  return marketplaceFolder._id;
 }
 
-async function copyItemRecursively(originalItem: any, newParentId: string, buyerId: string): Promise<any> {
-  const copiedItem = await Item.create({
-    name: `${originalItem.name} (Purchased)`,
-    type: originalItem.type,
-    parentId: newParentId,
-    size: originalItem.size || 0,
-    mimeType: originalItem.mimeType,
-    url: originalItem.url,
-    owner: buyerId
-  });
-
-  if (originalItem.type === 'folder') {
-    const children = await Item.find({ parentId: originalItem._id.toString() });
-    
-    for (const child of children) {
-      await copyItemRecursively(child, copiedItem._id.toString(), buyerId);
-    }
-  }
-
-  return copiedItem;
+async function copyPurchasedItem(originalItemId: string, newParentId: string, buyerId: string): Promise<CopiedItemResult> {
+  const copiedItem = await copyItemWithBFS(originalItemId, newParentId, buyerId, '(Purchased)');
+  return {
+    _id: copiedItem._id,
+    name: copiedItem.name,
+    path: `/marketplace/${copiedItem.name}`
+  };
 }
 
 export async function POST(
@@ -85,40 +112,22 @@ export async function POST(
     const userEmailFromHeader = request.headers.get('x-user-email');
     const affiliateCodeFromHeader = request.headers.get('x-affiliate-code');
     
-    let userId: string | undefined;
-    let userEmail: string | undefined;
-
-    if (userIdFromHeader && userEmailFromHeader) {
-      userId = userIdFromHeader;
-      userEmail = userEmailFromHeader;
-      console.log('Using session from headers:', { userId, userEmail });
-    } 
-    // else {
-    //   // Fallback to getServerSession (for direct API calls)
-    //   const session = await getServerSession(authOptions);
-    //   console.log("______--------______");
-    //   console.log("______--------______");
-    //   console.log("______--------______");
-    //   console.log("______--------______");
-
-    //   console.log('Session:', session);
-    //   if (!session?.user?.id) {
-    //     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    //   }
-    //   userId = session.user.id;
-    //   userEmail = session.user.email || undefined;
-    // }
-
-    if (!userId) {
+    if (!userIdFromHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectDB();
     
     const params = await context.params;
-    const listing = await Listing.findById(params.id)
+    const { id } = params;
+    if (!id) {
+      return NextResponse.json({ error: 'Listing ID is required' }, { status: 400 });
+    }
+
+    const listing = await Listing.findById(id)
       .populate('item')
-      .populate('seller');
+      .populate('seller')
+      .lean<ListingDocument>();
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
@@ -130,15 +139,15 @@ export async function POST(
       }, { status: 400 });
     }
 
-    if (listing.seller._id.toString() === userId) {
+    if (listing.seller._id.toString() === userIdFromHeader) {
       return NextResponse.json({ 
         error: 'You cannot purchase your own listing' 
       }, { status: 400 });
     }
 
-    const existingTransaction = await Transaction.findOne({
-      listing: params.id,
-      buyer: userId,
+    const existingTransaction = await Transaction.exists({
+      listing: id,
+      buyer: userIdFromHeader,
       status: 'completed'
     });
 
@@ -148,111 +157,188 @@ export async function POST(
       }, { status: 400 });
     }
 
-    const paymentResponseHeader = request.headers.get('x-payment-response');
-    const paymentResponse = parsePaymentResponse(paymentResponseHeader);
+    const paymentResponse = parsePaymentResponse(
+      request.headers.get('x-payment-response')
+    );
     
-    console.log("Payment response from header:", paymentResponse);
-    
-    const transactionId = uuidv4();
-    const receiptNumber = generateReceiptNumber();
-
-    const transactionData: any = {
+    const transaction = await Transaction.create({
       listing: listing._id,
-      buyer: userId,
+      buyer: userIdFromHeader,
       seller: listing.seller._id,
       item: listing.item._id,
       amount: listing.price,
       status: 'completed',
-      transactionId,
-      receiptNumber,
-      purchaseDate: new Date()
-    };
-
-    if (paymentResponse) {
-      transactionData.metadata = {
+      transactionId: uuidv4(),
+      receiptNumber: generateReceiptNumber(),
+      purchaseDate: new Date(),
+      transactionType: 'purchase',
+      paymentFlow: 'direct',
+      metadata: paymentResponse ? {
         blockchainTransaction: paymentResponse.transaction,
         network: paymentResponse.network,
         payer: paymentResponse.payer,
         success: paymentResponse.success,
-        paymentResponseRaw: paymentResponseHeader
-      };
+        paymentResponseRaw: request.headers.get('x-payment-response')
+      } : undefined
+    });
+
+    const marketplaceFolderId = await getOrCreateMarketplaceFolder(userIdFromHeader);
+    const copiedItem = await copyPurchasedItem(listing.item._id.toString(), marketplaceFolderId.toString(), userIdFromHeader);
+
+    // Automatically process the purchased file for AI use
+    try {
+      // Mark the file as marketplace content
+      await Item.findByIdAndUpdate(copiedItem._id, {
+        contentSource: 'marketplace_purchase'
+      });
+      
+      // Process the file for AI
+      await processFileForAI(copiedItem._id.toString());
+    } catch (processError) {
+      console.error('Error auto-processing purchased content for AI:', processError);
+      // Don't fail the purchase if AI processing fails
     }
 
-    const transaction = await Transaction.create(transactionData);
-      
-    const copiedItem = await copyItemToMarketplaceFolder(userId, listing.item);
-
-    // Handle affiliate commission if applicable
-    let affiliateTransaction = null;
-    if (affiliateCodeFromHeader) {
+    let commission = null;
+    let commissionTransaction = null;
+    let sellerTransaction = null;
+    
+    if (affiliateCodeFromHeader && listing.affiliateEnabled) {
       try {
-        const affiliate = await Affiliate.findOne({
-          affiliateCode: affiliateCodeFromHeader,
-          listing: listing._id,
-          status: 'active'
-        });
-
-        if (affiliate && affiliate.affiliateUser.toString() !== userId) {
-          const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
-          
-          affiliateTransaction = await AffiliateTransaction.create({
-            affiliate: affiliate._id,
-            originalTransaction: transaction._id,
-            affiliateUser: affiliate.affiliateUser,
-            owner: affiliate.owner,
-            buyer: userId,
-            saleAmount: listing.price,
-            commissionRate: affiliate.commissionRate,
-            commissionAmount,
+        const [affiliate] = await Promise.all([
+          Affiliate.findOne({
             affiliateCode: affiliateCodeFromHeader,
-            status: 'pending'
-          });
+            listing: id,
+            status: 'active'
+          }),
+          transaction.populate([
+            { path: 'listing', select: 'title price' },
+            { path: 'buyer', select: 'name email' },
+            { path: 'seller', select: 'name email' },
+            { path: 'item', select: 'name type size mimeType' }
+          ])
+        ]);
 
-          // Update affiliate stats
-          await Affiliate.findByIdAndUpdate(affiliate._id, {
-            $inc: { 
-              totalEarnings: commissionAmount,
-              totalSales: 1
+        if (affiliate && affiliate.affiliateUser.toString() !== userIdFromHeader) {
+          const commissionAmount = (listing.price * affiliate.commissionRate) / 100;
+          const sellerAmount = listing.price - commissionAmount;
+          
+          // Create commission transaction record (platform pays affiliate)
+          commissionTransaction = await Transaction.create({
+            listing: listing._id,
+            buyer: listing.seller._id, // platform/original seller pays
+            seller: affiliate.affiliateUser, // affiliate receives
+            item: listing.item._id,
+            amount: commissionAmount,
+            status: 'pending',
+            transactionId: uuidv4(),
+            receiptNumber: generateReceiptNumber(),
+            purchaseDate: new Date(),
+            transactionType: 'commission',
+            paymentFlow: 'admin',
+            parentTransaction: transaction._id,
+            metadata: {
+              affiliateCode: affiliateCodeFromHeader,
+              commissionRate: affiliate.commissionRate,
+              originalPurchaseAmount: listing.price,
+              originalBuyer: userIdFromHeader
             }
           });
+
+          // Create seller transaction record (platform pays seller)
+          sellerTransaction = await Transaction.create({
+            listing: listing._id,
+            buyer: listing.seller._id, // platform/original seller pays (self-transaction for accounting)
+            seller: listing.seller._id, // original seller receives
+            item: listing.item._id,
+            amount: sellerAmount,
+            status: 'pending',
+            transactionId: uuidv4(),
+            receiptNumber: generateReceiptNumber(),
+            purchaseDate: new Date(),
+            transactionType: 'sale',
+            paymentFlow: 'admin',
+            parentTransaction: transaction._id,
+            metadata: {
+              isAffiliateDistribution: true,
+              originalPurchaseAmount: listing.price,
+              commissionDeducted: commissionAmount,
+              originalBuyer: userIdFromHeader
+            }
+          });
+
+          // Update original transaction with affiliate info
+          await Transaction.findByIdAndUpdate(transaction._id, {
+            affiliateInfo: {
+              isAffiliateSale: true,
+              originalAmount: listing.price,
+              netAmount: sellerAmount,
+              commissionDistribution: [{
+                affiliateId: affiliate._id,
+                amount: commissionAmount,
+                commissionRate: affiliate.commissionRate
+              }]
+            }
+          });
+
+          // Create commission record linking to commission transaction
+          [commission] = await Promise.all([
+            Commission.create({
+              affiliate: affiliate._id,
+              originalTransaction: transaction._id,
+              commissionTransaction: commissionTransaction._id,
+              commissionRate: affiliate.commissionRate,
+              commissionAmount,
+              status: 'pending'
+            }),
+            Affiliate.findByIdAndUpdate(affiliate._id, {
+              $inc: { 
+                totalEarnings: commissionAmount,
+                totalSales: 1
+              }
+            })
+          ]);
         }
       } catch (affiliateError) {
         console.error('Error processing affiliate commission:', affiliateError);
-        // Don't fail the main transaction for affiliate errors
       }
+    } else {
+      await transaction.populate([
+        { path: 'listing', select: 'title price' },
+        { path: 'buyer', select: 'name email' },
+        { path: 'seller', select: 'name email' },
+        { path: 'item', select: 'name type size mimeType' }
+      ]);
     }
 
-    await transaction.populate('listing', 'title price');
-    await transaction.populate('buyer', 'name email');
-    await transaction.populate('seller', 'name email');
-    await transaction.populate('item', 'name type size mimeType');
-
     return NextResponse.json({
-      transaction,
-      copiedItem: {
-        _id: copiedItem._id,
-        name: copiedItem.name,
-        path: `/marketplace/${copiedItem.name}`
-      },
-      paymentDetails: paymentResponse,
-      affiliateCommission: affiliateTransaction ? {
-        amount: affiliateTransaction.commissionAmount,
-        rate: affiliateTransaction.commissionRate
-      } : null,
-      message: 'Purchase completed successfully'
+      transactionData: {
+        transaction,
+        copiedItem,
+        paymentDetails: paymentResponse,
+        message: 'Purchase completed successfully',
+        affiliateCommission: commission ? {
+          commission: commission,
+          amount: commission.commissionAmount,
+          rate: commission.commissionRate,
+          commissionTransaction: commissionTransaction,
+          sellerTransaction: sellerTransaction
+        } : null
+      }
     }, { status: 201 });
 
   } catch (error: any) {
     console.error('POST /api/listings/[id]/purchase error:', error);
     
-    if (error.code === 11000) {
-      return NextResponse.json({ 
-        error: 'Transaction already exists' 
-      }, { status: 400 });
-    }
+    const status = 
+      error.code === 11000 ? 400 :
+      error.message === 'Buyer root folder not found' ? 404 :
+      error.message === 'Original item not found' ? 404 : 500;
     
-    return NextResponse.json({ 
-      error: error.message || 'Failed to complete purchase' 
-    }, { status: 500 });
+    const message = 
+      error.code === 11000 ? 'Transaction already exists' :
+      error.message || 'Failed to complete purchase';
+    
+    return NextResponse.json({ error: message }, { status });
   }
 } 

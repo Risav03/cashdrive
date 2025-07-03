@@ -1,10 +1,59 @@
 import { generateEmbedding } from '@/app/lib/ai/openaiClient';
 import { authOptions } from '@/app/lib/backend/authConfig';
-import { Listing } from '@/app/lib/models';
+import { Listing, Transaction } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Constants
+const SCORING_WEIGHTS = {
+  EXACT_TITLE_MATCH: 50,
+  EXACT_KEYWORD_MATCH: 40,
+  SEMANTIC_SIMILARITY: 30,
+  PARTIAL_KEYWORD_MATCH: 20,
+  CONTENT_TYPE_MATCH: 15,
+  TITLE_SIMILARITY: 10,
+  POPULARITY_CAP: 3,
+} as const;
+
+const THRESHOLDS = {
+  SEMANTIC_SIMILARITY: 0.5, // Lowered to catch more relevant content
+  SEMANTIC_HIGH_CONFIDENCE: 0.75, // Higher tier for very relevant content
+  RELEVANCE_MINIMUM: 10, // Lowered to include more potentially relevant items
+  TITLE_SIMILARITY: 0.3,
+  POPULARITY_VIEWS: 10,
+  POPULARITY_DIVISOR: 200, // Reduced popularity impact
+} as const;
+
+const DEFAULT_VALUES = {
+  MAX_RESULTS: 5,
+} as const;
+
+const MESSAGES = {
+  UNAUTHORIZED: 'Unauthorized',
+  QUERY_REQUIRED: 'Query is required',
+  DISCOVERY_ERROR: 'Failed to discover relevant content',
+} as const;
+
+const NO_RESULTS_SUGGESTIONS = [
+  'Try broadening your search terms',
+  'Consider different content types',
+  'Check for spelling variations',
+] as const;
+
+const CONTENT_TYPE_MAP: Record<string, string[]> = {
+  article: ['pdf', 'doc', 'text', 'article', 'blog', 'essay'],
+  report: ['pdf', 'doc', 'report', 'analysis', 'research'],
+  presentation: ['ppt', 'presentation', 'slides'],
+  guide: ['pdf', 'doc', 'guide', 'tutorial', 'how-to'],
+  template: ['doc', 'template', 'format', 'structure'],
+} as const;
+
+const LOG_MESSAGES = {
+  API_ERROR: 'Discovery API error:',
+} as const;
+
+// Interfaces
 interface DiscoveryRequest {
   query: string;
   contentType?: string;
@@ -13,160 +62,305 @@ interface DiscoveryRequest {
 }
 
 interface RelevantListing {
-  listing: any;
+  listing: FormattedListing;
   relevanceScore: number;
   matchReason: string;
+}
+
+interface FormattedListing {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  tags: string[];
+  views: number;
+  seller: any;
+  item: {
+    name: string;
+    type: string;
+    mimeType: string;
+  };
+}
+
+interface ScoringContext {
+  query: string;
+  queryEmbedding: number[];
+  contentType?: string;
+  suggestedTitle?: string;
+}
+
+interface ScoringResult {
+  score: number;
+  reasons: string[];
+}
+
+// Helper functions
+const normalizeText = (text: string): string => text.toLowerCase();
+const splitText = (text: string): string[] => text.split(/\s+/);
+const normalizeAndSplit = (text: string): string[] => splitText(normalizeText(text));
+
+const formatListing = (listing: any): FormattedListing => ({
+  _id: listing._id,
+  title: listing.title,
+  description: listing.description,
+  price: listing.price,
+  tags: listing.tags,
+  views: listing.views,
+  seller: listing.seller,
+  item: {
+    name: listing.item.name,
+    type: listing.item.type,
+    mimeType: listing.item.mimeType,
+  },
+});
+
+const createCombinedText = (listing: any): string => 
+  `${listing.title} ${listing.description} ${listing.tags.join(' ')}`;
+
+const createListingWordArray = (listing: any): string[] => {
+  const titleWords = normalizeAndSplit(listing.title);
+  const descWords = normalizeAndSplit(listing.description);
+  const tagWords = listing.tags.map(normalizeText);
+  return [...titleWords, ...descWords, ...tagWords];
+};
+
+// Scoring functions
+async function calculateSemanticScore(
+  listing: any,
+  context: ScoringContext
+): Promise<ScoringResult> {
+  const combinedText = createCombinedText(listing);
+  const listingEmbedding = await generateEmbedding(combinedText);
+  const similarity = cosineSimilarity(context.queryEmbedding, listingEmbedding);
+  
+  if (similarity > THRESHOLDS.SEMANTIC_HIGH_CONFIDENCE) {
+    return {
+      score: similarity * SCORING_WEIGHTS.SEMANTIC_SIMILARITY,
+      reasons: ['High semantic match'],
+    };
+  } else if (similarity > THRESHOLDS.SEMANTIC_SIMILARITY) {
+    return {
+      score: similarity * SCORING_WEIGHTS.SEMANTIC_SIMILARITY * 0.7,
+      reasons: ['Semantic match'],
+    };
+  }
+  
+  return { score: 0, reasons: [] };
+}
+
+function calculateKeywordScore(listing: any, context: ScoringContext): ScoringResult {
+  const queryWords = normalizeAndSplit(context.query);
+  const titleWords = normalizeAndSplit(listing.title);
+  const descWords = normalizeAndSplit(listing.description);
+  const tagWords = listing.tags.map(normalizeText);
+  
+  let score = 0;
+  const reasons: string[] = [];
+  
+  // Check for exact matches in title (highest priority)
+  const exactTitleMatches = queryWords.filter(queryWord =>
+    titleWords.includes(queryWord)
+  ).length;
+  
+  if (exactTitleMatches > 0) {
+    score += (exactTitleMatches / queryWords.length) * SCORING_WEIGHTS.EXACT_TITLE_MATCH;
+    reasons.push(`${exactTitleMatches} exact title matches`);
+  }
+  
+  // Check for exact matches in description and tags
+  const exactKeywordMatches = queryWords.filter(queryWord =>
+    descWords.includes(queryWord) || tagWords.includes(queryWord)
+  ).length;
+  
+  if (exactKeywordMatches > 0) {
+    score += (exactKeywordMatches / queryWords.length) * SCORING_WEIGHTS.EXACT_KEYWORD_MATCH;
+    reasons.push(`${exactKeywordMatches} exact keyword matches`);
+  }
+  
+  // Check for partial matches (lower priority)
+  const allWords = [...titleWords, ...descWords, ...tagWords];
+  const partialMatches = queryWords.filter(queryWord =>
+    allWords.some(word => word.includes(queryWord) && word !== queryWord)
+  ).length;
+  
+  if (partialMatches > 0) {
+    score += (partialMatches / queryWords.length) * SCORING_WEIGHTS.PARTIAL_KEYWORD_MATCH;
+    reasons.push(`${partialMatches} partial matches`);
+  }
+
+  return { score, reasons };
+}
+
+function calculateContentTypeScore(listing: any, context: ScoringContext): ScoringResult {
+  if (!context.contentType) {
+    return { score: 0, reasons: [] };
+  }
+
+  const relevantTypes = CONTENT_TYPE_MAP[context.contentType.toLowerCase()] || [];
+  const itemType = listing.item.mimeType || '';
+  const titleAndTags = normalizeText(`${listing.title} ${listing.tags.join(' ')}`);
+
+  const hasTypeMatch = relevantTypes.some(type =>
+    itemType.includes(type) || titleAndTags.includes(type)
+  );
+
+  if (hasTypeMatch) {
+    return {
+      score: SCORING_WEIGHTS.CONTENT_TYPE_MATCH,
+      reasons: ['Content type match'],
+    };
+  }
+
+  return { score: 0, reasons: [] };
+}
+
+function calculateTitleSimilarityScore(listing: any, context: ScoringContext): ScoringResult {
+  if (!context.suggestedTitle) {
+    return { score: 0, reasons: [] };
+  }
+
+  const similarity = calculateStringSimilarity(
+    normalizeText(context.suggestedTitle),
+    normalizeText(listing.title)
+  );
+
+  if (similarity > THRESHOLDS.TITLE_SIMILARITY) {
+    return {
+      score: similarity * SCORING_WEIGHTS.TITLE_SIMILARITY,
+      reasons: ['Title similarity'],
+    };
+  }
+
+  return { score: 0, reasons: [] };
+}
+
+function calculatePopularityScore(listing: any): ScoringResult {
+  if (listing.views > THRESHOLDS.POPULARITY_VIEWS) {
+    return {
+      score: Math.min(listing.views / THRESHOLDS.POPULARITY_DIVISOR, SCORING_WEIGHTS.POPULARITY_CAP),
+      reasons: ['Popular content'],
+    };
+  }
+
+  return { score: 0, reasons: [] };
+}
+
+async function calculateRelevanceScore(
+  listing: any,
+  context: ScoringContext
+): Promise<ScoringResult> {
+  const scoringFunctions = [
+    () => calculateSemanticScore(listing, context),
+    () => Promise.resolve(calculateKeywordScore(listing, context)),
+    () => Promise.resolve(calculateContentTypeScore(listing, context)),
+    () => Promise.resolve(calculateTitleSimilarityScore(listing, context)),
+    () => Promise.resolve(calculatePopularityScore(listing)),
+  ];
+
+  const results = await Promise.all(scoringFunctions.map(fn => fn()));
+  
+  return {
+    score: results.reduce((total, result) => total + result.score, 0),
+    reasons: results.flatMap(result => result.reasons),
+  };
+}
+
+async function processListings(
+  listings: any[],
+  context: ScoringContext,
+  maxResults: number
+): Promise<RelevantListing[]> {
+  const relevantListings: RelevantListing[] = [];
+
+  for (const listing of listings) {
+    const { score: relevanceScore, reasons: matchReasons } = await calculateRelevanceScore(listing, context);
+
+    if (relevanceScore > THRESHOLDS.RELEVANCE_MINIMUM) {
+      relevantListings.push({
+        listing: formatListing(listing),
+        relevanceScore,
+        matchReason: matchReasons.join(', '),
+      });
+    }
+  }
+
+  return relevantListings
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, maxResults);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: MESSAGES.UNAUTHORIZED }, { status: 401 });
     }
 
     await connectDB();
 
-    const body: DiscoveryRequest = await request.json();
-    const { query, contentType, suggestedTitle, maxResults = 5 } = body;
+    const { query, contentType, suggestedTitle, maxResults = DEFAULT_VALUES.MAX_RESULTS }: DiscoveryRequest = await request.json();
 
-    if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    if (!query?.trim()) {
+      return NextResponse.json({ error: MESSAGES.QUERY_REQUIRED }, { status: 400 });
     }
 
-    // Get all active listings
-    const listings = await Listing.find({ status: 'active' })
-      .populate('item', 'name type mimeType')
-      .populate('seller', 'name')
-      .lean();
-
-    // Generate embedding for the user's query
+    // Get query embedding for semantic similarity
     const queryEmbedding = await generateEmbedding(query);
 
-    const relevantListings: RelevantListing[] = [];
+    // Get user's purchased item IDs to exclude from results
+    const userTransactions = await Transaction.find({
+      buyer: session.user.id,
+      status: 'completed'
+    }).select('item');
+    const purchasedItemIds = userTransactions.map((t: any) => t.item);
 
-    // Score each listing for relevance
-    for (const listing of listings) {
-      let relevanceScore = 0;
-      const matchReasons: string[] = [];
+    // Fetch all active listings with items (excluding user's own listings and already purchased items)
+    const listings = await Listing.find({ 
+      status: 'active',
+      seller: { $ne: session.user.id },
+      item: { $nin: purchasedItemIds }
+    }).populate('seller', 'name')
+      .populate('item', 'name type mimeType');
 
-      // 1. Text similarity scoring
-      const combinedText = `${listing.title} ${listing.description} ${listing.tags.join(' ')}`;
-      const listingEmbedding = await generateEmbedding(combinedText);
-      const semanticSimilarity = cosineSimilarity(queryEmbedding, listingEmbedding);
-      
-      if (semanticSimilarity > 0.7) {
-        relevanceScore += semanticSimilarity * 40; // High weight for semantic similarity
-        matchReasons.push('Semantic match');
-      }
-
-      // 2. Keyword matching
-      const queryWords = query.toLowerCase().split(/\s+/);
-      const titleWords = listing.title.toLowerCase().split(/\s+/);
-      const descWords = listing.description.toLowerCase().split(/\s+/);
-      const allWords = [...titleWords, ...descWords, ...listing.tags.map((t: string) => t.toLowerCase())];
-
-      let keywordMatches = 0;
-      for (const queryWord of queryWords) {
-        if (allWords.some(word => word.includes(queryWord) || queryWord.includes(word))) {
-          keywordMatches++;
-        }
-      }
-      
-      if (keywordMatches > 0) {
-        relevanceScore += (keywordMatches / queryWords.length) * 20;
-        matchReasons.push(`${keywordMatches} keyword matches`);
-      }
-
-      // 3. Content type matching
-      if (contentType) {
-        const contentTypeMap: Record<string, string[]> = {
-          'article': ['pdf', 'doc', 'text', 'article', 'blog', 'essay'],
-          'report': ['pdf', 'doc', 'report', 'analysis', 'research'],
-          'presentation': ['ppt', 'presentation', 'slides'],
-          'guide': ['pdf', 'doc', 'guide', 'tutorial', 'how-to'],
-          'template': ['doc', 'template', 'format', 'structure']
-        };
-
-        const relevantTypes = contentTypeMap[contentType.toLowerCase()] || [];
-        const itemType = listing.item.mimeType || '';
-        const titleAndTags = `${listing.title} ${listing.tags.join(' ')}`.toLowerCase();
-
-        if (relevantTypes.some(type => 
-          itemType.includes(type) || titleAndTags.includes(type)
-        )) {
-          relevanceScore += 15;
-          matchReasons.push('Content type match');
-        }
-      }
-
-      // 4. Title similarity (if provided)
-      if (suggestedTitle) {
-        const titleSimilarity = calculateStringSimilarity(
-          suggestedTitle.toLowerCase(), 
-          listing.title.toLowerCase()
-        );
-        if (titleSimilarity > 0.3) {
-          relevanceScore += titleSimilarity * 10;
-          matchReasons.push('Title similarity');
-        }
-      }
-
-      // 5. Popularity boost
-      if (listing.views > 10) {
-        relevanceScore += Math.min(listing.views / 100, 5); // Cap at 5 points
-        matchReasons.push('Popular content');
-      }
-
-      // Only include if above threshold
-      if (relevanceScore > 15) {
-        relevantListings.push({
-          listing: {
-            _id: listing._id,
-            title: listing.title,
-            description: listing.description,
-            price: listing.price,
-            tags: listing.tags,
-            views: listing.views,
-            seller: listing.seller,
-            item: {
-              name: listing.item.name,
-              type: listing.item.type,
-              mimeType: listing.item.mimeType
-            }
-          },
-          relevanceScore,
-          matchReason: matchReasons.join(', ')
-        });
-      }
+    if (listings.length === 0) {
+      return NextResponse.json({
+        query,
+        contentType,
+        results: [],
+        suggestions: NO_RESULTS_SUGGESTIONS,
+        totalFound: 0
+      });
     }
 
-    // Sort by relevance score and return top results
-    const sortedResults = relevantListings
-      .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, maxResults);
+    // Create scoring context
+    const context: ScoringContext = {
+      query,
+      queryEmbedding,
+      contentType,
+      suggestedTitle
+    };
+
+    // Process and score listings
+    const relevantListings = await processListings(listings, context, maxResults);
 
     return NextResponse.json({
       query,
       contentType,
-      totalFound: relevantListings.length,
-      results: sortedResults,
-      suggestions: sortedResults.length === 0 ? [
-        'Try broadening your search terms',
-        'Consider different content types',
-        'Check for spelling variations'
-      ] : []
+      results: relevantListings,
+      suggestions: relevantListings.length > 0 ? [] : NO_RESULTS_SUGGESTIONS,
+      totalFound: relevantListings.length
     });
 
-  } catch (error: any) {
-    console.error('Discovery API error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to discover relevant content' 
-    }, { status: 500 });
+  } catch (error) {
+    console.error(LOG_MESSAGES.API_ERROR, error);
+    return NextResponse.json(
+      { error: MESSAGES.DISCOVERY_ERROR },
+      { status: 500 }
+    );
   }
 }
 
-// Helper functions
+// Mathematical helper functions
 function cosineSimilarity(a: number[], b: number[]): number {
   const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
   const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));

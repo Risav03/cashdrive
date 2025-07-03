@@ -1,23 +1,51 @@
 import { Listing } from '@/app/lib/models';
 import connectDB from '@/app/lib/mongodb';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+let tagsCache: string[] | null = null;
+let lastCacheTime: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000;
+
+export async function GET(request: NextRequest) {
   try {
+    const now = Date.now();
+    if (tagsCache && (now - lastCacheTime) < CACHE_DURATION) {
+      return NextResponse.json(tagsCache);
+    }
+
     await connectDB();
     
-    // Get all unique tags from active listings
     const tags = await Listing.aggregate([
-      { $match: { status: 'active' } },
-      { $unwind: '$tags' },
-      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $match: { 
+        status: 'active',
+        tags: { $exists: true, $ne: [] }
+      }},
+      // Unwind tags array
+      { $group: { 
+        _id: '$tags', 
+        count: { $sum: 1 } 
+      }},
+      { $match: { 
+        count: { $gt: 1 } 
+      }},
       { $sort: { count: -1 } },
-      { $project: { _id: 0, tag: '$_id', count: 1 } }
-    ]);
+      { $limit: 100 },
+      { $project: { 
+        _id: 0, 
+        tag: '$_id'
+      }}
+    ]).exec();
+
+    tagsCache = tags.map(t => t.tag);
+    lastCacheTime = now;
     
-    return NextResponse.json(tags.map(t => t.tag));
+    return NextResponse.json(tagsCache);
   } catch (error: any) {
     console.error('GET /api/listings/tags error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (tagsCache) {
+      console.warn('Returning cached tags due to error');
+      return NextResponse.json(tagsCache);
+    }
+    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 });
   }
 } 

@@ -1,163 +1,114 @@
-import { purchaseFromMarketplace } from '@/actions/actions';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   CreateListingOptions,
   Listing,
   ListingFilters,
-  ListingsResponse,
-  Transaction,
-  TransactionFilters,
-  TransactionsResponse,
-  UpdateListingOptions
+  ListingsResponse
 } from '../types';
-import { IconType } from 'react-icons';
-import { FaFile, FaFileArchive, FaFileCode, FaFileCsv, FaFileExcel, FaFilePdf, FaFileWord, FaImage, FaMusic, FaVideo } from 'react-icons/fa';
+
+const API_ENDPOINTS = {
+  listings: '/api/listings',
+  tags: '/api/listings/tags'
+} as const;
+
+export function handleApiError(error: unknown, defaultMessage: string): never {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.message || error.message;
+    throw new Error(message);
+  }
+  throw new Error(defaultMessage);
+}
 
 export async function createListing(options: CreateListingOptions): Promise<Listing> {
   try {
-    const response = await axios.post('/api/listings', options, {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await axios.post(API_ENDPOINTS.listings, options);
     return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    if (error.response && error.response.status === 400) {
-      throw new Error(error.response.data.error || 'Invalid listing data');
-    }
-    throw new Error(error.message || 'Failed to create listing');
+  } catch (error) {
+    handleApiError(error, 'Failed to create listing');
   }
 }
-
 
 export async function getListings(filters: ListingFilters = {}): Promise<ListingsResponse> {
   try {
-    const params = new URLSearchParams();
-    
-    if (filters.status) params.append('status', filters.status);
-    if (filters.sellerId) params.append('sellerId', filters.sellerId);
-    if (filters.sortBy) params.append('sortBy', filters.sortBy);
-    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
-    if (filters.limit) params.append('limit', filters.limit.toString());
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.search) params.append('search', filters.search);
-    if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
-    
-    const url = `/api/listings${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await axios.get(url);
+    const params = new URLSearchParams(
+      Object.entries(filters)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    );
+
+    const response = await axios.get(`${API_ENDPOINTS.listings}?${params.toString()}`);
     return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    throw new Error(error.message || 'Failed to fetch listings');
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch listings');
   }
 }
 
-
-export async function getListing(listingId: string, incrementView: boolean = true): Promise<Listing> {
+export async function getListing(listingId: string, shouldIncrementView: boolean = true): Promise<Listing> {
   try {
-    const url = incrementView 
-      ? `/api/listings/${listingId}?incrementView=true`
-      : `/api/listings/${listingId}`;
-    const response = await axios.get(url);
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    if (error.response && error.response.status === 404) {
-      throw new Error('Listing not found');
-    }
-    throw new Error(error.message || 'Failed to fetch listing');
-  }
-}
-
-
-export async function updateListing(
-  listingId: string, 
-  updates: UpdateListingOptions
-): Promise<Listing> {
-  try {
-    const response = await axios.put(`/api/listings/${listingId}`, updates, {
-      headers: { 'Content-Type': 'application/json' },
+    const response = await axios.get(`${API_ENDPOINTS.listings}/${listingId}`, {
+      params: {
+        incrementView: shouldIncrementView
+      }
     });
     return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    if (error.response && error.response.status === 403) {
-      throw new Error('Forbidden - You can only update your own listings');
-    }
-    if (error.response && error.response.status === 404) {
-      throw new Error('Listing not found');
-    }
-    throw new Error(error.message || 'Failed to update listing');
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch listing');
   }
 }
 
-
-export async function deleteListing(listingId: string): Promise<{ message: string }> {
+export async function updateListing(listingId: string, updates: Partial<Listing>): Promise<Listing> {
   try {
-    const response = await axios.delete(`/api/listings/${listingId}`);
+    const response = await axios.patch(`${API_ENDPOINTS.listings}/${listingId}`, updates);
     return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    if (error.response && error.response.status === 403) {
-      throw new Error('Forbidden - You can only delete your own listings');
-    }
-    if (error.response && error.response.status === 404) {
-      throw new Error('Listing not found');
-    }
-    throw new Error(error.message || 'Failed to delete listing');
+  } catch (error) {
+    handleApiError(error, 'Failed to update listing');
   }
 }
 
-
-export async function getMyListings(
-  status: string = 'active',
-  page: number = 1,
-  limit: number = 20
-): Promise<ListingsResponse> {
+export async function deleteListing(listingId: string): Promise<void> {
   try {
-    const params = new URLSearchParams({
-      status,
-      page: page.toString(),
-      limit: limit.toString(),
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
-    });
-    
-    const response = await axios.get(`/api/listings?${params.toString()}`);
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    throw new Error(error.message || 'Failed to fetch your listings');
+    await axios.delete(`${API_ENDPOINTS.listings}/${listingId}`);
+  } catch (error) {
+    handleApiError(error, 'Failed to delete listing');
   }
 }
 
-
-export async function markListingAsInactive(listingId: string): Promise<Listing> {
-  return updateListing(listingId, { status: 'inactive' });
+export async function getListingTags(): Promise<string[]> {
+  try {
+    const response = await axios.get(API_ENDPOINTS.tags);
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch listing tags');
+  }
 }
 
-export async function reactivateListing(listingId: string): Promise<Listing> {
-  return updateListing(listingId, { status: 'active' });
+// UI utilities
+export function getListingStatusColor(status: string): string {
+  const colorMap: Record<string, string> = {
+    active: 'bg-green-100 text-green-800',
+    draft: 'bg-gray-100 text-gray-800',
+    archived: 'bg-red-100 text-red-800',
+    default: 'bg-gray-100 text-gray-800'
+  };
+  return colorMap[status] || colorMap.default;
 }
 
-export function formatPrice(price: number): string {
+export function formatListingPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(price);
 }
 
+export function formatListingDate(date: Date | string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date(date));
+}
 
 export function getStatusColor(status: string): string {
   switch (status) {

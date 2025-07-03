@@ -14,7 +14,6 @@ export interface ISharedLink extends Document {
   accessCount: number;
   paidUsers: mongoose.Types.ObjectId[];
   affiliateEnabled: boolean;
-  defaultCommissionRate: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,19 +77,12 @@ const sharedLinkSchema = new Schema<ISharedLink>({
   affiliateEnabled: {
     type: Boolean,
     default: false
-  },
-  defaultCommissionRate: {
-    type: Number,
-    min: 0,
-    max: 100,
-    default: 0
   }
 }, {
   timestamps: true,
   collection: 'sharedlinks'
 });
 
-// Indexes for performance
 sharedLinkSchema.index({ owner: 1, createdAt: -1 });
 sharedLinkSchema.index({ type: 1, isActive: 1 });
 sharedLinkSchema.index({ expiresAt: 1 }, { 
@@ -98,11 +90,12 @@ sharedLinkSchema.index({ expiresAt: 1 }, {
   partialFilterExpression: { expiresAt: { $ne: null } }
 });
 
-// Pre-populate references
 sharedLinkSchema.pre(['find', 'findOne'], function() {
   this.populate('item', 'name type size mimeType url')
       .populate('owner', 'name email wallet');
 });
 
-export const SharedLink = mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', sharedLinkSchema);
-export default SharedLink; 
+const SharedLinkModel = mongoose.models.SharedLink || mongoose.model<ISharedLink>('SharedLink', sharedLinkSchema);
+
+export { SharedLinkModel as SharedLink };
+export default SharedLinkModel; 

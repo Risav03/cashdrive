@@ -1,7 +1,9 @@
 'use client';
 
+import FooterPattern from '@/app/components/global/FooterPattern';
+import Loader from '@/app/components/global/Loader';
+import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
 import {
-  accessSharedLink,
   addSharedItemToDrive,
   formatDate,
   formatFileSize,
@@ -10,14 +12,10 @@ import {
   SharedLinkAccessResponse
 } from '@/app/lib/frontend/sharedLinkFunctions';
 import { useSession } from 'next-auth/react';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Loader from '@/app/components/global/Loader';
-import FooterPattern from '@/app/components/global/FooterPattern';
 import Link from 'next/link';
-import { getFileIcon } from '@/app/lib/frontend/explorerFunctions';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FaFolder } from 'react-icons/fa';
-import React from 'react';
 
 export default function SharedLinkPage() {
   const params = useParams();
@@ -30,25 +28,30 @@ export default function SharedLinkPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [addedToDrive, setAddedToDrive] = useState(false);
+
+  const loadLinkData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`/api/shared-links/${linkId}/details`);
+      if (!response.ok) {
+        throw new Error('Failed to load shared link');
+      }
+      const data = await response.json();
+      setLinkData(data.sharedLink);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load shared link');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [linkId]);
 
   useEffect(() => {
     if (linkId) {
       loadLinkData();
     }
-  }, [linkId, session]);
-
-  const loadLinkData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await accessSharedLink(linkId);
-      setLinkData(data);
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [linkId, loadLinkData]);
 
   const handleAddToDrive = async () => {
     if (!linkData) return;
@@ -59,11 +62,9 @@ export default function SharedLinkPage() {
       
       const result = await addSharedItemToDrive(linkId);
       setSuccess(result.message);
+      setAddedToDrive(true);
       
-      // Redirect to dashboard after a delay
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+      // Don't redirect, just show success message
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -83,15 +84,15 @@ export default function SharedLinkPage() {
       
       // Create detailed success message with blockchain info
       let successMessage = `🎉 Payment Successful!\n\n`;
-      successMessage += `📄 Content: ${result.sharedLink.title}\n`;
-      successMessage += `💰 Amount: ${formatPrice(result.transaction.amount)}\n`;
-      successMessage += `📋 Receipt: ${result.transaction.receiptNumber}\n\n`;
+      successMessage += `�� Content: ${result.transactionData.sharedLink.title}\n`;
+      successMessage += `💰 Amount: ${formatPrice(result.transactionData.transaction.amount)}\n`;
+      successMessage += `📋 Receipt: ${result.transactionData.transaction.receiptNumber}\n\n`;
       
-      if (result.paymentDetails) {
+      if (result.transactionData.paymentDetails) {
         successMessage += `🔗 Blockchain Details:\n`;
-        successMessage += `• Network: ${result.paymentDetails.network}\n`;
-        successMessage += `• Transaction: ${result.paymentDetails.transaction.slice(0, 20)}...\n`;
-        successMessage += `• Status: ${result.paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
+        successMessage += `• Network: ${result.transactionData.paymentDetails.network}\n`;
+        successMessage += `• Transaction: ${result.transactionData.paymentDetails.transaction.slice(0, 20)}...\n`;
+        successMessage += `• Status: ${result.transactionData.paymentDetails.success ? 'Confirmed' : 'Pending'}\n\n`;
         successMessage += `View full details in your transaction history.`;
       }
       
@@ -175,7 +176,7 @@ export default function SharedLinkPage() {
     );
   }
 
-  const { link, canAccess, requiresPayment, requiresAuth, alreadyPaid } = linkData;
+  const { link, canAccess, requiresPayment, requiresAuth, alreadyPaid, isOwner } = linkData;
 
   return (
     <div className="min-h-screen bg-white relative">
@@ -228,6 +229,11 @@ export default function SharedLinkPage() {
                 {link.type === 'public' ? '🌐 Public' : '💰 Monetized'}
                 {link.type === 'monetized' && link.price && ` - ${formatPrice(link.price)}`}
               </span>
+              {isOwner && (
+                <span className="ml-2 px-3 py-1 bg-amber-200 border-2 border-black brutal-shadow-center font-freeman inline-block">
+                  👤 You are the owner
+                </span>
+              )}
             </div>
 
             {/* Success Message */}
@@ -246,8 +252,23 @@ export default function SharedLinkPage() {
 
             {/* Access Controls */}
             <div className="space-y-4">
+              {/* Owner View */}
+              {isOwner && (
+                <div className="bg-white border-2 border-black brutal-shadow-left p-6">
+                  <p className="font-freeman mb-4">
+                    You created this shared link. You can manage it from your shared links dashboard.
+                  </p>
+                  <Link
+                    href="/shared-links"
+                    className="block w-full text-center bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all"
+                  >
+                    Go to Shared Links
+                  </Link>
+                </div>
+              )}
+
               {/* Public Link - Can Access */}
-              {canAccess && link.type === 'public' && (
+              {!isOwner && canAccess && link.type === 'public' && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6">
                   <p className="font-freeman mb-4">
                     This content is freely available. Click below to add it to your drive.
@@ -269,33 +290,33 @@ export default function SharedLinkPage() {
                   ) : (
                     <button
                       onClick={handleAddToDrive}
-                      disabled={isProcessing}
+                      disabled={isProcessing || addedToDrive}
                       className="w-full bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
+                      {isProcessing ? 'Adding to Drive...' : addedToDrive ? 'Added to Drive ✓' : 'Add to My Drive'}
                     </button>
                   )}
                 </div>
               )}
 
               {/* Monetized Link - Already Paid */}
-              {canAccess && link.type === 'monetized' && alreadyPaid && (
+              {!isOwner && canAccess && link.type === 'monetized' && alreadyPaid && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6">
                   <div className="font-freeman mb-4">
                     ✅ You have already purchased this content
                   </div>
                   <button
                     onClick={handleAddToDrive}
-                    disabled={isProcessing}
+                    disabled={isProcessing || addedToDrive}
                     className="w-full bg-primary border-2 border-black brutal-shadow-left px-6 py-3 font-freeman hover:translate-x-1 hover:translate-y-1 hover:brutal-shadow-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isProcessing ? 'Adding to Drive...' : 'Add to My Drive'}
+                    {isProcessing ? 'Adding to Drive...' : addedToDrive ? 'Added to Drive ✓' : 'Add to My Drive'}
                   </button>
                 </div>
               )}
 
               {/* Monetized Link - Requires Auth */}
-              {requiresPayment && requiresAuth && (
+              {!isOwner && requiresPayment && requiresAuth && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6 text-center">
                   <p className="font-freeman mb-4">
                     🔒 This content requires payment to access
@@ -313,7 +334,7 @@ export default function SharedLinkPage() {
               )}
 
               {/* Monetized Link - Can Pay */}
-              {requiresPayment && !requiresAuth && session && (
+              {!isOwner && requiresPayment && !requiresAuth && session && (
                 <div className="bg-white border-2 border-black brutal-shadow-left p-6">
                   <p className="font-freeman mb-2">
                     💳 Payment Required

@@ -1,9 +1,10 @@
 'use client';
 
 import { useApp } from '@/app/context/AppContext';
-import { createFolder, deleteItem, getBreadcrumbPath, getItem, getItemsByParentId, uploadItem } from '@/app/lib/frontend/explorerFunctions';
+import { createFolder, deleteItem, getBreadcrumbPath, getItem, uploadItem } from '@/app/lib/frontend/explorerFunctions';
 import { BreadcrumbItem, CreateFolderOptions, Item, UploadOptions } from '@/app/lib/types';
-import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useCallback, useEffect, useState } from 'react';
 import CreateListingModal from '../CreateListingModal';
 import Loader from '../global/Loader';
 import CreateSharedLinkModal from '../SharedLinks/CreateSharedLinkModal';
@@ -17,7 +18,8 @@ interface FileExplorerProps {
 }
 
 export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
-  const { user, isLoadingUser, showNotification } = useApp();
+  const { showNotification } = useApp();
+  const { data: session, status } = useSession();
   const [currentFolder, setCurrentFolder] = useState<Item | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
@@ -28,6 +30,9 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedItemForSharing, setSelectedItemForSharing] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
   
   const [pagination, setPagination] = useState({
     current: 1,
@@ -39,84 +44,62 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     nextCursor: null as string | null,
     limit: 20
   });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
 
+  // Load root folder when session is ready
   useEffect(() => {
-    async function loadRootFolder() {
-      if (!user || !user.rootFolder) return;
-      
-      setIsLoading(true);
+    if (!session?.user?.rootFolder || currentFolder) return;
+
+    const loadRootFolder = async () => {
       try {
-        const root = await getItem(user.rootFolder);
-        setCurrentFolder(root);
-        const response = await getItemsByParentId(root._id, {
-          page: 1,
-          limit: itemsPerPage
-        });
-        
-        const sortedItems = response.items.sort((a, b) => {
-
-          if (a.type === 'folder' && b.type === 'file') return -1;
-          if (a.type === 'file' && b.type === 'folder') return 1;
-          
-          // Then sort by date (newest first)
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-
-        setItems(sortedItems);
-        setPagination(response.pagination);
-        setCurrentPage(1);
-        setBreadcrumbs([]);
+        const rootFolder = await getItem(session.user.rootFolder!);
+        setCurrentFolder(rootFolder);
       } catch (error) {
-        console.error('Failed to load root folder:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error loading root folder:', error);
+        showNotification('Failed to load root folder', 'error');
       }
-    }
-
-    loadRootFolder();
-  }, [user, itemsPerPage]);
-
-  const loadFolderContents = async (page: number = 1) => {
-    if (!currentFolder || !user) return;
+    };
     
-    setIsLoading(true);
-    try {
-      const response = await getItemsByParentId(currentFolder._id, {
-        page,
-        limit: itemsPerPage
-      });
-      
-      const sortedItems = response.items.sort((a, b) => {
-        // First, separate folders and files
-        if (a.type === 'folder' && b.type === 'file') return -1;
-        if (a.type === 'file' && b.type === 'folder') return 1;
-        
-        // Then sort by date (newest first)
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+    loadRootFolder();
+  }, [session?.user?.rootFolder]);
 
-      setItems(sortedItems);
-      setPagination(response.pagination);
-      setCurrentPage(page);
-      
-      if (page === 1) {
-        const path = await getBreadcrumbPath(currentFolder._id);
-        setBreadcrumbs(path);
+  const loadFolderContents = useCallback(async (page: number = currentPage) => {
+    if (!currentFolder?._id) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`/api/items?parentId=${currentFolder._id}&page=${page}&limit=${itemsPerPage}`);
+      if (!response.ok) {
+        throw new Error('Failed to load folder contents');
       }
-    } catch (error) {
-      console.error('Failed to load folder contents:', error);
+      const data = await response.json();
+      setItems(data.items);
+      const breadcrumbsPath = await getBreadcrumbPath(currentFolder._id);
+      setBreadcrumbs(breadcrumbsPath);
+      setPagination(prev => ({
+        ...prev,
+        current: page,
+        total: Math.ceil(data.totalItems / itemsPerPage),
+        count: data.items.length,
+        totalItems: data.totalItems,
+        hasNextPage: page * itemsPerPage < data.totalItems,
+        hasPreviousPage: page > 1,
+        nextCursor: data.nextCursor
+      }));
+      setCurrentPage(page);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load folder contents');
+      console.error('Error loading folder contents:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentFolder?._id, itemsPerPage]);
 
   useEffect(() => {
-    if (currentFolder) {
-      loadFolderContents(1);
+    if (currentFolder?._id) {
+      loadFolderContents(currentPage);
     }
-  }, [currentFolder, user]);
+  }, [currentFolder?._id, currentPage, loadFolderContents]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.total) {
@@ -136,7 +119,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     }
   };
 
-  if (isLoadingUser) {
+  if (status === 'loading') {
     return (
       <div className='flex justify-center items-center mt-10'>
         <Loader />
@@ -144,7 +127,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
     );
   }
 
-  if (!user) {
+  if (!session?.user) {
     return <div>Please log in to view your files.</div>;
   }
 
@@ -197,9 +180,10 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
   const handleBack = async () => {
     if (currentFolder && breadcrumbs.length > 0) {
       const parentBreadcrumb = breadcrumbs[breadcrumbs.length - 2];
+
       
-      if (!parentBreadcrumb && user?.rootFolder) {
-        const root = await getItem(user.rootFolder);
+      if (!parentBreadcrumb && session?.user.rootFolder) {
+        const root = await getItem(session.user.rootFolder);
         setCurrentFolder(root);
       } else if (parentBreadcrumb) {
         const parentFolder = await getItem(parentBreadcrumb.id);
@@ -210,7 +194,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
 
   const handleCreateFolder = async (options: CreateFolderOptions) => {
     try {
-      const parentId = currentFolder?._id || user?.rootFolder;
+      const parentId = currentFolder?._id || (session.user.rootFolder ?? null);
       
       await createFolder({
         ...options,
@@ -373,7 +357,7 @@ export const FileExplorer = ({ compact = false }: FileExplorerProps) => {
         isOpen={isCreateFolderModalOpen}
         onClose={() => setIsCreateFolderModalOpen(false)}
         onCreateFolder={handleCreateFolder}
-        parentId={currentFolder?._id || user.rootFolder}
+        parentId={currentFolder?._id || (session.user.rootFolder ?? null)}
       />
 
       <UploadModal
